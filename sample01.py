@@ -1,8 +1,8 @@
 import sys
 import numpy as np
 # coding: utf-8
-# ©•ª‚Ì“¾ˆÓ‚ÈŒ¾Œê‚Å
-# Let's ƒ`ƒƒƒŒƒ“ƒWII
+# è‡ªåˆ†ã®å¾—æ„ãªè¨€èªã§
+# Let's ãƒãƒ£ãƒ¬ãƒ³ã‚¸ï¼ï¼
 
 def solve(inputs):
     cur = 0
