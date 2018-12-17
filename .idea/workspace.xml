@@ -2,19 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="69881cfb-0234-460e-b246-cce4cea2b89f" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/input1.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/input2.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/input4.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd_2.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd_3_cumsum.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd_4.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd_5.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/paiza/rankS007/input1.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/paiza/rankS007/input2.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/paiza/rankS007/rankS007.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sample01.py" beforeDir="false" afterPath="$PROJECT_DIR$/sample01.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/contest.code-workspace" beforeDir="false" afterPath="$PROJECT_DIR$/contest.code-workspace" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -64,53 +52,62 @@
         </counts>
       </usages-collector>
     </session>
+    <session id="1972869887">
+      <usages-collector id="statistics.lifecycle.project">
+        <counts>
+          <entry key="project.closed" value="1" />
+          <entry key="project.open.time.0" value="1" />
+          <entry key="project.opened" value="1" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.extensions.open">
+        <counts>
+          <entry key="py" value="2" />
+          <entry key="txt" value="2" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.types.open">
+        <counts>
+          <entry key="PLAIN_TEXT" value="2" />
+          <entry key="Python" value="2" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.extensions.edit">
+        <counts>
+          <entry key="py" value="802" />
+          <entry key="txt" value="4" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.types.edit">
+        <counts>
+          <entry key="PLAIN_TEXT" value="4" />
+          <entry key="Python" value="802" />
+        </counts>
+      </usages-collector>
+    </session>
+  </component>
+  <component name="FavoritesManager">
+    <favorites_list name="Study_ProgrammingContests" />
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/paiza/rankS007/rankS007.py">
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/AtCoder/BeginnerContest108/Q_D_PathLength/solver2.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="464">
-              <caret line="32" column="23" selection-start-line="32" selection-start-column="23" selection-end-line="32" selection-end-column="23" />
+            <state relative-caret-position="672">
+              <caret line="42" column="18" lean-forward="true" selection-start-line="42" selection-start-column="18" selection-end-line="42" selection-end-column="18" />
               <folding>
-                <element signature="e#0#10#0" expanded="true" />
+                <marker date="1536421239786" expanded="true" signature="408:532" ph="..." />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd.cpp">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="357">
-              <caret line="54" lean-forward="true" selection-start-line="54" selection-end-line="54" />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd_2.py">
+        <entry file="file://$PROJECT_DIR$/AtCoder/BeginnerContest108/Q_D_PathLength/input1.txt">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-27">
-              <caret line="30" column="34" lean-forward="true" selection-start-line="30" selection-start-column="34" selection-end-line="30" selection-end-column="34" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/input1.txt">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="64">
-              <caret line="4" lean-forward="true" selection-start-line="4" selection-end-line="4" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/paiza/rankS007/input2.txt">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="16">
-              <caret line="1" selection-start-line="1" selection-end-line="1" />
+            <state>
+              <caret column="2" selection-start-column="2" selection-end-column="2" />
             </state>
           </provider>
         </entry>
@@ -156,12 +153,14 @@
         <option value="$PROJECT_DIR$/paiza/rankS007/rankS007.py" />
         <option value="$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/input1.txt" />
         <option value="$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd.cpp" />
+        <option value="$PROJECT_DIR$/AtCoder/BeginnerContest108/Q_D_PathLength/input1.txt" />
+        <option value="$PROJECT_DIR$/AtCoder/BeginnerContest108/Q_D_PathLength/solver2.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="32767" />
-    <option name="y" value="32767" />
+    <option name="x" value="-61" />
+    <option name="y" value="100" />
     <option name="width" value="1940" />
     <option name="height" value="1100" />
   </component>
@@ -173,36 +172,49 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
             <path>
-              <item name="ProgrammingContest" type="b2602c69:ProjectViewProjectNode" />
-              <item name="ProgrammingContest" type="462c0819:PsiDirectoryNode" />
+              <item name="Study_ProgrammingContests" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Study_ProgrammingContests" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="ProgrammingContest" type="b2602c69:ProjectViewProjectNode" />
-              <item name="ProgrammingContest" type="462c0819:PsiDirectoryNode" />
+              <item name="Study_ProgrammingContests" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Study_ProgrammingContests" type="462c0819:PsiDirectoryNode" />
               <item name="AtCoder" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="ProgrammingContest" type="b2602c69:ProjectViewProjectNode" />
-              <item name="ProgrammingContest" type="462c0819:PsiDirectoryNode" />
+              <item name="Study_ProgrammingContests" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Study_ProgrammingContests" type="462c0819:PsiDirectoryNode" />
               <item name="AtCoder" type="462c0819:PsiDirectoryNode" />
               <item name="BegginerContest032" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="ProgrammingContest" type="b2602c69:ProjectViewProjectNode" />
-              <item name="ProgrammingContest" type="462c0819:PsiDirectoryNode" />
+              <item name="Study_ProgrammingContests" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Study_ProgrammingContests" type="462c0819:PsiDirectoryNode" />
               <item name="AtCoder" type="462c0819:PsiDirectoryNode" />
               <item name="BegginerContest032" type="462c0819:PsiDirectoryNode" />
               <item name="Q_D_knapsack" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="Study_ProgrammingContests" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Study_ProgrammingContests" type="462c0819:PsiDirectoryNode" />
+              <item name="AtCoder" type="462c0819:PsiDirectoryNode" />
+              <item name="BeginnerContest108" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="Study_ProgrammingContests" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Study_ProgrammingContests" type="462c0819:PsiDirectoryNode" />
+              <item name="AtCoder" type="462c0819:PsiDirectoryNode" />
+              <item name="BeginnerContest108" type="462c0819:PsiDirectoryNode" />
+              <item name="Q_D_PathLength" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -280,15 +292,15 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="32767" y="32767" width="1940" height="1100" extended-state="0" />
+    <frame x="-61" y="100" width="1940" height="1100" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.1787592" />
-      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
-      <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49837664" visible="true" weight="0.1787592" />
+      <window_info id="Structure" order="1" sideWeight="0.5016234" side_tool="true" weight="0.1787592" />
+      <window_info id="Favorites" order="2" sideWeight="0.5016234" side_tool="true" weight="0.1787592" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.3290993" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.3478261" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -301,6 +313,25 @@
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
     </layout>
+    <layout-to-restore>
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.1787592" />
+      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.3290993" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="Version Control" order="7" />
+      <window_info anchor="bottom" id="Terminal" order="8" visible="true" weight="0.4057971" />
+      <window_info anchor="bottom" id="Event Log" order="9" side_tool="true" />
+      <window_info anchor="bottom" id="Python Console" order="10" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+    </layout-to-restore>
   </component>
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
@@ -361,13 +392,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd_5.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="336">
-          <caret line="21" column="18" lean-forward="true" selection-start-line="21" selection-start-column="18" selection-end-line="21" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd_3_cumsum.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="112">
@@ -392,41 +416,10 @@
     <entry file="file://$PROJECT_DIR$/paiza/rankS007/input1.txt">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/paiza/rankS007/rankS007.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="464">
-          <caret line="32" column="23" selection-start-line="32" selection-start-column="23" selection-end-line="32" selection-end-column="23" />
-          <folding>
-            <element signature="e#0#10#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/input2.txt">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="496">
           <caret line="31" selection-start-line="31" selection-end-line="31" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/paiza/rankS007/input2.txt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="16">
-          <caret line="1" selection-start-line="1" selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/input1.txt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="64">
-          <caret line="4" lean-forward="true" selection-start-line="4" selection-end-line="4" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd_2.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-27">
-          <caret line="30" column="34" lean-forward="true" selection-start-line="30" selection-start-column="34" selection-end-line="30" selection-end-column="34" />
         </state>
       </provider>
     </entry>
@@ -437,10 +430,68 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/paiza/rankS007/rankS007.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="464">
+          <caret line="32" column="23" selection-start-line="32" selection-start-column="23" selection-end-line="32" selection-end-column="23" />
+          <folding>
+            <element signature="e#0#10#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd_2.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="464">
+          <caret line="30" column="34" selection-start-line="30" selection-start-column="34" selection-end-line="30" selection-end-column="34" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/input1.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="64">
+          <caret line="4" selection-start-line="4" selection-end-line="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/paiza/rankS007/input2.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="16">
+          <caret line="1" selection-start-line="1" selection-end-line="1" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="357">
-          <caret line="54" lean-forward="true" selection-start-line="54" selection-end-line="54" />
+        <state relative-caret-position="405">
+          <caret line="48" selection-start-line="48" selection-end-line="48" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/AtCoder/BegginerContest032/Q_D_knapsack/qd_5.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret selection-end-line="41" />
+          <folding>
+            <element signature="e#0#10#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/AtCoder/BeginnerContest108/Q_D_PathLength/input1.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret column="2" selection-start-column="2" selection-end-column="2" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/AtCoder/BeginnerContest108/Q_D_PathLength/solver2.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="672">
+          <caret line="42" column="18" lean-forward="true" selection-start-line="42" selection-start-column="18" selection-end-line="42" selection-end-column="18" />
+          <folding>
+            <marker date="1536421239786" expanded="true" signature="408:532" ph="..." />
+          </folding>
         </state>
       </provider>
     </entry>
