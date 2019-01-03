@@ -26,33 +26,22 @@ def get_bin_value(np_b_ary):
     return ret_val
 
 
-def get_hash_value(pos, _is_visited, _is_dangerous):
+def get_hash_value(pos, _is_visited):
     pos_val = pos
     is_visited_val = get_bin_value(_is_visited)
-    is_dangerous_val = get_bin_value(_is_dangerous)
-    ret_val = (is_dangerous_val << 10) | (is_visited_val << 3) | pos_val
+    ret_val = (is_visited_val << 9) | pos_val
     return ret_val
 
 
-def get_next_hash_with_invert(src_hash, dest_pos_idx):
-    is_visited_map   = ((src_hash>>3) & 127)
-    is_dangerous_map = ((src_hash>>10) & 127)
+def get_next_hash(src_hash, dest_pos_idx):
+    is_visited_map   = ((src_hash>>9) & 127)
     is_visited_map   |= (1 << dest_pos_idx)
-    is_dangerous_map = (is_dangerous_map ^ (127 << (dest_pos_idx + 1)) & 127)
-    ret_val = (is_dangerous_map << 10) | (is_visited_map << 3) | dest_pos_idx
+    ret_val = (is_visited_map << 9) | dest_pos_idx
     return ret_val
-
-
-def is_dangerous(hash_value, pos):
-    is_dangerous_map = hash_value>>10
-    if is_dangerous_map & (0x1<<pos):
-        return True
-    else:
-        return False
 
 
 def get_pos_idx(hash_value):
-    return hash_value & 7
+    return hash_value & 511
 
 
 def is_all_visited(hash_value, pos_num):
@@ -65,12 +54,12 @@ def is_all_visited(hash_value, pos_num):
 
 
 class Dijkstra(object):
-    # S013用のダイクストラ法。
-    # is_visited, is_dangerous を pos として扱うため、変形版。
+    # Q_C Blue Bird 用のダイクストラ法。
+    # is_visited を pos として扱うため、変形版。
     def dijkstra_s013(self, pos_num, is_dangerous_init, cost_fwd, cost_bak):
 
         is_visited_init = np.zeros(pos_num)
-        start_hash = get_hash_value(pos_num - 1, is_visited_init, is_dangerous_init)
+        start_hash = get_hash_value(pos_num - 1, is_visited_init)
 
         cost = {} # 始点から各頂点までの最短距離を格納する
         prev = {} # 最短経路における，その頂点の前の頂点のIDを格納する
@@ -102,12 +91,11 @@ class Dijkstra(object):
             for dest_pos_idx in range(pos_num):
                 if dest_pos_idx != cur_pos:
                     next_cost = cost_fwd if cur_pos < dest_pos_idx else cost_bak
-                    if not is_dangerous(src_hash, dest_pos_idx):
-                        dest_hash = get_next_hash_with_invert(src_hash, dest_pos_idx)
-                        if (dest_hash not in cost) or (cost[src_hash] + next_cost < cost[dest_hash]):
-                            cost[dest_hash] = cost[src_hash] + next_cost  # costの更新
-                            heapq.heappush(q, (cost[dest_hash], dest_hash))  # キューに新たな仮の距離の情報をpush
-                            prev[dest_hash] = src_hash  # 前の頂点を記録
+                    dest_hash = get_next_hash_with_invert(src_hash, dest_pos_idx)
+                    if (dest_hash not in cost) or (cost[src_hash] + next_cost < cost[dest_hash]):
+                        cost[dest_hash] = cost[src_hash] + next_cost  # costの更新
+                        heapq.heappush(q, (cost[dest_hash], dest_hash))  # キューに新たな仮の距離の情報をpush
+                        prev[dest_hash] = src_hash  # 前の頂点を記録
 
 
 def solve(inputs):
