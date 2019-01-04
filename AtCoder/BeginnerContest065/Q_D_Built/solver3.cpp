@@ -87,9 +87,6 @@ static inline SDWORD inputSDWORD(void)
 
 
 #define MAX_CITY_NUM    (100000)
-#define CITY_ARY_LEN    (MAX_CITY_NUM)
-static DWORD s_adwCityPosX[CITY_ARY_LEN];
-static DWORD s_adwCityPosY[CITY_ARY_LEN];
 
 /* インデックス付きソート */
 typedef std::pair<DWORD,DWORD> ipair;
@@ -103,42 +100,61 @@ static void sort_with_idx(vector<ipair> &y)
 
 #define DIST_INF (MAX_DWORD)
 
+typedef pair<DWORD, DWORD> dist_info;
 
-// ">" のオーバーロード numを基準に大小比較を行う
-class city_info {
-public:
-    DWORD dwDist;
-    DWORD dwIdx;
-    city_info(DWORD dwDist, DWORD dwIdx) {
-        this->dwDist = dwDist;
-        this->dwIdx = dwIdx;
-    }
-};
+typedef priority_queue<dist_info, vector<dist_info>,
+                         std::greater<dist_info> > pqDistInfo;
 
-bool operator> (const city_info &city1, const city_info &city2){
-    return city1.dwDist > city2.dwDist;
-};
+static M_BOOL abIsUsed[MAX_CITY_NUM];
+static pqDistInfo mincost;
+static vector<ipair> xpos(MAX_CITY_NUM);
+static vector<ipair> ypos(MAX_CITY_NUM);
+static DWORD adwIdxListX[MAX_CITY_NUM];
+static DWORD adwIdxListY[MAX_CITY_NUM];
 
-typedef priority_queue<city_info, vector<city_info>,
-                         std::greater<city_info> > pqCityInfo;
-
-/* priority queue に (dist, idx) を放り込む */
-static void gen_mincost_queue(vector<ipair> &pos, pqCityInfo &dist)
+static void add_neighbor_dist(
+    vector<ipair> &sorted_pos, 
+    DWORD *pdwIdxList, 
+    DWORD dwIdx)
 {
-    DWORD dwPrevPos = 0;
-    DWORD dwDist;
-    M_BOOL  bFirst = M_TRUE;
-    for (vector<ipair>::iterator it = pos.begin(); it != pos.end(); ++it) {
-        if (bFirst) {
-            dwDist = DIST_INF;
-            bFirst = M_FALSE;
-        } else {
-            dwDist = it->second - dwPrevPos;
+    DWORD dwVectorIdx = *(pdwIdxList + dwIdx);
+
+    if (0 == dwVectorIdx) {
+        DWORD dwNodeIdx = sorted_pos[dwVectorIdx + 1].first;
+        if (!abIsUsed[dwNodeIdx]) {
+            DWORD dwDist = sorted_pos[dwVectorIdx + 1].second
+                             - sorted_pos[dwVectorIdx].second;
+            mincost.push(dist_info(dwDist, dwNodeIdx));
         }
-        dwPrevPos = it->second;
-        printf("push priority queue : [%d %d]\n", dwDist, it->first);
-        dist.push(city_info(dwDist, it->first));
+    } else if (sorted_pos.size() - 1 == dwVectorIdx) {
+        DWORD dwNodeIdx = sorted_pos[dwVectorIdx - 1].first;
+        if (!abIsUsed[dwNodeIdx]) {
+            DWORD dwDist = sorted_pos[dwVectorIdx].second
+                            - sorted_pos[dwVectorIdx - 1].second;
+            mincost.push(dist_info(dwDist, dwNodeIdx));
+        }
+    } else {
+        DWORD dwNodeIdx1 = sorted_pos[dwVectorIdx + 1].first;
+        DWORD dwNodeIdx2 = sorted_pos[dwVectorIdx - 1].first;
+        if (!abIsUsed[dwNodeIdx1]) {
+            DWORD dwDist1 = sorted_pos[dwVectorIdx + 1].second
+                             - sorted_pos[dwVectorIdx].second;
+            mincost.push(dist_info(dwDist1, dwNodeIdx1));
+        }
+        if (!abIsUsed[dwNodeIdx2]) {
+            DWORD dwDist2 = sorted_pos[dwVectorIdx].second
+                             - sorted_pos[dwVectorIdx - 1].second;
+            mincost.push(dist_info(dwDist2, dwNodeIdx2));
+        }
     }
+}
+
+static void add_node_to_network(
+    DWORD dwNodeIdx)
+{
+    abIsUsed[dwNodeIdx] = M_TRUE;
+    add_neighbor_dist(xpos, adwIdxListX, dwNodeIdx);
+    add_neighbor_dist(ypos, adwIdxListY, dwNodeIdx);
 }
 
 int main()
@@ -147,58 +163,46 @@ int main()
 
     dwInput_N = inputSDWORD();
 
-    using namespace std;
-
-    //インデックスと共にペアに突っ込む
-    std::vector<ipair> xpos;
-    std::vector<ipair> ypos;
 
     for (DWORD dwIdx = 0; dwIdx < dwInput_N; dwIdx++) {
         DWORD dwInput_x = inputSDWORD();
         DWORD dwInput_y = inputSDWORD(); 
-        xpos.push_back(ipair(dwIdx, dwInput_x));
-        ypos.push_back(ipair(dwIdx, dwInput_y));
+        xpos[dwIdx] = ipair(dwIdx, dwInput_x);
+        ypos[dwIdx] = ipair(dwIdx, dwInput_y);
     }
+    xpos.resize(dwInput_N);
+    ypos.resize(dwInput_N);
     sort_with_idx(xpos);
     sort_with_idx(ypos);
 
-    pqCityInfo x_dist_list;
-    pqCityInfo y_dist_list;
-
-    gen_mincost_queue(xpos, x_dist_list);
-    gen_mincost_queue(ypos, y_dist_list);
+    for (DWORD dwIdx = 0; dwIdx < dwInput_N; dwIdx++) {
+        adwIdxListX[xpos[dwIdx].first] = dwIdx; 
+        adwIdxListY[ypos[dwIdx].first] = dwIdx;
+    }
 
     /* Initialize */
-    M_BOOL abIsUsed[MAX_CITY_NUM];
     for (DWORD dwIdx = 0; dwIdx < ArrayLength(abIsUsed); dwIdx++) {
         abIsUsed[dwIdx] = M_FALSE;
     }
 
-    while(1) {
-        /* search minimum cost node */
-        city_info y_nearest(0, 0);
-        y_nearest = y_dist_list.top();
-        printf("y: %d %d\n", y_nearest.dwDist, y_nearest.dwIdx);
-        y_dist_list.pop();
+    /* 頂点0だけを登録 */
+    add_node_to_network(0);
 
-        if (y_dist_list.empty()) {
-            break;
+    DWORD dwTotalCost = 0;
+    DWORD dwTotalNodeNum = 1;
+
+    while (1) {     
+        dist_info new_node = mincost.top();
+        mincost.pop();
+
+        if (!abIsUsed[new_node.second]) {
+            add_node_to_network(new_node.second);
+            dwTotalCost += new_node.first;
+            dwTotalNodeNum++;
+            if (dwTotalNodeNum == dwInput_N) {
+                break;
+            }
         }
     }
-
-#if 1   
-    printf("-------------\n");
-    while (1) {
-        city_info x_nearest(0, 0);
-        x_nearest = x_dist_list.top();
-        printf("x: %d %d\n", x_nearest.dwDist, x_nearest.dwIdx);
-        x_dist_list.pop();
-        if (x_dist_list.empty()) {
-            break;
-        }
-    }
-#endif
-
-
-    printf("\n");
+    printf("%d\n", dwTotalCost);
 }
