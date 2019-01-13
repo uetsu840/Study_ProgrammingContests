@@ -97,83 +97,14 @@ static inline SDWORD inputSDWORD(void)
     }
 }
 
-#define MAX_NUMBER_NUM      (200000)
-#define MAX_NUMBER_ARY_LEN  (MAX_NUMBER_NUM + 2)
-static DWORD s_dwInput_N;
-static DWORD s_adwInput_A[MAX_NUMBER_ARY_LEN];
-static QWORD s_aqwCumSum[MAX_NUMBER_ARY_LEN];
-static QWORD s_aqwCumXor[MAX_NUMBER_ARY_LEN];
-
-
-static QWORD getPartXor(DWORD dwI, DWORD dwJ)
-{
-    return s_aqwCumXor[dwJ] ^ s_aqwCumXor[dwI];
-}
-
-static QWORD getPartSum(DWORD dwI, DWORD dwJ)
-{
-    return (s_aqwCumSum[dwJ] - s_aqwCumSum[dwI]);
-}
-
-static bool isXorSumEqual(DWORD dwI, DWORD dwJ)
-{
-    if (getPartXor(dwI, dwJ) == getPartSum(dwI, dwJ)) {
-        return true;
-    }
-    return false;
-}
-
-
-static SQWORD binarySearch(bool (*pfJudge)(DWORD, DWORD), SQWORD sqInitLower, SQWORD sqInitUpper, DWORD dwI)
-{
-    SQWORD sqUb = sqInitUpper;
-    SQWORD sqLb = sqInitLower;
-
-    while (1LL < sqUb - sqLb) {
-        SQWORD sqMid = (sqUb + sqLb) / 2LL;
-        if (pfJudge(dwI, (DWORD)sqMid)) {
-            sqLb = sqMid;
-        } else {
-            sqUb = sqMid;
-        }
-    }
-    return sqUb;
-}
-
-
-static DWORD solve(void)
-{
-    QWORD qwSum = 0;
-    for (DWORD dwI = 0; dwI < s_dwInput_N; dwI++) {
-        DWORD dwJ = binarySearch(isXorSumEqual, (SQWORD)dwI, (SQWORD)s_dwInput_N+1, dwI);
-        qwSum += (QWORD)(dwJ - dwI - 1);
-    }
-    printf("%lld\n", qwSum);
-    return 0;
-}
-
 
 int main()
 {
-    s_dwInput_N = inputSDWORD();
+    DWORD dwInput_N;
 
-    QWORD qwCurCumSum = 0LL;
-    QWORD qwCurXor = 0;
+    dwInput_N = inputSDWORD();
 
-    s_aqwCumSum[0] = 0LL;
-    s_aqwCumXor[0] = 0;
+    printf("%d\n", dwInput_N);
 
-    for (DWORD dwIdx = 1; dwIdx <= s_dwInput_N; dwIdx++) {
-        s_adwInput_A[dwIdx] = inputSDWORD();
-        qwCurCumSum += (QWORD)(s_adwInput_A[dwIdx]);
-        qwCurXor    ^= (QWORD)(s_adwInput_A[dwIdx]);
-
-        s_aqwCumSum[dwIdx] = qwCurCumSum;
-        s_aqwCumXor[dwIdx] = qwCurXor;
-    }
-    s_aqwCumSum[s_dwInput_N+1] = qwCurCumSum;
-    s_aqwCumXor[s_dwInput_N+1] = qwCurXor;
-    
-    solve();
     return 0;
 }

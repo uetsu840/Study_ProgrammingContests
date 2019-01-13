@@ -97,83 +97,87 @@ static inline SDWORD inputSDWORD(void)
     }
 }
 
-#define MAX_NUMBER_NUM      (200000)
-#define MAX_NUMBER_ARY_LEN  (MAX_NUMBER_NUM + 2)
-static DWORD s_dwInput_N;
-static DWORD s_adwInput_A[MAX_NUMBER_ARY_LEN];
-static QWORD s_aqwCumSum[MAX_NUMBER_ARY_LEN];
-static QWORD s_aqwCumXor[MAX_NUMBER_ARY_LEN];
-
-
-static QWORD getPartXor(DWORD dwI, DWORD dwJ)
-{
-    return s_aqwCumXor[dwJ] ^ s_aqwCumXor[dwI];
-}
-
-static QWORD getPartSum(DWORD dwI, DWORD dwJ)
-{
-    return (s_aqwCumSum[dwJ] - s_aqwCumSum[dwI]);
-}
-
-static bool isXorSumEqual(DWORD dwI, DWORD dwJ)
-{
-    if (getPartXor(dwI, dwJ) == getPartSum(dwI, dwJ)) {
-        return true;
-    }
-    return false;
-}
-
-
-static SQWORD binarySearch(bool (*pfJudge)(DWORD, DWORD), SQWORD sqInitLower, SQWORD sqInitUpper, DWORD dwI)
-{
-    SQWORD sqUb = sqInitUpper;
-    SQWORD sqLb = sqInitLower;
-
-    while (1LL < sqUb - sqLb) {
-        SQWORD sqMid = (sqUb + sqLb) / 2LL;
-        if (pfJudge(dwI, (DWORD)sqMid)) {
-            sqLb = sqMid;
-        } else {
-            sqUb = sqMid;
-        }
-    }
-    return sqUb;
-}
-
-
-static DWORD solve(void)
-{
-    QWORD qwSum = 0;
-    for (DWORD dwI = 0; dwI < s_dwInput_N; dwI++) {
-        DWORD dwJ = binarySearch(isXorSumEqual, (SQWORD)dwI, (SQWORD)s_dwInput_N+1, dwI);
-        qwSum += (QWORD)(dwJ - dwI - 1);
-    }
-    printf("%lld\n", qwSum);
-    return 0;
-}
-
+#define MAX_POINTS  (200000)
+static bool s_abIsIncluded[MAX_POINTS + 1];
 
 int main()
 {
-    s_dwInput_N = inputSDWORD();
+    DWORD dwInput_N;
+    DWORD dwInput_M;
 
-    QWORD qwCurCumSum = 0LL;
-    QWORD qwCurXor = 0;
+    dwInput_N = inputSDWORD();
+    dwInput_M = inputSDWORD();
 
-    s_aqwCumSum[0] = 0LL;
-    s_aqwCumXor[0] = 0;
+    static vector<pair<DWORD, DWORD>> avEdges[MAX_POINTS + 1];
+    static vector<DWORD> vAnswer;
 
-    for (DWORD dwIdx = 1; dwIdx <= s_dwInput_N; dwIdx++) {
-        s_adwInput_A[dwIdx] = inputSDWORD();
-        qwCurCumSum += (QWORD)(s_adwInput_A[dwIdx]);
-        qwCurXor    ^= (QWORD)(s_adwInput_A[dwIdx]);
-
-        s_aqwCumSum[dwIdx] = qwCurCumSum;
-        s_aqwCumXor[dwIdx] = qwCurXor;
+    for (DWORD dwIdx = 0; dwIdx < ArrayLength(s_abIsIncluded); dwIdx++) {
+        s_abIsIncluded[dwIdx] = false;
     }
-    s_aqwCumSum[s_dwInput_N+1] = qwCurCumSum;
-    s_aqwCumXor[s_dwInput_N+1] = qwCurXor;
+
+    bool bIsFirst = true;
+    DWORD dwEndA, dwEndB;
+    for (DWORD dwIdx = 0; dwIdx < dwInput_M; dwIdx++) {
+        DWORD dwInput_A = inputSDWORD();
+        DWORD dwInput_B = inputSDWORD();
+
+        pair<DWORD, DWORD> EdgeA(dwInput_A, dwInput_B);
+        pair<DWORD, DWORD> EdgeB(dwInput_B, dwInput_A);
+
+        if (bIsFirst) {
+            vAnswer.push_back(EdgeA.first);
+            vAnswer.push_back(EdgeA.second);
+            dwEndA = dwInput_A;
+            dwEndB = dwInput_B;
+            s_abIsIncluded[dwEndA] = true;
+            s_abIsIncluded[dwEndB] = true;
+            bIsFirst = false;
+        }
+
+        avEdges[dwInput_A].push_back(EdgeA);
+        avEdges[dwInput_B].push_back(EdgeB);
+    }
+
+    while(1) {
+        bool bAdded = false;
+        for (vector<pair<DWORD, DWORD>>::iterator it = avEdges[dwEndA].begin(); 
+                it != avEdges[dwEndA].end(); 
+                ++it) {
+            if (!s_abIsIncluded[it->second]) {
+                vAnswer.insert(vAnswer.begin(), it->second);
+                dwEndA = it->second;
+                s_abIsIncluded[it->second] = true;
+                bAdded = true;
+                break;
+            }
+        }
+
+        for (vector<pair<DWORD, DWORD>>::iterator it = avEdges[dwEndB].begin(); 
+                it != avEdges[dwEndB].end(); 
+                ++it) {
+//            printf("add B [%d %d]\n", it->first, it->second);
+            if (!s_abIsIncluded[it->second]) {
+                vAnswer.push_back(it->second);
+                dwEndB = it->second;
+                s_abIsIncluded[it->second] = true;
+                bAdded = true;
+                break;
+            }
+        }
+
+        if (!bAdded) {
+            break;
+        }
+    }
     
-    solve();
+    printf("%d\n", vAnswer.size());
+    for (vector<DWORD>::iterator it = vAnswer.begin(); it != vAnswer.end(); ++it) {
+        printf("%d", *it);
+        if (it != vAnswer.end() - 1) {
+            printf(" ");
+        }
+    }
+    printf("\n");
+
     return 0;
 }
