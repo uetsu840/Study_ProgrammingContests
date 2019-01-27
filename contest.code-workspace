@@ -38,7 +38,9 @@
             "typeinfo": "cpp",
             "utility": "cpp",
             "numeric": "cpp",
-            "cstddef": "cpp"
+            "cstddef": "cpp",
+            "unordered_set": "cpp",
+            "algorithm": "cpp"
         }
 	}
 }
