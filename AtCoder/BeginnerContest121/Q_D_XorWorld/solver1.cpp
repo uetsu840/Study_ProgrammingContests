@@ -155,73 +155,45 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-/* 入力 */
-typedef struct {
-    SDWORD  lIdx;
-    SDWORD  lType;
-    SDWORD  lDel;
-} SUSHI_ONE_ST;
-
-#define MAX_SUSHI_NUM      (100000)
-
-bool operator< (const SUSHI_ONE_ST &a, const SUSHI_ONE_ST &b)
+static SQWORD calcZeroToNumXor(SQWORD sqNum)
 {
-    return a.lDel < b.lDel;
-}
-
-static vector<SUSHI_ONE_ST> s_vSushiSubstituteCandidate;
-static vector<SUSHI_ONE_ST> s_avSushiNotUsed[MAX_SUSHI_NUM + 1];
-static vector<SUSHI_ONE_ST> s_vSushiNotUsedChange;
-
-int main()
-{   
-    SDWORD  lInput_N = inputSDWORD();
-    SDWORD  lInput_K = inputSDWORD();
-
-    vector<SUSHI_ONE_ST> vInput;
-    for (SDWORD lIdx = 0; lIdx < lInput_N; lIdx++) {
-        SUSHI_ONE_ST  stSushi;
-        stSushi.lIdx  = lIdx; 
-        stSushi.lType = inputSDWORD();
-        stSushi.lDel  = inputSDWORD();
-
-        vInput.emplace_back(stSushi); 
-    }
-
-    /* K個を貪欲に選択する */
-    static bool s_abIsTypeSelected[MAX_SUSHI_NUM + 1];
-    static SDWORD s_alCounts[MAX_SUSHI_NUM + 1];
-    SQWORD  sqTotalPnt = 0;
-    SDWORD  lKindNum = 0;
-    sort(vInput.begin(), vInput.end());
-    for (SDWORD lIdx = 0; lIdx < vInput.size(); lIdx++) {
-        SDWORD lType = vInput[lIdx].lType;
-        SDWORD lPos = s_alCounts[vInput[lIdx].lType];
-        s_alCounts[vInput[lIdx].lType]++;
-        if (lIdx < lInput_K) {
-            sqTotalPnt += (SQWORD)vInput[lIdx].lDel;
-            if (s_abIsTypeSelected[lType]) {
-                s_vSushiSubstituteCandidate.emplace_back(vInput[lIdx]);
-            } else {
-                s_abIsTypeSelected[lType] = true;
-                lKindNum++;
+    SQWORD sqRet = 0;
+    for (DWORD dwBit = 1; dwBit < 64; dwBit++) {
+        SQWORD sqMask = 0x1LL << dwBit;
+        if (sqMask & sqNum) {
+            if (0 == (sqNum & 0x1)) {
+                sqRet |= sqMask;
             }
-        } else {
-            s_avSushiNotUsed[lType].emplace_back(vInput[lIdx]);
         }
     }
 
-    /* 交換候補もソートする */
-    sort(s_vSushiSubstituteCandidate.begin(), s_vSushiSubstituteCandidate.end());
-
-    /* 使われていない寿司の先頭だけを取り出す */
-    for (SDWORD lIdx = 0; lIdx < ArrayLength(s_vSushiSubstituteCandidate); lIdx++) {
-        sort(s_avSushiNotUsed[lIdx].begin(),
-                s_avSushiNotUsed[lIdx].end());
-        s_vSushiNotUsedChange.emplace_back(s_avSushiNotUsed[lIdx][0]);
+    /* lowest bit */
+    if ((sqNum % 4 == 1) || (sqNum % 4 == 2)) {
+        sqRet |= 1;
     }
 
-    printf("first K : [%lld]\n", sqTotalPnt);
-    
+    return sqRet;
+}
+
+
+
+int main()
+{
+    SQWORD sqInput_A = inputSQWORD();
+    SQWORD sqInput_B = inputSQWORD();
+
+    SQWORD sqAns;
+    if (sqInput_A == sqInput_B) {
+        sqAns = sqInput_A;
+    } else if (0 == sqInput_A) {
+        sqAns = calcZeroToNumXor(sqInput_B);
+    } else {
+        SQWORD sqXorA = calcZeroToNumXor(sqInput_A - 1);
+        SQWORD sqXorB = calcZeroToNumXor(sqInput_B);
+
+        sqAns = (sqXorA ^ sqXorB);
+    }
+    printf("%lld\n", sqAns);
+
     return 0;
 }
