@@ -156,31 +156,31 @@ static inline DOUBLE inputFP(void)
 }
 
 
+#define MAX_STR_LEN     (100000)
+static char s_aInput[MAX_STR_LEN + 1];
+static DWORD s_adwCharCnt[27];
+
+#define NUM_ALPHABETS   (27)
+#define ANS_MOD         (1000000007)
+
+
 int main()
 {
     SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_Y = inputSQWORD();
+    inputString(s_aInput);
 
-    SDWORD lTarget_Y = sqInput_Y / 1000;
+    for (DWORD dwIdx = 0; dwIdx < sqInput_N; dwIdx++) {
+        char c = s_aInput[dwIdx];
+        s_adwCharCnt[((DWORD)c - (DWORD)'a')]++;
+    }
 
-    bool bFound = false;
-    for (SDWORD lCnt_1K = 0; lCnt_1K <= sqInput_N; lCnt_1K++) {
-        for (SDWORD lCnt_5K = 0; lCnt_5K <= sqInput_N - lCnt_1K; lCnt_5K++) {
-            SDWORD lCnt_10K = sqInput_N - (lCnt_1K + lCnt_5K);
-
-            if (lCnt_1K + 5 * lCnt_5K + 10 * lCnt_10K == lTarget_Y) {
-                printf("%d %d %d\n", lCnt_10K, lCnt_5K, lCnt_1K);
-                bFound = true;
-                break;
-            }
-        }
-        if (bFound) {
-            break;
+    SQWORD sqAns = 1;
+    for (DWORD dwIdx = 0; dwIdx < NUM_ALPHABETS; dwIdx++) {
+        if (0 < s_adwCharCnt[dwIdx]) {
+            sqAns = (sqAns * ((SQWORD)s_adwCharCnt[dwIdx] + 1)) % ANS_MOD;
         }
     }
-    if (!bFound) {
-        printf("-1 -1 -1\n");
-    }
+    printf("%lld\n", (sqAns - 1) % ANS_MOD);
 
     return 0;
 }

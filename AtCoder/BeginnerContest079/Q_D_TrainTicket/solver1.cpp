@@ -156,30 +156,53 @@ static inline DOUBLE inputFP(void)
 }
 
 
+static void printOp(bool bIsMinus) {
+    if (bIsMinus) {
+        printf("-");
+    } else {
+        printf("+");
+    }
+}
+
 int main()
 {
-    SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_Y = inputSQWORD();
+    SQWORD sqInput_N = inputSDWORD();
 
-    SDWORD lTarget_Y = sqInput_Y / 1000;
+    SDWORD dwValD = sqInput_N % 10;
+    sqInput_N /= 10;
+    SDWORD dwValC = sqInput_N % 10;
+    sqInput_N /= 10;
+    SDWORD dwValB = sqInput_N % 10;
+    sqInput_N /= 10;
+    SDWORD dwValA = sqInput_N % 10;
 
-    bool bFound = false;
-    for (SDWORD lCnt_1K = 0; lCnt_1K <= sqInput_N; lCnt_1K++) {
-        for (SDWORD lCnt_5K = 0; lCnt_5K <= sqInput_N - lCnt_1K; lCnt_5K++) {
-            SDWORD lCnt_10K = sqInput_N - (lCnt_1K + lCnt_5K);
 
-            if (lCnt_1K + 5 * lCnt_5K + 10 * lCnt_10K == lTarget_Y) {
-                printf("%d %d %d\n", lCnt_10K, lCnt_5K, lCnt_1K);
-                bFound = true;
-                break;
-            }
+    for (DWORD dwOpMap = 0; dwOpMap < 7; dwOpMap++) {
+        SDWORD lValTmpA = dwValA;
+        SDWORD lValTmpB = dwValB;
+        SDWORD lValTmpC = dwValC;
+        SDWORD lValTmpD = dwValD;
+
+        if (dwOpMap & 0x1) {
+            lValTmpB *= -1;
         }
-        if (bFound) {
+        if (dwOpMap & 0x2) {
+            lValTmpC *= -1;
+        }
+        if (dwOpMap & 0x4) {
+            lValTmpD *= -1;
+        }
+        if (lValTmpA + lValTmpB + lValTmpC + lValTmpD == 7) {
+            printf("%d", dwValA);
+            printOp(dwOpMap & 0x1);
+            printf("%d", dwValB);
+            printOp(dwOpMap & 0x2);
+            printf("%d", dwValC);
+            printOp(dwOpMap & 0x4);
+            printf("%d", dwValD);
+            printf("=7\n");
             break;
         }
-    }
-    if (!bFound) {
-        printf("-1 -1 -1\n");
     }
 
     return 0;

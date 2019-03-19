@@ -155,32 +155,51 @@ static inline DOUBLE inputFP(void)
     }
 }
 
+/**
+ * 提出版
+ * 
+ * a-z の各アルファベットの数から n 種類のアルファベットを取り出した組み合わせは、
+ * 取り出した個数の乗算になる。 
+ * (1つのアルファベットを2文字取り出すことはない)
+ * 
+ * n番目のアルファベットに着目して、そのアルファベットを
+ * 加えた場合の組み合わせを足す。
+ * 1文字だけの文字列は、アルファベットの個数。
+ * ほかの文字との組み合わせは、それまでの組み合わせに個数を掛けたもの。
+ * 
+ * → 提出してAC。実際には、式ははるかに簡単にできる。。。
+ * 
+ */
+
+
+
+#define MAX_STR_LEN     (100000)
+static char s_aInput[MAX_STR_LEN + 1];
+static DWORD s_adwCharCnt[27];
+
+#define NUM_ALPHABETS   (27)
+#define ANS_MOD         (1000000007)
+
 
 int main()
 {
     SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_Y = inputSQWORD();
+    inputString(s_aInput);
 
-    SDWORD lTarget_Y = sqInput_Y / 1000;
-
-    bool bFound = false;
-    for (SDWORD lCnt_1K = 0; lCnt_1K <= sqInput_N; lCnt_1K++) {
-        for (SDWORD lCnt_5K = 0; lCnt_5K <= sqInput_N - lCnt_1K; lCnt_5K++) {
-            SDWORD lCnt_10K = sqInput_N - (lCnt_1K + lCnt_5K);
-
-            if (lCnt_1K + 5 * lCnt_5K + 10 * lCnt_10K == lTarget_Y) {
-                printf("%d %d %d\n", lCnt_10K, lCnt_5K, lCnt_1K);
-                bFound = true;
-                break;
-            }
-        }
-        if (bFound) {
-            break;
-        }
+    for (DWORD dwIdx = 0; dwIdx < sqInput_N; dwIdx++) {
+        char c = s_aInput[dwIdx];
+        s_adwCharCnt[((DWORD)c - (DWORD)'a')]++;
     }
-    if (!bFound) {
-        printf("-1 -1 -1\n");
+
+    SQWORD sqAns = 0;
+    for (DWORD dwIdx = 0; dwIdx < NUM_ALPHABETS; dwIdx++) {
+        if (0 < s_adwCharCnt[dwIdx]) {
+            SQWORD sqMul = (sqAns * (SQWORD)s_adwCharCnt[dwIdx]) % ANS_MOD;
+            sqAns = (sqMul + sqAns) % ANS_MOD;
+        }
+        sqAns = (sqAns + (SQWORD)s_adwCharCnt[dwIdx]) % ANS_MOD;
     }
+    printf("%lld\n", sqAns);
 
     return 0;
 }

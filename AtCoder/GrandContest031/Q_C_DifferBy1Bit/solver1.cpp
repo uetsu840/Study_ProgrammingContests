@@ -158,29 +158,44 @@ static inline DOUBLE inputFP(void)
 
 int main()
 {
-    SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_Y = inputSQWORD();
+    SDWORD lInput_N = inputSDWORD();
+    SDWORD lInput_A = inputSDWORD();
+    SDWORD lInput_B = inputSDWORD();
 
-    SDWORD lTarget_Y = sqInput_Y / 1000;
-
-    bool bFound = false;
-    for (SDWORD lCnt_1K = 0; lCnt_1K <= sqInput_N; lCnt_1K++) {
-        for (SDWORD lCnt_5K = 0; lCnt_5K <= sqInput_N - lCnt_1K; lCnt_5K++) {
-            SDWORD lCnt_10K = sqInput_N - (lCnt_1K + lCnt_5K);
-
-            if (lCnt_1K + 5 * lCnt_5K + 10 * lCnt_10K == lTarget_Y) {
-                printf("%d %d %d\n", lCnt_10K, lCnt_5K, lCnt_1K);
-                bFound = true;
-                break;
-            }
-        }
-        if (bFound) {
-            break;
+    SDWORD lXor = lInput_A ^ lInput_B;
+    DWORD dwXorCnt = 0;
+    for (DWORD dwBit = 0; dwBit < lInput_N; dwBit++) {
+        DWORD dwMask = 0x1 << dwBit;
+        if (lXor & dwMask) {
+            dwXorCnt++;
         }
     }
-    if (!bFound) {
-        printf("-1 -1 -1\n");
+    if (0 != (lXor % 2)) {
+        printf("NO\n");
+        return 0;
     }
+    printf("YES\n");
+
+    vector<SDWORD> veclAns;
+    SDWORD lCurVal = lInput_A;
+    veclAns.emplace_back(lCurVal);
+    for (DWORD dwBit = 0; dwBit < DWORD_BITS; dwBit++) {
+        DWORD dwMask = 0x1 << dwBit;
+        if (lXor & dwMask) {
+            lCurVal ^= dwMask;
+            veclAns.emplace_back(lCurVal);
+        }
+    }
+
+    for (DWORD dwIdx = veclAns.size(); dwIdx < (0x1<<lInput_N); dwIdx++) {
+        lCurVal ^= 1;
+        veclAns.emplace_back(lCurVal);
+    }
+
+    for (auto it = veclAns.begin(); it != veclAns.end() - 1; ++it) {
+        printf("%d ", *it);
+    }
+    printf("%d\n", *(veclAns.end() - 1));
 
     return 0;
 }

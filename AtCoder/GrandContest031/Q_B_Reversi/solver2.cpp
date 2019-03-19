@@ -156,31 +156,50 @@ static inline DOUBLE inputFP(void)
 }
 
 
+#define MAX_STONES  (200000)
+#define MAX_COLOR   (200000)
+static SQWORD s_asqLeftCnt[MAX_COLOR + 1];
+static SQWORD s_asqLastIdx[MAX_STONES + 1];
+static SQWORD s_asqCumSum[MAX_STONES + 1];
+#define ANS_MOD         (1000000007)
+
+
 int main()
 {
     SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_Y = inputSQWORD();
+    SQWORD sqCumSumCur = 0;
+    SQWORD sqLastColor = 0;
+    for (SQWORD sqIdx = 1; sqIdx <= sqInput_N; sqIdx++) {
+        SQWORD sqColor = inputSQWORD();
 
-    SDWORD lTarget_Y = sqInput_Y / 1000;
+        if (sqLastColor != sqColor) {
+            if (0 < s_asqLastIdx[sqColor]) {
+                SQWORD sqPairIdx = s_asqLastIdx[sqColor];
+//                SQWORD sqPairIncrease = s_asqCumSum[sqPairIdx] + 1;
+                SQWORD sqPairIncrease = s_asqLeftCnt[sqColor] + 1;
+//                printf("idx[%lld] p: color[%lld], pair[%lld], inc[%lld]\n", sqIdx, sqColor, sqPairIdx, sqPairIncrease);
 
-    bool bFound = false;
-    for (SDWORD lCnt_1K = 0; lCnt_1K <= sqInput_N; lCnt_1K++) {
-        for (SDWORD lCnt_5K = 0; lCnt_5K <= sqInput_N - lCnt_1K; lCnt_5K++) {
-            SDWORD lCnt_10K = sqInput_N - (lCnt_1K + lCnt_5K);
-
-            if (lCnt_1K + 5 * lCnt_5K + 10 * lCnt_10K == lTarget_Y) {
-                printf("%d %d %d\n", lCnt_10K, lCnt_5K, lCnt_1K);
-                bFound = true;
-                break;
+                s_asqCumSum[sqIdx] = (s_asqCumSum[sqIdx - 1] + sqPairIncrease) % ANS_MOD;
+                s_asqLeftCnt[sqColor] = (s_asqLeftCnt[sqColor] + s_asqCumSum[sqIdx]) % ANS_MOD;
+//                printf("  sum[%lld], left[%lld]\n", s_asqCumSum[sqIdx], s_asqLeftCnt[sqColor]);
+            } else {
+                s_asqCumSum[sqIdx] = s_asqCumSum[sqIdx - 1];
+                s_asqLeftCnt[sqColor] = s_asqCumSum[sqIdx];
+//                printf("idx[%lld]\n", sqIdx);
+//                printf("  sum[%lld], left[%lld]\n", s_asqCumSum[sqIdx], s_asqLeftCnt[sqColor]);
             }
+            /* update last idx */
+            s_asqLastIdx[sqColor] = sqIdx;
+        } else {
+            s_asqCumSum[sqIdx] = s_asqCumSum[sqIdx - 1];
+            s_asqLeftCnt[sqColor] = s_asqCumSum[sqIdx];
+//            printf("idx[%lld]\n", sqIdx);
+//            printf("  sum[%lld], left[%lld]\n", s_asqCumSum[sqIdx], s_asqLeftCnt[sqColor]);
         }
-        if (bFound) {
-            break;
-        }
+
+        sqLastColor = sqColor;
     }
-    if (!bFound) {
-        printf("-1 -1 -1\n");
-    }
+    printf("%lld\n", s_asqCumSum[sqInput_N] + 1) % ANS_MOD;
 
     return 0;
 }

@@ -158,29 +158,19 @@ static inline DOUBLE inputFP(void)
 
 int main()
 {
-    SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_Y = inputSQWORD();
+    SQWORD sqInput_K = inputSQWORD();
+    SQWORD sqInput_S = inputSQWORD();
 
-    SDWORD lTarget_Y = sqInput_Y / 1000;
-
-    bool bFound = false;
-    for (SDWORD lCnt_1K = 0; lCnt_1K <= sqInput_N; lCnt_1K++) {
-        for (SDWORD lCnt_5K = 0; lCnt_5K <= sqInput_N - lCnt_1K; lCnt_5K++) {
-            SDWORD lCnt_10K = sqInput_N - (lCnt_1K + lCnt_5K);
-
-            if (lCnt_1K + 5 * lCnt_5K + 10 * lCnt_10K == lTarget_Y) {
-                printf("%d %d %d\n", lCnt_10K, lCnt_5K, lCnt_1K);
-                bFound = true;
-                break;
+    SQWORD sqAns = 0;
+    for (SQWORD sqX = 0; sqX <= sqInput_K; sqX++) {
+        for (SQWORD sqY = 0; sqY <= sqInput_K; sqY++) {
+            if ((sqX + sqY <= sqInput_S) && (sqInput_S - (sqX + sqY) <= sqInput_K)) {
+                sqAns++;
             }
         }
-        if (bFound) {
-            break;
-        }
     }
-    if (!bFound) {
-        printf("-1 -1 -1\n");
-    }
+
+    printf("%lld\n", sqAns);
 
     return 0;
 }

@@ -155,32 +155,41 @@ static inline DOUBLE inputFP(void)
     }
 }
 
+#define TIME_INF (100000000000LL)
+
+static SQWORD getCookTime(vector<SQWORD> vsqTime, DWORD dwMap, DWORD dwNumMeat)
+{
+    SQWORD sqTimeA = 0;
+    SQWORD sqTimeB = 0;
+
+    for (DWORD dwIdx = 0; dwIdx < dwNumMeat; dwIdx++) {
+        if ((0x1 << dwIdx) & dwMap) {
+            sqTimeA += vsqTime[dwIdx];
+        } else {
+            sqTimeB += vsqTime[dwIdx];
+        }
+    }
+    return max(sqTimeA, sqTimeB);
+}
 
 int main()
 {
     SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_Y = inputSQWORD();
 
-    SDWORD lTarget_Y = sqInput_Y / 1000;
+    vector<SQWORD> vsqTime;
 
-    bool bFound = false;
-    for (SDWORD lCnt_1K = 0; lCnt_1K <= sqInput_N; lCnt_1K++) {
-        for (SDWORD lCnt_5K = 0; lCnt_5K <= sqInput_N - lCnt_1K; lCnt_5K++) {
-            SDWORD lCnt_10K = sqInput_N - (lCnt_1K + lCnt_5K);
-
-            if (lCnt_1K + 5 * lCnt_5K + 10 * lCnt_10K == lTarget_Y) {
-                printf("%d %d %d\n", lCnt_10K, lCnt_5K, lCnt_1K);
-                bFound = true;
-                break;
-            }
-        }
-        if (bFound) {
-            break;
-        }
+    for (DWORD dwIdx = 0; dwIdx < sqInput_N; dwIdx++) {
+        SQWORD sqTime = inputSQWORD();
+        vsqTime.push_back(sqTime);
     }
-    if (!bFound) {
-        printf("-1 -1 -1\n");
-    }
+
+    DWORD dwSearchMax = (0x1 << sqInput_N) - 1;
+
+    SQWORD sqAns = TIME_INF; 
+    for (DWORD dwMap = 0; dwMap <= dwSearchMax; dwMap++) {
+        sqAns = min(sqAns, getCookTime(vsqTime, dwMap, sqInput_N));
+    }    
+    printf("%lld\n", sqAns);
 
     return 0;
 }

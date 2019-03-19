@@ -39,8 +39,9 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
-
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
+
+#define D_PI        ((DOUBLE)3.14159263357989)
 
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
 static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
@@ -155,32 +156,46 @@ static inline DOUBLE inputFP(void)
     }
 }
 
+static void printAngle(const char *str, DOUBLE dAngle)
+{
+    printf("%s %lf\n", str, dAngle * 180 / 3.14159265);
+}
+
+
 
 int main()
 {
+    DOUBLE dInput_A = (DOUBLE)inputSQWORD();
+    DOUBLE dInput_B = (DOUBLE)inputSQWORD();
     SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_Y = inputSQWORD();
 
-    SDWORD lTarget_Y = sqInput_Y / 1000;
+    for (DWORD dwIdx = 0; dwIdx < sqInput_N; dwIdx++) {
+        DOUBLE dInput_C = (DOUBLE)inputSQWORD();
+        DOUBLE dInput_D = (DOUBLE)inputSQWORD();
 
-    bool bFound = false;
-    for (SDWORD lCnt_1K = 0; lCnt_1K <= sqInput_N; lCnt_1K++) {
-        for (SDWORD lCnt_5K = 0; lCnt_5K <= sqInput_N - lCnt_1K; lCnt_5K++) {
-            SDWORD lCnt_10K = sqInput_N - (lCnt_1K + lCnt_5K);
+        DOUBLE dSqrHW = sqrt(dInput_A * dInput_A + dInput_B * dInput_B);
 
-            if (lCnt_1K + 5 * lCnt_5K + 10 * lCnt_10K == lTarget_Y) {
-                printf("%d %d %d\n", lCnt_10K, lCnt_5K, lCnt_1K);
-                bFound = true;
-                break;
+        if (dSqrHW < dInput_C) {
+            if (min(dInput_A, dInput_B) < dInput_D) {
+                printf("YES\n");
+            } else {
+                printf("NO\n");
+            }
+        } else {
+            DOUBLE dTheta1 = asin(dInput_C / dSqrHW) - atan(dInput_A / dInput_B);
+            DOUBLE dTheta2 = (D_PI - asin(dInput_C / dSqrHW)) - atan(dInput_A / dInput_B);
+            DOUBLE dTheta;
+            if ((0 <= dTheta1) && (dTheta1 <= (D_PI / 2))) {
+                dTheta = dTheta1;
+            } else {
+                dTheta = dTheta2;
+            }
+            if (dInput_A * sin(dTheta) + dInput_B * cos(dTheta) < dInput_D) {
+                printf("YES\n");
+            } else {
+                printf("NO\n");
             }
         }
-        if (bFound) {
-            break;
-        }
     }
-    if (!bFound) {
-        printf("-1 -1 -1\n");
-    }
-
     return 0;
 }

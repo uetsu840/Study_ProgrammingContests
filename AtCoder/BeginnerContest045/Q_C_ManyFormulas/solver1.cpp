@@ -156,31 +156,50 @@ static inline DOUBLE inputFP(void)
 }
 
 
-int main()
+static SQWORD calcSum(SQWORD sqInput, SQWORD sqSearchIdx) 
 {
-    SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_Y = inputSQWORD();
+    SQWORD sqSum = 0;
+    SQWORD sqMask = 10;
+    SQWORD sqPlusMask = sqSearchIdx;
+    SQWORD sqVal = sqInput;
 
-    SDWORD lTarget_Y = sqInput_Y / 1000;
-
-    bool bFound = false;
-    for (SDWORD lCnt_1K = 0; lCnt_1K <= sqInput_N; lCnt_1K++) {
-        for (SDWORD lCnt_5K = 0; lCnt_5K <= sqInput_N - lCnt_1K; lCnt_5K++) {
-            SDWORD lCnt_10K = sqInput_N - (lCnt_1K + lCnt_5K);
-
-            if (lCnt_1K + 5 * lCnt_5K + 10 * lCnt_10K == lTarget_Y) {
-                printf("%d %d %d\n", lCnt_10K, lCnt_5K, lCnt_1K);
-                bFound = true;
-                break;
+    for (;;) {
+        if (0 == sqPlusMask) {
+            sqSum += sqVal;
+            break;
+        } else {
+            if (sqPlusMask & 0x1) {
+                sqSum += sqVal % sqMask;
+                sqVal /= sqMask;
+                sqMask = 10;
+            } else {
+                sqMask *= 10;
             }
         }
-        if (bFound) {
-            break;
-        }
-    }
-    if (!bFound) {
-        printf("-1 -1 -1\n");
+        sqPlusMask >>= 1;
     }
 
-    return 0;
+    return sqSum;
+}
+
+int main()
+{
+    SQWORD sqInput_S = inputSQWORD();
+
+    SQWORD sqMask = 10;
+    SQWORD sqLimit = 0;
+    for (; sqLimit < 10; sqLimit++) {
+        if (sqInput_S < sqMask) {
+            break;
+        }
+        sqMask *= 10;
+    }
+
+    SQWORD sqSearchUpper = (0x1 << sqLimit);
+    SQWORD sqAns = 0;
+    for (SQWORD sqSearchIdx = 0; sqSearchIdx < sqSearchUpper; sqSearchIdx++) {
+        sqAns += calcSum(sqInput_S, sqSearchIdx);
+    }
+
+    printf("%lld\n", sqAns);
 }
