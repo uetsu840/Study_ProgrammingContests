@@ -156,27 +156,56 @@ static inline DOUBLE inputFP(void)
 }
 
 
+static DWORD cntDiffChar(char *pA, char *pB, DWORD dwLen)
+{
+    DWORD dwDiffCnt = 0;
+    for (DWORD dwIdx = 0; dwIdx < dwLen; dwIdx++) {
+        if (*(pA + dwIdx) != *(pB + dwIdx)) {
+            dwDiffCnt++;
+        }
+    }
+    return dwDiffCnt;
+}
+
 int main()
 {
-    static char acInput[11];
-    static char acAnswer[11];
+    static char acInput[101];
+    static char acInputSorted[101];
+    static char acInputOrg[101];
+    static char acAnswer[101];
+
+    SDWORD lInput_N = inputSDWORD();
+    SDWORD lInput_K = inputSDWORD();
 
     inputString(acInput);
 
-    for (DWORD dwIdx = 0; dwIdx < strlen(acInput); dwIdx++) {
-        if (acInput[dwIdx] == 'a') {
-            if (0 == dwIdx) {
-                acAnswer[dwIdx] = 'a';
-            } else {
-                printf("%s\n", acAnswer);
-                return 0;
+    memcpy(acInputSorted, acInput, lInput_N + 1);
+    memcpy(acInputOrg, acInput, lInput_N + 1);
+    sort(&(acInputSorted[0]), &(acInputSorted[lInput_N]));
+    
+    SDWORD lChangedCharCnt = 0;
+
+    for (DWORD dwIdx = 0; dwIdx < lInput_N; dwIdx++) {
+        if (acInputSorted[dwIdx] < acInput[dwIdx]) {
+            char acStrAfterChange[101];
+            memcpy(acStrAfterChange, acInput, lInput_N + 1);
+            char cChangedChar = acInputSorted[dwIdx];
+            char cOrgChar = acStrAfterChange[dwIdx];
+            char *pC = strchr(acStrAfterChange, cChangedChar);
+            if (dwIdx < pC - acStrAfterChange) {
+                acStrAfterChange[dwIdx] = cChangedChar;
+                *pC = cOrgChar;
+                if (cntDiffChar(acInputOrg, acStrAfterChange, lInput_N) <= lInput_K) {
+                    memcpy(acInput, acStrAfterChange, lInput_N);
+                }
+
             }
+
         } else {
-            acAnswer[dwIdx] = acInput[dwIdx] - 1;
-            printf("%s\n", acAnswer);
-            return 0;
+            acAnswer[dwIdx] = acInput[dwIdx];
         }
     }
-    printf("-1\n");
+
+    printf("%s\n", acInput);
     return 0;
 }

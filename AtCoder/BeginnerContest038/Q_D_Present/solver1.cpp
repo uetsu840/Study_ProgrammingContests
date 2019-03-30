@@ -156,27 +156,72 @@ static inline DOUBLE inputFP(void)
 }
 
 
-int main()
+static DWORD cntDiffChar(char *pA, char *pB, DWORD dwLen)
 {
-    static char acInput[11];
-    static char acAnswer[11];
-
-    inputString(acInput);
-
-    for (DWORD dwIdx = 0; dwIdx < strlen(acInput); dwIdx++) {
-        if (acInput[dwIdx] == 'a') {
-            if (0 == dwIdx) {
-                acAnswer[dwIdx] = 'a';
-            } else {
-                printf("%s\n", acAnswer);
-                return 0;
-            }
-        } else {
-            acAnswer[dwIdx] = acInput[dwIdx] - 1;
-            printf("%s\n", acAnswer);
-            return 0;
+    DWORD dwDiffCnt = 0;
+    for (DWORD dwIdx = 0; dwIdx < dwLen; dwIdx++) {
+        if (*(pA + dwIdx) != *(pB + dwIdx)) {
+            dwDiffCnt++;
         }
     }
-    printf("-1\n");
+    return dwDiffCnt;
+}
+
+
+bool vector_comp(const pair<int,int> &p1, const int v)
+{
+    if(p1.first<v)
+        return true;
+    else
+        return false;
+}
+
+#define MAX_N       (100000)
+int main()
+{
+    SDWORD lInput_N;
+
+    static vector<pair<SDWORD, SDWORD>> vlWidth;
+    static vector<pair<SDWORD, SDWORD>> vBoxes;
+
+    lInput_N = inputSDWORD();
+
+    for (SDWORD lIdx = 0; lIdx < lInput_N; lIdx++) {
+        SDWORD lWidth = inputSDWORD();
+        SDWORD lHeight = inputSDWORD();
+
+        vlWidth.emplace_back(make_pair(lWidth, lIdx));
+        vBoxes.emplace_back(make_pair(lWidth, lHeight));
+    }
+
+    sort(vlWidth.begin(), vlWidth.end());
+
+    static SDWORD s_alAns[MAX_N];
+
+    set<pair<SDWORD, SDWORD>>  setHeight;
+    s_alAns[0] = 1;
+    SDWORD lMaxBoxCnt = 1;
+    SDWORD lFirstBoxIdx = vlWidth[0].second;
+    printf("F %d %d\n", lFirstBoxIdx, vBoxes[lFirstBoxIdx].second);
+    setHeight.insert(make_pair(vBoxes[lFirstBoxIdx].second, 0));
+
+    for (SDWORD lIdx = 1; lIdx < lInput_N; lIdx++) {
+        SDWORD lCurBoxIdx = vlWidth[lIdx].second;
+        SDWORD lCurBoxHeight = vBoxes[lCurBoxIdx].second;
+
+        auto it = setHeight.lower_bound({lCurBoxHeight - 1, INFINITY});
+        if (it == setHeight.begin()) {
+            printf("B\n");
+            s_alAns[lIdx] = 1; 
+        } else {
+            SDWORD lPrevBoxIdx = it->second;
+            printf("M %d %d\n", it->first, it->second);
+            s_alAns[lIdx] = s_alAns[lPrevBoxIdx] + 1;
+        }
+        setHeight.insert(make_pair(vBoxes[lCurBoxIdx].second, lIdx));
+        lMaxBoxCnt = max(s_alAns[lIdx], lMaxBoxCnt);
+    }
+
+    printf("%d\n", lMaxBoxCnt);
     return 0;
 }

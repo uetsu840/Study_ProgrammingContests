@@ -156,27 +156,81 @@ static inline DOUBLE inputFP(void)
 }
 
 
-int main()
+static DWORD cntDiffChar(char *pA, char *pB, DWORD dwLen)
 {
-    static char acInput[11];
-    static char acAnswer[11];
-
-    inputString(acInput);
-
-    for (DWORD dwIdx = 0; dwIdx < strlen(acInput); dwIdx++) {
-        if (acInput[dwIdx] == 'a') {
-            if (0 == dwIdx) {
-                acAnswer[dwIdx] = 'a';
-            } else {
-                printf("%s\n", acAnswer);
-                return 0;
-            }
-        } else {
-            acAnswer[dwIdx] = acInput[dwIdx] - 1;
-            printf("%s\n", acAnswer);
-            return 0;
+    DWORD dwDiffCnt = 0;
+    for (DWORD dwIdx = 0; dwIdx < dwLen; dwIdx++) {
+        if (*(pA + dwIdx) != *(pB + dwIdx)) {
+            dwDiffCnt++;
         }
     }
-    printf("-1\n");
+    return dwDiffCnt;
+}
+
+struct ST_BOX {
+    SDWORD lIdx;
+    SDWORD lWidth;
+    SDWORD lHeight;
+};
+
+bool cmp(ST_BOX a, ST_BOX b)
+{
+    if (a.lWidth == b.lWidth) {
+        return (a.lHeight > b.lHeight);
+    }
+    return a.lWidth < b.lWidth;
+}
+
+
+#define HEIGHT_INF  (100000000)
+#define MAX_N       (100000)
+int main()
+{
+    SDWORD lInput_N;
+
+    static vector<ST_BOX> vBoxes;
+
+    lInput_N = inputSDWORD();
+
+    for (SDWORD lIdx = 0; lIdx < lInput_N; lIdx++) {
+        SDWORD lWidth = inputSDWORD();
+        SDWORD lHeight = inputSDWORD();
+
+        ST_BOX box;
+        box.lIdx = lIdx;
+        box.lHeight = lHeight;
+        box.lWidth = lWidth;
+
+        vBoxes.emplace_back(box);
+    }
+
+    sort(vBoxes.begin(), vBoxes.end(), cmp);
+
+    static SDWORD s_alMinHeight[MAX_N + 1];
+    for (DWORD dwIdx = 0; dwIdx < ArrayLength(s_alMinHeight); dwIdx++) {
+        s_alMinHeight[dwIdx] = HEIGHT_INF;
+    }
+
+    s_alMinHeight[0] = 0;
+    for (auto it: vBoxes) {
+        SDWORD lBoxIdx = it.lIdx;
+        SDWORD lHeight = it.lHeight;
+
+        auto bound = upper_bound(&s_alMinHeight[0], 
+                                &s_alMinHeight[MAX_N+1], 
+                                lHeight - 1);
+        SDWORD lNextBoxNum = (bound - s_alMinHeight - 1) + 1;
+//        printf("%d %d\n", lHeight, lNextBoxNum);
+        s_alMinHeight[lNextBoxNum] = min(s_alMinHeight[lNextBoxNum], lHeight);
+    }
+
+    SDWORD lMaxBoxNum = 0;
+    for (SDWORD lIdx = 0; lIdx < MAX_N+1; lIdx++) {
+        if (s_alMinHeight[lIdx] != HEIGHT_INF) {
+            lMaxBoxNum = lIdx;
+        }
+    }
+
+    printf("%d\n", lMaxBoxNum);
     return 0;
 }

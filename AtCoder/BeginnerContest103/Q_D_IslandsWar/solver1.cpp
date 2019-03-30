@@ -156,27 +156,51 @@ static inline DOUBLE inputFP(void)
 }
 
 
-int main()
+static DWORD cntDiffChar(char *pA, char *pB, DWORD dwLen)
 {
-    static char acInput[11];
-    static char acAnswer[11];
-
-    inputString(acInput);
-
-    for (DWORD dwIdx = 0; dwIdx < strlen(acInput); dwIdx++) {
-        if (acInput[dwIdx] == 'a') {
-            if (0 == dwIdx) {
-                acAnswer[dwIdx] = 'a';
-            } else {
-                printf("%s\n", acAnswer);
-                return 0;
-            }
-        } else {
-            acAnswer[dwIdx] = acInput[dwIdx] - 1;
-            printf("%s\n", acAnswer);
-            return 0;
+    DWORD dwDiffCnt = 0;
+    for (DWORD dwIdx = 0; dwIdx < dwLen; dwIdx++) {
+        if (*(pA + dwIdx) != *(pB + dwIdx)) {
+            dwDiffCnt++;
         }
     }
-    printf("-1\n");
+    return dwDiffCnt;
+}
+
+#define SDWORD_INF_P (1000000000)
+#define SDWORD_INF_N (-1000000000)
+int main()
+{
+    SDWORD lInput_N = inputSDWORD();
+    SDWORD lInput_M = inputSDWORD();
+
+    vector<pair<SDWORD, SDWORD>> vSeparateReq;
+    for (DWORD dwIdx = 0; dwIdx < lInput_M; dwIdx++) {
+        SDWORD lInput_A = inputSDWORD();
+        SDWORD lInput_B = inputSDWORD();
+
+        vSeparateReq.emplace_back(make_pair(lInput_A, lInput_B));
+    }
+
+    sort(vSeparateReq.begin(), vSeparateReq.end());
+
+    SDWORD lEastEnd = SDWORD_INF_N;
+    SDWORD lWestEnd = SDWORD_INF_P;
+    DWORD dwAns = 1;
+    for (auto it: vSeparateReq) {
+        lEastEnd = max(it.first, lEastEnd);
+        lWestEnd = min(it.second, lWestEnd);
+
+        if (lWestEnd <= lEastEnd) {
+            lEastEnd = it.first;
+            lWestEnd = it.second;
+            dwAns++;
+        }
+    }
+
+    
+
+
+    printf("%d\n", dwAns);
     return 0;
 }

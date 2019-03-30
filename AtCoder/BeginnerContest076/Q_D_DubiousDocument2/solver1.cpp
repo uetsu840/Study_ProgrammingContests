@@ -156,27 +156,63 @@ static inline DOUBLE inputFP(void)
 }
 
 
-int main()
+static DWORD cntDiffChar(char *pA, char *pB, DWORD dwLen)
 {
-    static char acInput[11];
-    static char acAnswer[11];
-
-    inputString(acInput);
-
-    for (DWORD dwIdx = 0; dwIdx < strlen(acInput); dwIdx++) {
-        if (acInput[dwIdx] == 'a') {
-            if (0 == dwIdx) {
-                acAnswer[dwIdx] = 'a';
-            } else {
-                printf("%s\n", acAnswer);
-                return 0;
-            }
-        } else {
-            acAnswer[dwIdx] = acInput[dwIdx] - 1;
-            printf("%s\n", acAnswer);
-            return 0;
+    DWORD dwDiffCnt = 0;
+    for (DWORD dwIdx = 0; dwIdx < dwLen; dwIdx++) {
+        if (*(pA + dwIdx) != *(pB + dwIdx)) {
+            dwDiffCnt++;
         }
     }
-    printf("-1\n");
+    return dwDiffCnt;
+}
+
+static bool isStrMatch(
+    const char *acInput1,
+    const char *acInput2,
+    SDWORD lLen) 
+{
+    for (SDWORD lIdx = 0; lIdx < lLen; lIdx++) {
+        if ('?' != acInput1[lIdx]) {
+            if (acInput1[lIdx] != acInput2[lIdx]) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+#define MAX_STR_LEN     (50)
+int main()
+{
+    char acInput_S[MAX_STR_LEN + 1];
+    char acInput_T[MAX_STR_LEN + 1];
+
+    inputString(acInput_S);
+    inputString(acInput_T);
+
+    SDWORD lLength_S = strlen(acInput_S);
+    SDWORD lLength_T = strlen(acInput_T);
+
+    bool bMatch = false;
+    for (SDWORD lIdx = lLength_S - lLength_T; 0 <= lIdx; lIdx--) {
+        if (isStrMatch(acInput_S + lIdx, acInput_T, lLength_T)) {
+            memcpy(acInput_S + lIdx, acInput_T, lLength_T);
+            bMatch = true;
+            break;
+        }
+    }
+    if (!bMatch) {
+        printf("UNRESTORABLE\n");
+        return 0;
+    }
+
+    for (SDWORD lIdx = 0; lIdx < lLength_S; lIdx++) {
+        if ('?' == acInput_S[lIdx]) {
+            acInput_S[lIdx] = 'a';
+        }
+    }
+
+    printf("%s\n", acInput_S);
     return 0;
 }

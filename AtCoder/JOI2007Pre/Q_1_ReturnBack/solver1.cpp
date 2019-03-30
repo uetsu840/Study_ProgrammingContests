@@ -156,27 +156,32 @@ static inline DOUBLE inputFP(void)
 }
 
 
-int main()
+static DWORD cntDiffChar(char *pA, char *pB, DWORD dwLen)
 {
-    static char acInput[11];
-    static char acAnswer[11];
-
-    inputString(acInput);
-
-    for (DWORD dwIdx = 0; dwIdx < strlen(acInput); dwIdx++) {
-        if (acInput[dwIdx] == 'a') {
-            if (0 == dwIdx) {
-                acAnswer[dwIdx] = 'a';
-            } else {
-                printf("%s\n", acAnswer);
-                return 0;
-            }
-        } else {
-            acAnswer[dwIdx] = acInput[dwIdx] - 1;
-            printf("%s\n", acAnswer);
-            return 0;
+    DWORD dwDiffCnt = 0;
+    for (DWORD dwIdx = 0; dwIdx < dwLen; dwIdx++) {
+        if (*(pA + dwIdx) != *(pB + dwIdx)) {
+            dwDiffCnt++;
         }
     }
-    printf("-1\n");
+    return dwDiffCnt;
+}
+
+static SDWORD s_alCoins[] = {500, 100, 50, 10, 5, 1};
+
+int main()
+{
+    SDWORD  lInput;
+
+    lInput = inputSDWORD();
+    SDWORD lRest = 1000 - lInput;
+    SDWORD lCoinCnt = 0;
+    for (DWORD dwIdx = 0; dwIdx < ArrayLength(s_alCoins); dwIdx++) {
+        DWORD dwCount = lRest / s_alCoins[dwIdx];
+        lRest -= dwCount * s_alCoins[dwIdx];
+
+        lCoinCnt += dwCount;
+    }
+    printf("%d\n", lCoinCnt);
     return 0;
 }

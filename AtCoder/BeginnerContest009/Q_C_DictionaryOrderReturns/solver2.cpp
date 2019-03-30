@@ -156,27 +156,66 @@ static inline DOUBLE inputFP(void)
 }
 
 
+static DWORD cntDiffChar(char *pA, char *pB, DWORD dwLen)
+{
+    DWORD dwDiffCnt = 0;
+    for (DWORD dwIdx = 0; dwIdx < dwLen; dwIdx++) {
+        if (*(pA + dwIdx) != *(pB + dwIdx)) {
+            dwDiffCnt++;
+        }
+    }
+    return dwDiffCnt;
+}
+
 int main()
 {
-    static char acInput[11];
-    static char acAnswer[11];
+    static char acInput[101];
+    static char acInputOrg[101];
+
+    SDWORD lInput_N = inputSDWORD();
+    SDWORD lInput_K = inputSDWORD();
 
     inputString(acInput);
 
-    for (DWORD dwIdx = 0; dwIdx < strlen(acInput); dwIdx++) {
-        if (acInput[dwIdx] == 'a') {
-            if (0 == dwIdx) {
-                acAnswer[dwIdx] = 'a';
-            } else {
-                printf("%s\n", acAnswer);
-                return 0;
+    memcpy(acInputOrg, acInput, lInput_N + 1);
+    
+    SDWORD lChangedCharCnt = 0;
+
+    for (DWORD dwIdx = 0; dwIdx < lInput_N - 1; dwIdx++) {
+        char acInputSorted[101];
+        DWORD dwRestStrLen = lInput_N - dwIdx - 1;
+        memcpy(acInputSorted, &(acInput[dwIdx+1]), dwRestStrLen + 1);
+        sort(&(acInputSorted[0]), &(acInputSorted[dwRestStrLen]));
+
+        if (acInputSorted[0] < acInput[dwIdx]) {
+            char acTmpString[101];
+            memcpy(acTmpString, acInput, sizeof(acInput));
+            char *pC = strrchr(&(acTmpString[dwIdx+1]), acInputSorted[0]);
+            char cChangeChar = *pC;
+            char cOrgChar = acTmpString[dwIdx];
+            *pC = cOrgChar;
+            acTmpString[dwIdx] = cChangeChar;
+//            printf(":%s :%s\n", acInputOrg, acTmpString);
+            if (cntDiffChar(acInputOrg, acTmpString, lInput_N) <= lInput_K) {
+                memcpy(acInput, acTmpString, lInput_N);
             }
-        } else {
-            acAnswer[dwIdx] = acInput[dwIdx] - 1;
-            printf("%s\n", acAnswer);
-            return 0;
         }
     }
-    printf("-1\n");
+
+    /* 改めてソートしなおす */
+    vector<SDWORD> vlDiffIdx;
+    vector<char> vcDiffChar;
+    for (DWORD dwIdx = 0; dwIdx < lInput_N; dwIdx++) {
+        if (acInput[dwIdx] != acInputOrg[dwIdx]) {
+            vlDiffIdx.emplace_back(dwIdx);
+            vcDiffChar.emplace_back(acInput[dwIdx]);
+        }
+    }
+    sort(vcDiffChar.begin(), vcDiffChar.end());
+    for (DWORD dwIdx = 0; dwIdx < vcDiffChar.size(); dwIdx++) {
+        acInput[vlDiffIdx[dwIdx]] = vcDiffChar[dwIdx];
+    }
+
+    printf("%s\n", acInput);
     return 0;
 }
