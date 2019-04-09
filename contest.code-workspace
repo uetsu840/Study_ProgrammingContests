@@ -40,7 +40,8 @@
             "numeric": "cpp",
             "cstddef": "cpp",
             "unordered_set": "cpp",
-            "algorithm": "cpp"
+            "algorithm": "cpp",
+            "bitset": "cpp"
         }
 	}
 }
