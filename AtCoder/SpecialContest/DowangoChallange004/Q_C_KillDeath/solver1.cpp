@@ -197,7 +197,7 @@ static SQWORD getPatternNum(
 
     /* exec dp */
     for (SQWORD sqMemIdx = 1; sqMemIdx < sqMemCount; sqMemIdx++) {
-//        printf("------------\n");
+        printf("------------\n");
         static SQWORD aasqNextDpTbl[MAX_KD_SUM+1][MAX_KD_NUM + 1];
         if (vsqKill[sqMemIdx] == vsqKill[sqMemIdx - 1]) {
             /* a[i] = a[i-1] */
@@ -217,7 +217,7 @@ static SQWORD getPatternNum(
                     }
 
                     aasqNextDpTbl[sqSum][sqLatest] = (sqNextDpTblPrev + sqDpTblAdd) % ANS_MOD;
-//                    printf("eq: %lld %lld: %lld\n", sqSum, sqLatest, aasqNextDpTbl[sqSum][sqLatest]);
+                    printf("eq: %lld %lld: %lld\n", sqSum, sqLatest, aasqNextDpTbl[sqSum][sqLatest]);
                 }
             }
         } else {
