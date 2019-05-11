@@ -155,85 +155,99 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-#define MAX_PNT (5000)
-#define MAX_NODE (1000)
 
-static vector<vector<SDWORD>> vvChilds(MAX_NODE + 1, vector<SDWORD>(0));
-static vector<SDWORD>  vlPnts(MAX_NODE + 1);
+#define ANS_MOD (1000000007LL)
 
-/* 自ノードを白で塗ったとする(反転しても結果は同じ) */
-typedef struct {
-    SQWORD  sqPntWhite;
-    SQWORD  sqPntBlack;
-} ST_PNTS;
+static SQWORD addMod(SQWORD x, SQWORD y)
+{ 
+    return (x + y) % ANS_MOD;
+}
 
-#define SDWORD_INF  (1000000000)
-
-static bool visitNode(SDWORD lNodeNo, ST_PNTS &stRet)
+static SQWORD subMod(SQWORD x, SQWORD y)
 {
-    vector<ST_PNTS> vstChildPnt; 
-    for (auto it: vvChilds[lNodeNo]) {
-        ST_PNTS stChildPnt;
-        if (!visitNode(it, stChildPnt)) {
-            return false;
-        }
-        vstChildPnt.emplace_back(stChildPnt);
-    }
+    return (x - y + ANS_MOD) % ANS_MOD;
+}
 
-    SDWORD lCurrentNodePnt = vlPnts[lNodeNo];
-    set<SDWORD> setPnts;
-    SDWORD lTtlPnt = 0;
-    setPnts.insert(0);
-    for (auto stChildPnt: vstChildPnt) {
-        set<SDWORD> setPntsNext;
-        for (auto lPnt: setPnts) {
-            SDWORD lPntB = lPnt + (SDWORD)stChildPnt.sqPntBlack;
-            SDWORD lPntW = lPnt + (SDWORD)stChildPnt.sqPntWhite;
-            if (lPntB <= lCurrentNodePnt) {
-                setPntsNext.insert(lPntB);
-            }
-            if (lPntW <= lCurrentNodePnt) {
-                setPntsNext.insert(lPntW);
-            }
-        }
-        lTtlPnt += (stChildPnt.sqPntBlack + stChildPnt.sqPntWhite);
-        swap(setPntsNext, setPnts);
-    }
+static SQWORD mulMod(SQWORD x, SQWORD y) 
+{
+    return (x * y) % ANS_MOD;
+}
 
-    if (0 == setPnts.size()) {
-        return false;
-    } else {
-        auto it = setPnts.end();
-        it--;
-        SDWORD lMaxPnt = *it;
-        stRet.sqPntWhite = lCurrentNodePnt;
-        stRet.sqPntBlack = lTtlPnt - lMaxPnt;
-        return true;
+static SQWORD powMod(SQWORD x, SQWORD e) {
+    SQWORD v = 1;
+    for (; e; x = mulMod(x, x), e >>= 1) {
+        if (e & 1) {
+            v = mulMod(v, x);
+        }
     }
+    return v;
+}
+
+static SQWORD divMod(SQWORD x, SQWORD y)
+{
+    return mulMod(x, powMod(y, ANS_MOD - 2));
+}
+
+
+static SQWORD combMod(SQWORD n, SQWORD k)
+{
+    SQWORD v=1;
+    for(SQWORD i=1; i<=k; i++) {
+        v = divMod(mulMod(v, n-i+1),i);
+    } 
+    return v;
+}
+
+/**
+ *  dp[i][j]    i番目の島を塗る際の塗り方。j=0:白、j=1:黒
+ * 
+ *      島がN個、橋はN-1個なので木構造になっていて、
+ *      すでに考慮済みの島に新たに別のパスができることはない。
+ */
+
+#define MAX_ISLANDS (100000)
+
+static bool abIsVisited[MAX_ISLANDS + 1];
+static SDWORD s_aalDpTbl[MAX_ISLANDS + 1][2];
+
+static void getPatternNum(
+    SDWORD lIslandNo, 
+    const vector<SDWORD> *pavlBridges)
+{
+    abIsVisited[lIslandNo] = true;
+    SQWORD sqNextPatternNoW = 1;
+    SQWORD sqNextPatternNoB = 1;
+
+//    printf("->%d\n", lIslandNo);
+
+    for (auto lConBridge: pavlBridges[lIslandNo]) {
+        if (!abIsVisited[lConBridge]) {
+            getPatternNum(lConBridge, pavlBridges);
+
+            SQWORD sqSumConBW = addMod(s_aalDpTbl[lConBridge][0], s_aalDpTbl[lConBridge][1]);
+            sqNextPatternNoW = mulMod(sqNextPatternNoW, sqSumConBW);
+
+            sqNextPatternNoB = mulMod(sqNextPatternNoB, s_aalDpTbl[lConBridge][0]);
+        }
+    }
+    s_aalDpTbl[lIslandNo][0] = sqNextPatternNoW;
+    s_aalDpTbl[lIslandNo][1] = sqNextPatternNoB;
 }
 
 int main()
 {
-    /* 順方向にDPをしてM個の商品の選び方を求める */
     SQWORD sqInput_N = inputSQWORD();
+    vector<SDWORD> avlBridges[MAX_ISLANDS + 1];
 
-    /* lpoint */
-    for (SDWORD lChild = 2; lChild <= sqInput_N; lChild++) {
-        SDWORD lParent = inputSDWORD();
+    for (SDWORD lIdx = 0; lIdx < sqInput_N-1; lIdx++) {
+        SDWORD lInput_a = inputSDWORD();
+        SDWORD lInput_b = inputSDWORD();
 
-        vvChilds[lParent].emplace_back(lChild);
-    }
-    for (SDWORD lNodeNo = 1; lNodeNo <= sqInput_N; lNodeNo++) {
-        SDWORD lPoint = inputSDWORD();
-        vlPnts[lNodeNo] = lPoint;
+        avlBridges[lInput_b].emplace_back(lInput_a);
+        avlBridges[lInput_a].emplace_back(lInput_b);
     }
 
-    ST_PNTS stPnt;
-    if (visitNode(1, stPnt)) {
-        printf("POSSIBLE\n");
-    } else {
-        printf("IMPOSSIBLE\n");
-    }
-
+    getPatternNum(1, avlBridges);
+    printf("%lld\n", addMod(s_aalDpTbl[1][0], s_aalDpTbl[1][1]));
     return 0;
 }

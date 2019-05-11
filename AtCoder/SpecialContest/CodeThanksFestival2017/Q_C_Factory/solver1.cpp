@@ -155,85 +155,97 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-#define MAX_PNT (5000)
-#define MAX_NODE (1000)
 
-static vector<vector<SDWORD>> vvChilds(MAX_NODE + 1, vector<SDWORD>(0));
-static vector<SDWORD>  vlPnts(MAX_NODE + 1);
+#define ANS_MOD (1000000007LL)
 
-/* 自ノードを白で塗ったとする(反転しても結果は同じ) */
-typedef struct {
-    SQWORD  sqPntWhite;
-    SQWORD  sqPntBlack;
-} ST_PNTS;
-
-#define SDWORD_INF  (1000000000)
-
-static bool visitNode(SDWORD lNodeNo, ST_PNTS &stRet)
-{
-    vector<ST_PNTS> vstChildPnt; 
-    for (auto it: vvChilds[lNodeNo]) {
-        ST_PNTS stChildPnt;
-        if (!visitNode(it, stChildPnt)) {
-            return false;
-        }
-        vstChildPnt.emplace_back(stChildPnt);
-    }
-
-    SDWORD lCurrentNodePnt = vlPnts[lNodeNo];
-    set<SDWORD> setPnts;
-    SDWORD lTtlPnt = 0;
-    setPnts.insert(0);
-    for (auto stChildPnt: vstChildPnt) {
-        set<SDWORD> setPntsNext;
-        for (auto lPnt: setPnts) {
-            SDWORD lPntB = lPnt + (SDWORD)stChildPnt.sqPntBlack;
-            SDWORD lPntW = lPnt + (SDWORD)stChildPnt.sqPntWhite;
-            if (lPntB <= lCurrentNodePnt) {
-                setPntsNext.insert(lPntB);
-            }
-            if (lPntW <= lCurrentNodePnt) {
-                setPntsNext.insert(lPntW);
-            }
-        }
-        lTtlPnt += (stChildPnt.sqPntBlack + stChildPnt.sqPntWhite);
-        swap(setPntsNext, setPnts);
-    }
-
-    if (0 == setPnts.size()) {
-        return false;
-    } else {
-        auto it = setPnts.end();
-        it--;
-        SDWORD lMaxPnt = *it;
-        stRet.sqPntWhite = lCurrentNodePnt;
-        stRet.sqPntBlack = lTtlPnt - lMaxPnt;
-        return true;
-    }
+static SQWORD addMod(SQWORD x, SQWORD y)
+{ 
+    return (x + y) % ANS_MOD;
 }
+
+static SQWORD subMod(SQWORD x, SQWORD y)
+{
+    return (x - y + ANS_MOD) % ANS_MOD;
+}
+
+static SQWORD mulMod(SQWORD x, SQWORD y) 
+{
+    return (x * y) % ANS_MOD;
+}
+
+static SQWORD powMod(SQWORD x, SQWORD e) {
+    SQWORD v = 1;
+    for (; e; x = mulMod(x, x), e >>= 1) {
+        if (e & 1) {
+            v = mulMod(v, x);
+        }
+    }
+    return v;
+}
+
+static SQWORD divMod(SQWORD x, SQWORD y)
+{
+    return mulMod(x, powMod(y, ANS_MOD - 2));
+}
+
+
+static SQWORD combMod(SQWORD n, SQWORD k)
+{
+    SQWORD v=1;
+    for(SQWORD i=1; i<=k; i++) {
+        v = divMod(mulMod(v, n-i+1),i);
+    } 
+    return v;
+}
+
+static SQWORD getCombination(SQWORD n, SQWORD k)
+{
+    SQWORD sqRet = 1;
+    for (SQWORD sqIdx = 0; sqIdx < k; sqIdx++) {
+        sqRet *= (n-sqIdx);
+    }
+    for (SQWORD sqIdx = 0; sqIdx < k; sqIdx++) {
+        sqRet /= (sqIdx + 1);
+    }
+
+    return sqRet;
+}
+
+typedef struct {
+    SQWORD sqA;
+    SQWORD sqB;
+} ST_MACHINES;
+
+static bool operator< (const ST_MACHINES &m1, const ST_MACHINES &m2)
+{
+    return m1.sqA > m2.sqA;
+}
+
 
 int main()
 {
-    /* 順方向にDPをしてM個の商品の選び方を求める */
     SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_K = inputSQWORD();
 
-    /* lpoint */
-    for (SDWORD lChild = 2; lChild <= sqInput_N; lChild++) {
-        SDWORD lParent = inputSDWORD();
+    priority_queue<ST_MACHINES> pqMachines;
 
-        vvChilds[lParent].emplace_back(lChild);
+    for (SDWORD lIdx = 0; lIdx < sqInput_N; lIdx++) {
+        SQWORD sqInput_a = inputSQWORD();
+        SQWORD sqInput_b = inputSQWORD();
+
+        pqMachines.push(ST_MACHINES{sqInput_a, sqInput_b});
+    } 
+
+    SQWORD sqAns = 0;
+    for (SDWORD lItemIdx = 0; lItemIdx < sqInput_K; lItemIdx++) {
+        auto cur = pqMachines.top();
+        pqMachines.pop();
+
+//        printf("%lld %lld\n", cur.sqA, cur.sqB);
+        sqAns += cur.sqA;
+        cur.sqA += cur.sqB;
+        pqMachines.push(cur);
     }
-    for (SDWORD lNodeNo = 1; lNodeNo <= sqInput_N; lNodeNo++) {
-        SDWORD lPoint = inputSDWORD();
-        vlPnts[lNodeNo] = lPoint;
-    }
-
-    ST_PNTS stPnt;
-    if (visitNode(1, stPnt)) {
-        printf("POSSIBLE\n");
-    } else {
-        printf("IMPOSSIBLE\n");
-    }
-
+    printf("%lld\n", sqAns);
     return 0;
 }

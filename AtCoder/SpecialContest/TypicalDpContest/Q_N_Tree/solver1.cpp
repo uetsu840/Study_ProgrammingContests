@@ -155,85 +155,132 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-#define MAX_PNT (5000)
-#define MAX_NODE (1000)
 
-static vector<vector<SDWORD>> vvChilds(MAX_NODE + 1, vector<SDWORD>(0));
-static vector<SDWORD>  vlPnts(MAX_NODE + 1);
+#define ANS_MOD (1000000007LL)
 
-/* 自ノードを白で塗ったとする(反転しても結果は同じ) */
-typedef struct {
-    SQWORD  sqPntWhite;
-    SQWORD  sqPntBlack;
-} ST_PNTS;
+static SQWORD addMod(SQWORD x, SQWORD y)
+{ 
+    return (x + y) % ANS_MOD;
+}
 
-#define SDWORD_INF  (1000000000)
-
-static bool visitNode(SDWORD lNodeNo, ST_PNTS &stRet)
+static SQWORD subMod(SQWORD x, SQWORD y)
 {
-    vector<ST_PNTS> vstChildPnt; 
-    for (auto it: vvChilds[lNodeNo]) {
-        ST_PNTS stChildPnt;
-        if (!visitNode(it, stChildPnt)) {
-            return false;
+    return (x - y + ANS_MOD) % ANS_MOD;
+}
+
+static SQWORD mulMod(SQWORD x, SQWORD y) 
+{
+    return (x * y) % ANS_MOD;
+}
+
+static SQWORD powMod(SQWORD x, SQWORD e) {
+    SQWORD v = 1;
+    for (; e; x = mulMod(x, x), e >>= 1) {
+        if (e & 1) {
+            v = mulMod(v, x);
         }
-        vstChildPnt.emplace_back(stChildPnt);
+    }
+    return v;
+}
+
+static SQWORD divMod(SQWORD x, SQWORD y)
+{
+    return mulMod(x, powMod(y, ANS_MOD - 2));
+}
+
+
+static SQWORD combMod(SQWORD n, SQWORD k)
+{
+    SQWORD v=1;
+    for(SQWORD i=1; i<=k; i++) {
+        v = divMod(mulMod(v, n-i+1),i);
+    } 
+    return v;
+}
+
+static SQWORD getCombination(SQWORD n, SQWORD k)
+{
+    SQWORD sqRet = 1;
+    for (SQWORD sqIdx = 0; sqIdx < k; sqIdx++) {
+        sqRet *= (n-sqIdx);
+    }
+    for (SQWORD sqIdx = 0; sqIdx < k; sqIdx++) {
+        sqRet /= (sqIdx + 1);
     }
 
-    SDWORD lCurrentNodePnt = vlPnts[lNodeNo];
-    set<SDWORD> setPnts;
-    SDWORD lTtlPnt = 0;
-    setPnts.insert(0);
-    for (auto stChildPnt: vstChildPnt) {
-        set<SDWORD> setPntsNext;
-        for (auto lPnt: setPnts) {
-            SDWORD lPntB = lPnt + (SDWORD)stChildPnt.sqPntBlack;
-            SDWORD lPntW = lPnt + (SDWORD)stChildPnt.sqPntWhite;
-            if (lPntB <= lCurrentNodePnt) {
-                setPntsNext.insert(lPntB);
-            }
-            if (lPntW <= lCurrentNodePnt) {
-                setPntsNext.insert(lPntW);
-            }
-        }
-        lTtlPnt += (stChildPnt.sqPntBlack + stChildPnt.sqPntWhite);
-        swap(setPntsNext, setPnts);
-    }
+    return sqRet;
+}
 
-    if (0 == setPnts.size()) {
-        return false;
-    } else {
-        auto it = setPnts.end();
-        it--;
-        SDWORD lMaxPnt = *it;
-        stRet.sqPntWhite = lCurrentNodePnt;
-        stRet.sqPntBlack = lTtlPnt - lMaxPnt;
-        return true;
+
+#define MAX_NODE    (1000)
+static bool s_abIsVisited[MAX_NODE + 1];
+static vector<SDWORD> s_avlEdge[MAX_NODE + 1];
+
+static void getPatternNum(
+    SDWORD lNodeNo,
+    SQWORD &sqPattern,
+    SQWORD &sqEdge) 
+{
+    SQWORD sqPatternNum = 1;
+    SQWORD sqEdgeNum = 0;
+
+    s_abIsVisited[lNodeNo] = true;
+    for (auto lNextNode: s_avlEdge[lNodeNo]) {
+        if (!s_abIsVisited[lNextNode]) {
+            SQWORD sqNextNodePattern;
+            SQWORD sqNextNodeEdge;
+            getPatternNum(lNextNode, sqNextNodePattern, sqNextNodeEdge);
+
+            sqPatternNum = mulMod(sqPatternNum, sqNextNodePattern);
+            sqPatternNum = mulMod(sqPatternNum, combMod(addMod(sqEdgeNum, sqNextNodeEdge), sqNextNodeEdge));
+            sqEdgeNum += sqNextNodeEdge;
+        }
     }
+    sqEdgeNum++;
+
+//    printf("node %d p:%lld e:%lld\n", lNodeNo, sqPatternNum, sqEdgeNum);
+
+    sqEdge = sqEdgeNum;
+    sqPattern = sqPatternNum;
 }
 
 int main()
 {
-    /* 順方向にDPをしてM個の商品の選び方を求める */
-    SQWORD sqInput_N = inputSQWORD();
+    SDWORD  lInput_N = inputSDWORD();
+    vector<pair<SDWORD, SDWORD>> vEdges;
 
-    /* lpoint */
-    for (SDWORD lChild = 2; lChild <= sqInput_N; lChild++) {
-        SDWORD lParent = inputSDWORD();
+    for (SDWORD lEdgeIdx = 0; lEdgeIdx < lInput_N - 1; lEdgeIdx++) {
+        SDWORD lInput_a = inputSDWORD();
+        SDWORD lInput_b = inputSDWORD();
 
-        vvChilds[lParent].emplace_back(lChild);
-    }
-    for (SDWORD lNodeNo = 1; lNodeNo <= sqInput_N; lNodeNo++) {
-        SDWORD lPoint = inputSDWORD();
-        vlPnts[lNodeNo] = lPoint;
-    }
+//        printf("input <%d - %d>\n", lInput_a, lInput_b);
 
-    ST_PNTS stPnt;
-    if (visitNode(1, stPnt)) {
-        printf("POSSIBLE\n");
-    } else {
-        printf("IMPOSSIBLE\n");
+        s_avlEdge[lInput_a].emplace_back(lInput_b);
+        s_avlEdge[lInput_b].emplace_back(lInput_a);
+        vEdges.emplace_back(make_pair(lInput_a, lInput_b));
     }
 
+    SQWORD sqAns = 0;
+    for (auto startEdge:vEdges) {
+        SQWORD sqPatternNumL, sqEdgeNumL;
+        SQWORD sqPatternNumR, sqEdgeNumR;
+
+        memset(s_abIsVisited, 0, sizeof(s_abIsVisited));
+        s_abIsVisited[startEdge.second] = true;
+        getPatternNum(startEdge.first, sqPatternNumL, sqEdgeNumL);
+//        printf("L%lld %lld\n", sqPatternNumL, sqEdgeNumL);
+
+        memset(s_abIsVisited, 0, sizeof(s_abIsVisited));
+        s_abIsVisited[startEdge.first] = true;
+        getPatternNum(startEdge.second, sqPatternNumR, sqEdgeNumR);
+//        printf("R%lld %lld\n", sqPatternNumR, sqEdgeNumR);
+
+        SQWORD sqPatternOne = 1;
+        sqPatternOne = mulMod(sqPatternOne, sqPatternNumL);
+        sqPatternOne = mulMod(sqPatternOne, sqPatternNumR);
+        sqPatternOne = mulMod(sqPatternOne, combMod(sqEdgeNumL - 1 + sqEdgeNumR - 1, sqEdgeNumR - 1));        
+        sqAns = addMod(sqAns, sqPatternOne);
+    }
+    printf("%lld\n", sqAns);
     return 0;
 }
