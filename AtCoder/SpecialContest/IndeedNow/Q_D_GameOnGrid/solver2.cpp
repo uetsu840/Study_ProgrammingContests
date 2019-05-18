@@ -151,6 +151,7 @@ int main()
 
         s_aabIsUsed[lAddRow][lAddCol] = true;
         sqTotalCost += (SQWORD)(s_aalMaxCost[lAddRow][lAddCol]);
+//        printf("%d\n", s_aalMaxCost[lAddRow][lAddCol]);
         for (SDWORD lRow = max(0, lAddRow - 1); lRow <= min(lInput_H - 1, lAddRow + 1); lRow++) {
             for (SDWORD lCol = max(0, lAddCol - 1); lCol <= min(lInput_W - 1, lAddCol + 1); lCol++) {
                 for (auto dir : vplDir) {

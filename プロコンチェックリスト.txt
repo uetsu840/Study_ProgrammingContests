@@ -1,0 +1,103 @@
+
+・QWORD の演算のビット有効長。
+・答えがDWORDを超える場合に適切に計算できているか。
+・答えがDWORDを超える場合に適切に出力できているか。
+
+・負の数を含む剰余を求める演算に注意すること。
+
+
+
+
+
+
+
+【ABC008 C】	Coin
+	期待値
+	約数のカウント
+
+【ABC022 C】	BlueBird
+	ワーシャルフロイド法	全点間最短距離
+
+【ABC023 D】	Shoot
+	2分探索
+	
+【ABC032 D】	Knapsack			qd_dp2.cpp
+	ナップザック問題
+	DP
+
+【ABC049 D】	Connectivity
+	Union-Find木
+	2つの集合でおなじグループに含まれる要素を数える
+
+【ABC061 D】	Score Attack
+	ベルマンフォード法
+	グラフの最大スコア
+
+【ABC065 D】	Built?
+	最小全域木
+	プリム法
+
+【ABC088 D】	Grid Repainting
+	BFS
+	迷路
+
+【ABC098 D】	XorSum2
+	2分探索
+
+【ABC104 C】	AllGreen
+	条件を満たす最少スコアを求める。
+	DP
+	※ 実際には全探索でよい
+
+【ABC106 C】	ToInfinity
+	文字列
+
+【ABC106 D】	AtCoderExpress2
+	2次元配列の累積和。
+
+【ABC108 C】	Trianglular Relationship
+	a+b, b+c, c+a がすべてKの倍数。数学要素が強い。
+
+【ABC108 D】	All Paths are different length
+	1 - N までの異なるパス長のDAGの構成。
+	
+【ABC109 D】	Make Them Even
+	貪欲法。
+
+【ABC110 C】All Green
+	コンプリートボーナス付きスコア。
+
+【ABC110 D】Factorization
+	・mod 1000000007 の扱い。
+	・素因数分解。
+
+【ARC008 D】 タコヤキオイシクナール
+	・セグメント木
+
+【ARC031 D】 お買い物上手
+	・最小カット + 2分探索
+
+【ARC074 F】Lotus Reaves
+	・最小費用流
+
+【ARC017 C】無駄なものが嫌いな人
+	半分全列挙
+
+【ドワンゴからの挑戦状 E】 花火
+	絶対値の最小。
+
+【TypicalDpContest D】Dice
+	DP
+	出た目の積がDの倍数となる確率。素因数分解。
+
+【TypicalDpContest F】準急
+	DP
+
+【TypicalDpContest J】ボール
+	DP
+	期待値
+
+【TypicalDpContest L】猫
+	DP
+	累積和
+
