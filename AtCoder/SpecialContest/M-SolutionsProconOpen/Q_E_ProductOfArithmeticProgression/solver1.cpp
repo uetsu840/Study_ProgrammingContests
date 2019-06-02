@@ -161,7 +161,7 @@ static inline DOUBLE inputFP(void)
  *  mod による操作ライブラリ
  */
 
-#define ANS_MOD (1000000007LL)
+#define ANS_MOD (1000003LL)
  
 static SQWORD addMod(SQWORD x, SQWORD y)
 { 
@@ -204,8 +204,49 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
+
+#define MAX_D   (1000002)
+static SDWORD s_alFactoryTable[MAX_D + 1];
+
+static SDWORD getContinuousProduct(
+    SDWORD lStart,
+    SDWORD lNum)
+{
+    if (0 == (lStart % DIVISOR)) {
+        return 0;
+    }
+    if ((lStart % DIVISOR) != ((lStart + lNum - 1) % DIVISOR)) {
+        return 0;
+    }
+    
+    SDWORD lRet = divMod(s_alFactoryTable[lStart + lNum - 1], s_alFactoryTable[lStart - 1]);
+    return lRet;
+}
+
+
 int main(void)
 {
+    /* generate factory table */
+    s_alFactoryTable[0] = 1;
+    for (SDWORD lIdx = 1; lIdx < ArrayLength(s_alFactoryTable); lIdx++) {
+        s_alFactoryTable[lIdx] = mulMod(s_alFactoryTable[lIdx - 1], lIdx);
+    }
+
+    SDWORD lNumQuery = inputSDWORD();
+
+    for (SDWORD lQueryIdx = 0; lQueryIdx < lNumQuery; lQueryIdx++) {
+        SDWORD lInput_x = inputSDWORD();
+        SDWORD lInput_d = inputSDWORD();
+        SDWORD lInput_n = inputSDWORD();
+
+        SDWORD lInput_xd = divMod(lInput_x, lInput_d);
+        SDWORD lProduct = getContinuousProduct(lInput_xd, lInput_n);
+
+        SDWORD lDPow = powMod(lInput_d, lInput_n);
+
+        SDWORD lAns = mulMod(lDPow, lProduct);
+        printf("%d\n", lAns);
+    }
  
     return 0;
 }
