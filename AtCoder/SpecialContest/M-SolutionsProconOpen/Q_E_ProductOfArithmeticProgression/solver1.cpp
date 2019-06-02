@@ -40,7 +40,6 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
-
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
@@ -58,7 +57,6 @@ static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 using M_BOOL = bool;
 #define M_TRUE (true)
 #define M_FALSE (false)
-#define DIVISOR (1000000007)
 
 static inline void inputString(char *pcStr)
 {
@@ -206,20 +204,21 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 /*----------------------------------------------*/
 
 #define MAX_D   (1000002)
-static SDWORD s_alFactoryTable[MAX_D + 1];
+static SDWORD s_alFactoryTable[(MAX_D + 1) * 2 + 1];
 
 static SDWORD getContinuousProduct(
     SDWORD lStart,
     SDWORD lNum)
 {
-    if (0 == (lStart % DIVISOR)) {
+    if (0 == (lStart % ANS_MOD)) {
         return 0;
     }
-    if ((lStart % DIVISOR) != ((lStart + lNum - 1) % DIVISOR)) {
+    if (((SQWORD)lStart / ANS_MOD) != ((lStart + lNum - 1LL) / ANS_MOD)) {
         return 0;
     }
     
-    SDWORD lRet = divMod(s_alFactoryTable[lStart + lNum - 1], s_alFactoryTable[lStart - 1]);
+    SDWORD lRet = divMod(s_alFactoryTable[lStart + lNum - 1], 
+                        s_alFactoryTable[lStart - 1]);
     return lRet;
 }
 
@@ -239,13 +238,18 @@ int main(void)
         SDWORD lInput_d = inputSDWORD();
         SDWORD lInput_n = inputSDWORD();
 
-        SDWORD lInput_xd = divMod(lInput_x, lInput_d);
-        SDWORD lProduct = getContinuousProduct(lInput_xd, lInput_n);
+        if (0 == lInput_d) {
+            SDWORD lAns = powMod(lInput_x, lInput_n);
+            printf("%d\n", lAns);
+        } else {
+            SDWORD lInput_xd = divMod(lInput_x, lInput_d);
+            SDWORD lProduct = getContinuousProduct(lInput_xd, lInput_n);
 
-        SDWORD lDPow = powMod(lInput_d, lInput_n);
+            SDWORD lDPow = powMod(lInput_d, lInput_n);
 
-        SDWORD lAns = mulMod(lDPow, lProduct);
-        printf("%d\n", lAns);
+            SDWORD lAns = mulMod(lDPow, lProduct);
+            printf("%d\n", lAns);
+        }
     }
  
     return 0;
