@@ -203,29 +203,32 @@ static bool isPrime(SQWORD sqNum, vector<SDWORD> vlPrimes)
     return bIsPrime;
 }
 
+void is_prime(long long num)
+{
+    printf("is_prime testing [%lld]\n", num);
+    long long uper = sqrt(num + 1);
+    for (long long  divisor = 2; divisor < num; divisor++) {
+ //       printf(".....[%d]\n", divisor);
+        if (num % divisor == 0) {
+            printf("no, divided by %d\n", divisor);
+            return;
+        }
+    }
+    printf("yes\n");
+}
+
 int main()
 {
-    printf("hogee\n");
-    printf("funya\n");
-    printf("piyo\n");
-    printf("kitagawa\n");
 
-    int i = 111;
-    printf("%d\n", i + 15);
-    
-    int j = 130;
-    printf("%d\n", i + j);
+//    int sum;
+//    sum = 0;
+//    for (int i = 1; i <= 1000; i++) {
+//        sum = sum + i;
+//        printf(":::: i => %d sum => %d\n", i, sum);
+//    }
+    is_prime(7);
+    is_prime(1000000009);
 
-    if (i == 110) {
-        printf("box i is 110");
-    }
-
-    for (int k = 0; k < 100 ;k++) {
-        for (int l = 0; l < 100; l++) {
-            printf("%d ", k * l);
-        }
-        printf("\n");
-    }
-
+//    printf("%d\n", sum);
     return 0;
 }
