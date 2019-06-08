@@ -205,9 +205,66 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
+#define MAX_STR_LEN (200000)
+static char s_acInput[MAX_STR_LEN + 1];
+
+static void getRange(
+    SDWORD lInitPos,
+    SDWORD lPosNum,
+    SDWORD &lRangePosL,
+    SDWORD &lRangePosR) 
+{
+    lRangePosL = lInitPos;
+    lRangePosR = lPosNum - 1;
+    for (SDWORD lPosS = lInitPos; lPosS < lPosNum; lPosS++) {
+        if (0 == memcmp(&(s_acInput[lPosS]), "##", 2)) {
+            lRangePosR = lPosS;
+            break;
+        }
+    }
+}
+
 int main(void)
 {
-    printf("0\n");
+    SDWORD lInput_N = inputSDWORD();
+    SDWORD lInput_A = inputSDWORD() - 1;
+    SDWORD lInput_B = inputSDWORD() - 1;
+    SDWORD lInput_C = inputSDWORD() - 1;
+    SDWORD lInput_D = inputSDWORD() - 1;
+
+    inputString(s_acInput);
+
+//    printf("%s\n", s_acInput);
+
+    SDWORD lRangePosSL, lRangePosSR, lRangePosFL, lRangePosFR;
+    getRange(lInput_A, lInput_N, lRangePosSL, lRangePosSR);
+    getRange(lInput_B, lInput_N, lRangePosFL, lRangePosFR);
+
+//    printf("%d %d %d %d\n", lRangePosSL, lRangePosSR, lRangePosFL, lRangePosFR);
+
+
+    if (lInput_C < lInput_D) {
+//        printf("forward\n");
+        if ((lInput_C <= lRangePosSR) && (lInput_D <= lRangePosFR)) {
+            printf("Yes\n");
+        } else {
+            printf("No\n");
+        }
+    } else {
+        /* Reverse */
+//        printf("reverse\n");
+        bool bCanReverse = false;
+        for (SDWORD lCur = lInput_B-1; lCur <= lInput_D-1; lCur++) {
+            if (0 == memcmp(&(s_acInput[lCur]), "...", 3)) {
+                bCanReverse = true;
+            }
+        }
+        if ((lInput_C <= lRangePosSR) && (lInput_D <= lRangePosFR) && bCanReverse) {
+            printf("Yes\n");
+        } else {
+            printf("No\n");
+        }
+    }
 
     return 0;
 }

@@ -205,9 +205,53 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
+#define MAX_STR_LEN (200000)
+static char s_acInput[MAX_STR_LEN + 1];
+
 int main(void)
 {
-    printf("0\n");
+    vector<pair<SDWORD, SDWORD>> vpairSegments;
+    inputString(s_acInput);
+    SDWORD lStrLen = strlen(s_acInput);
+
+    SDWORD lStart = 0;
+    while(1) {
+        SDWORD lEnd = lStart;
+        for (; lEnd < lStrLen - 1; lEnd++) {
+            if ((0 == memcmp(&(s_acInput[lEnd]), "AC", 2)) ||
+                (0 == memcmp(&(s_acInput[lEnd]), "BA", 2)) ||
+                (0 == memcmp(&(s_acInput[lEnd]), "BB", 2)) ||
+                (0 == memcmp(&(s_acInput[lEnd]), "CC", 2))) {
+                    break;
+            }
+        }
+//        printf("%ld %ld\n", lStart, lEnd+1);
+        vpairSegments.emplace_back(make_pair(lStart, lEnd + 1));
+        lStart = lEnd + 1;
+        if (lStrLen <= lEnd) {
+            break;
+        }
+    }
+
+    SQWORD sqAns = 0;
+    for (auto seg: vpairSegments) {
+        SDWORD lStart = seg.first;
+        SDWORD lEnd   = seg.second;
+        SDWORD lACnt = 0;
+        SDWORD lBCCnt = 0;
+
+        for (SDWORD lPos = lEnd - 1; lStart <= lPos; lPos--) {
+            if (0 == memcmp(&(s_acInput[lPos]), "BC", 2)) {
+                lBCCnt++;
+            }
+            if (s_acInput[lPos] == 'A') {
+                lACnt++;
+                sqAns += (SQWORD)lBCCnt;
+            }
+        }
+    }
+
+    printf("%lld\n", sqAns);
 
     return 0;
 }

@@ -205,9 +205,118 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
+typedef struct {
+    SQWORD sqScoreA;
+    SQWORD sqWeightL;
+    SQWORD sqWeithtU;
+} TEST_ONE_SBJ;
+
+
+typedef struct {
+    SQWORD sqGain;
+    TEST_ONE_SBJ stSbj;
+} TEST_GAIN_ONE;
+
+bool operator< (const TEST_GAIN_ONE a, const TEST_GAIN_ONE b) 
+{
+    if (a.sqGain == b.sqGain) {
+        return a.stSbj.sqScoreA < b.stSbj.sqScoreA;
+    }
+    return a.sqGain > b.sqGain;
+}
+
+/**
+*   判定
+*       true:   上側に超過
+*       false:  下側に超過
+*/
+static bool isScoreGreater(
+    SQWORD sqTryScore, 
+    vector<TEST_GAIN_ONE> &vecGain, 
+    SQWORD sqScoreMax)
+{
+//    printf("trying...[%lld] %d\n", sqTryScore, vecGain.size());
+
+    SQWORD sqScoreRest = sqTryScore;
+    SQWORD sqDiff = 0;
+    for (auto sbj_g : vecGain) {
+//        printf("score rest...[%lld] [%lld:%lld:%lld]\n", sqScoreRest, sbj_g.stSbj.sqScoreA, sbj_g.stSbj.sqWeightL, sbj_g.stSbj.sqWeithtU);
+        if (sqScoreRest <= sqScoreMax) {
+            /* partial score */
+            SQWORD sqScore = sqScoreRest;
+            SQWORD sqWeight;
+            if (sbj_g.stSbj.sqScoreA < sqScore) {
+                sqWeight = sbj_g.stSbj.sqWeithtU;
+            } else {
+                sqWeight = sbj_g.stSbj.sqWeightL;
+            }
+            sqDiff += (sqScoreRest - sbj_g.stSbj.sqScoreA) * sqWeight;
+            sqScoreRest -= sqScore;
+        } else {
+            /* full score */
+            sqScoreRest -= sqScoreMax;
+            sqDiff += (sqScoreMax - sbj_g.stSbj.sqScoreA) * sbj_g.stSbj.sqWeithtU;
+        }
+    }
+//    printf("diff[%lld]\n", sqDiff);
+
+    return 0 <= sqDiff;    
+}
+
+/**
+*   2分探索
+*/
+static SQWORD binarySearch(
+    bool (*judge)(SQWORD, vector<TEST_GAIN_ONE>&, SQWORD), 
+    SQWORD sqInitLb, 
+    SQWORD sqInitUb, 
+    vector<TEST_GAIN_ONE> &vecTest, 
+    SQWORD sqScoreMax)
+{
+    SQWORD sqLb = sqInitLb;
+    SQWORD sqUb = sqInitUb;
+
+    while (1LL < sqUb - sqLb) {
+        SQWORD sqMid = (sqUb + sqLb) / 2LL;
+        if (judge(sqMid, vecTest, sqScoreMax)) {
+            sqUb = sqMid;
+        } else {
+            sqLb = sqMid;
+        }
+    }
+    return sqUb;
+}
+
+
 int main(void)
 {
-    printf("0\n");
+    SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_X = inputSQWORD();
+    vector<TEST_ONE_SBJ> vecTests;
+
+
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD sqInput_b = inputSQWORD();
+        SQWORD sqInput_l = inputSQWORD();
+        SQWORD sqInput_u = inputSQWORD();
+
+        vecTests.emplace_back(TEST_ONE_SBJ{sqInput_b, sqInput_l, sqInput_u});
+    }
+
+    SQWORD sqScoreMax = sqInput_X;
+    vector<TEST_GAIN_ONE> vecGain;
+
+    for (auto sbj: vecTests) {
+        SQWORD sqGet = (sqScoreMax - sbj.sqScoreA) * sbj.sqWeithtU;
+        SQWORD sqLose = (0LL - sbj.sqScoreA) * sbj.sqWeightL;
+//        printf("push %lld %lld\n", sqGet, sqLose);
+
+        vecGain.emplace_back(TEST_GAIN_ONE{sqGet - sqLose, sbj});
+    }
+
+    sort(vecGain.begin(),vecGain.end());
+    SQWORD sqAns = binarySearch(isScoreGreater, 0, sqInput_N * sqInput_X, vecGain, sqInput_X);
+    printf("%lld\n", sqAns);
 
     return 0;
 }
