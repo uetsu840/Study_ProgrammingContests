@@ -205,129 +205,73 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-#define MAX_N   (2000)
-char szInput[MAX_N + 1];
+#define MAX_NUM_LIGIT   (10)
+
+static SDWORD bitcount(
+    SDWORD lBit)
+{
+    SDWORD lCnt = 0;
+    for (SDWORD lIdx = 0; lIdx < DWORD_BITS; lIdx++) {
+        if (lBit & 0x1) {
+            lCnt++;
+        }
+        lBit >>= 1;
+    }
+//    printf("bc : %d\n", lCnt);
+    return lCnt;
+}
+
+static bool isLightAllOn(
+    SQWORD sqNumLight, 
+    const SQWORD *psqCondBitmap, 
+    const SDWORD *plReqNums,
+    SQWORD sqSwBitmap)
+{
+//    printf("---%lld\n", sqSwBitmap);
+    for (SDWORD lLightNo = 0; lLightNo < sqNumLight; lLightNo++) {
+        SQWORD sqCond = *(psqCondBitmap + lLightNo);
+        SDWORD lReqNum = *(plReqNums + lLightNo);
+        SQWORD sqOnLights = (sqCond & sqSwBitmap);
+        SDWORD lBitCount = bitcount((SDWORD)sqOnLights);
+//        printf("%llx %llx req %d bc %d\n", sqCond, sqOnLights, lReqNum, lBitCount);
+        if ((lBitCount % 2) != lReqNum) {
+//            printf("F\n");
+            return false;
+        }
+    }
+//    printf("T\n");
+    return true;
+}
+
 int main(void)
 {
-    SDWORD lInput_n = inputSDWORD();
-    static SDWORD s_aalMatchTbl[MAX_N+1][MAX_N+1];
+    SQWORD sqInput_K = inputSQWORD();
+    SQWORD sqInput_M = inputSQWORD();
 
-    for (SDWORD lIdxI = 2; lIdxI <= lInput_n; lIdxI++) {
-        inputString(szInput);
-        for (SDWORD lIdxJ = 1; lIdxJ < lIdxI; lIdxJ++) {
-            if ('1' == szInput[lIdxJ - 1]) {
-                s_aalMatchTbl[lIdxI][lIdxJ] = 1;
-                s_aalMatchTbl[lIdxJ][lIdxI] = 0;
-            } else {
-                s_aalMatchTbl[lIdxI][lIdxJ] = 0;
-                s_aalMatchTbl[lIdxJ][lIdxI] = 1;
-            }
+    SQWORD sqCondition[MAX_NUM_LIGIT + 1];
+    SDWORD alReqNo[MAX_NUM_LIGIT + 1];
+
+    for (SQWORD sqLIdx = 0; sqLIdx < sqInput_M; sqLIdx++) {
+        SQWORD sqNumSw = inputSQWORD();
+        SQWORD sqBitMap = 0;
+        for (SQWORD sqSwIdx = 0; sqSwIdx < sqNumSw; sqSwIdx++) {
+            SQWORD sqSwNo = inputSQWORD();
+            sqBitMap |= (0x1 << (sqSwNo - 1));
         }
+        sqCondition[sqLIdx] = sqBitMap;
     }
-#if 0
-    for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n; lUpdIdxL++) {
-        for (SDWORD lUpdIdxR = 1; lUpdIdxR <= lInput_n; lUpdIdxR++) {
-            printf("%d ", s_aalMatchTbl[lUpdIdxL][lUpdIdxR]);
-        }
-        printf("\n");
-    }
-#endif
-
-    static SDWORD s_aalDpL[MAX_N+1][MAX_N+1];
-    static SDWORD s_aalDpR[MAX_N+1][MAX_N+1];
-
-    for (SDWORD lUpdateWidth = 0; lUpdateWidth <= lInput_n; lUpdateWidth++) {
-        for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n - lUpdateWidth; lUpdIdxL++) {
-            SDWORD lUpdIdxR = lUpdIdxL + lUpdateWidth;
-            if (lUpdIdxL == lUpdIdxR) {
-                s_aalDpL[lUpdIdxL][lUpdIdxR] = 1;
-                s_aalDpR[lUpdIdxL][lUpdIdxR] = 1;
-            } else {
-                for (SDWORD lUpdIdxM = lUpdIdxL; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update A1: [%d, <%d> %d], %d %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalMatchTbl[lUpdIdxL][lUpdIdxR],
-                            s_aalDpL[lUpdIdxL][lUpdIdxM],
-                            s_aalDpR[lUpdIdxM+1][lUpdIdxR]);
-#endif
-
-                    if ((1 == s_aalMatchTbl[lUpdIdxL][lUpdIdxR])
-                        && (1 == s_aalDpL[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpR[lUpdIdxM+1][lUpdIdxR])) {
-                        s_aalDpL[lUpdIdxL][lUpdIdxR] = 1;
-                    }
-                }
-                for (SDWORD lUpdIdxM = lUpdIdxL + 1; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update A2: [%d, <%d> %d], %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalDpL[lUpdIdxL][lUpdIdxM],
-                            s_aalDpL[lUpdIdxM][lUpdIdxR]);
-#endif
-
-                    if ((1 == s_aalDpL[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpL[lUpdIdxM][lUpdIdxR])) {
-                        s_aalDpL[lUpdIdxL][lUpdIdxR] = 1;
-                    }
-                }
-
-                for (SDWORD lUpdIdxM = lUpdIdxL; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update B1: [%d, <%d> %d], %d %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalMatchTbl[lUpdIdxR][lUpdIdxL],
-                            s_aalDpL[lUpdIdxL][lUpdIdxM],
-                            s_aalDpR[lUpdIdxM+1][lUpdIdxR]);
-#endif
-
-                    if ((1 == s_aalMatchTbl[lUpdIdxR][lUpdIdxL])
-                        && (1 == s_aalDpL[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpR[lUpdIdxM+1][lUpdIdxR])) {
-                        s_aalDpR[lUpdIdxL][lUpdIdxR] = 1;
-                    }
-                }
-                for (SDWORD lUpdIdxM = lUpdIdxL + 1; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update B2: [%d, <%d> %d], %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalDpR[lUpdIdxL][lUpdIdxM],
-                            s_aalDpR[lUpdIdxM][lUpdIdxR]);
-#endif
-
-                    if ((1 == s_aalDpR[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpR[lUpdIdxM][lUpdIdxR])) {
-                        s_aalDpR[lUpdIdxL][lUpdIdxR] = 1;
-                    }
-                }
-            }
-        }
+    for (SQWORD sqLIdx = 0; sqLIdx < sqInput_M; sqLIdx++) {
+        SDWORD lNumReq = inputSDWORD();
+        alReqNo[sqLIdx] = lNumReq;
     }
 
-#if 0
-    for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n; lUpdIdxL++) {
-        for (SDWORD lUpdIdxR = 1; lUpdIdxR <= lInput_n; lUpdIdxR++) {
-            printf("%d ", s_aalDpL[lUpdIdxL][lUpdIdxR]);
-        }
-        printf("\n");
-    }
-    for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n; lUpdIdxL++) {
-        for (SDWORD lUpdIdxR = 1; lUpdIdxR <= lInput_n; lUpdIdxR++) {
-            printf("%d ", s_aalDpR[lUpdIdxL][lUpdIdxR]);
-        }
-        printf("\n");
-    }
-#endif
-
-    /* count winners */
-    SDWORD lAns = 0;
-    for (SDWORD lMid = 1; lMid <= lInput_n; lMid++) {
-        if (s_aalDpR[1][lMid] && s_aalDpL[lMid][lInput_n]) {
-            lAns++;
+    SQWORD sqAns = 0;
+    for (SDWORD lSwBitmap = 0; lSwBitmap < (0x1<<sqInput_K); lSwBitmap++) {
+        if (isLightAllOn(sqInput_M, sqCondition, alReqNo, lSwBitmap)) {
+            sqAns++;
         }
     }
-
-    printf("%d\n", lAns);
+    printf("%d\n", sqAns);
 
     return 0;
 }

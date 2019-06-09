@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <numeric>
 #include <list>
+#include <bitset>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -207,20 +208,16 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 #define MAX_N   (2000)
 char szInput[MAX_N + 1];
+static bitset<MAX_N + 1> s_abitMatchTbl[MAX_N + 1];
+
 int main(void)
 {
     SDWORD lInput_n = inputSDWORD();
-    static SDWORD s_aalMatchTbl[MAX_N+1][MAX_N+1];
-
     for (SDWORD lIdxI = 2; lIdxI <= lInput_n; lIdxI++) {
         inputString(szInput);
         for (SDWORD lIdxJ = 1; lIdxJ < lIdxI; lIdxJ++) {
-            if ('1' == szInput[lIdxJ - 1]) {
-                s_aalMatchTbl[lIdxI][lIdxJ] = 1;
-                s_aalMatchTbl[lIdxJ][lIdxI] = 0;
-            } else {
-                s_aalMatchTbl[lIdxI][lIdxJ] = 0;
-                s_aalMatchTbl[lIdxJ][lIdxI] = 1;
+            if ('0' == szInput[lIdxJ - 1]) {
+                s_abitMatchTbl[lIdxJ][lIdxI] = true;
             }
         }
     }
@@ -233,15 +230,15 @@ int main(void)
     }
 #endif
 
-    static SDWORD s_aalDpL[MAX_N+1][MAX_N+1];
-    static SDWORD s_aalDpR[MAX_N+1][MAX_N+1];
+    static bitset<MAX_N + 1> s_absDpL[MAX_N+1];
+    static bitset<MAX_N + 1> s_absDpR[MAX_N+1];
 
     for (SDWORD lUpdateWidth = 0; lUpdateWidth <= lInput_n; lUpdateWidth++) {
         for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n - lUpdateWidth; lUpdIdxL++) {
             SDWORD lUpdIdxR = lUpdIdxL + lUpdateWidth;
             if (lUpdIdxL == lUpdIdxR) {
-                s_aalDpL[lUpdIdxL][lUpdIdxR] = 1;
-                s_aalDpR[lUpdIdxL][lUpdIdxR] = 1;
+                s_absDpL[lUpdIdxL][lUpdIdxR] = 1;
+                s_absDpR[lUpdIdxL][lUpdIdxR] = 1;
             } else {
                 for (SDWORD lUpdIdxM = lUpdIdxL; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
 #if 0
@@ -252,10 +249,13 @@ int main(void)
                             s_aalDpR[lUpdIdxM+1][lUpdIdxR]);
 #endif
 
-                    if ((1 == s_aalMatchTbl[lUpdIdxL][lUpdIdxR])
-                        && (1 == s_aalDpL[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpR[lUpdIdxM+1][lUpdIdxR])) {
-                        s_aalDpL[lUpdIdxL][lUpdIdxR] = 1;
+                    if ((s_absDpL[lUpdIdxL][lUpdIdxM])
+                        && (s_absDpR[lUpdIdxM+1][lUpdIdxR])) {
+                        if (s_abitMatchTbl[lUpdIdxL][lUpdIdxR]) {
+                            s_absDpL[lUpdIdxL][lUpdIdxR] = true;
+                        } else {
+                            s_absDpR[lUpdIdxL][lUpdIdxR] = true;
+                        }
                     }
                 }
                 for (SDWORD lUpdIdxM = lUpdIdxL + 1; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
@@ -266,38 +266,13 @@ int main(void)
                             s_aalDpL[lUpdIdxM][lUpdIdxR]);
 #endif
 
-                    if ((1 == s_aalDpL[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpL[lUpdIdxM][lUpdIdxR])) {
-                        s_aalDpL[lUpdIdxL][lUpdIdxR] = 1;
+                    if ((1 == s_absDpL[lUpdIdxL][lUpdIdxM])
+                        && (1 == s_absDpL[lUpdIdxM][lUpdIdxR])) {
+                        s_absDpL[lUpdIdxL][lUpdIdxR] = 1;
                     }
-                }
-
-                for (SDWORD lUpdIdxM = lUpdIdxL; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update B1: [%d, <%d> %d], %d %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalMatchTbl[lUpdIdxR][lUpdIdxL],
-                            s_aalDpL[lUpdIdxL][lUpdIdxM],
-                            s_aalDpR[lUpdIdxM+1][lUpdIdxR]);
-#endif
-
-                    if ((1 == s_aalMatchTbl[lUpdIdxR][lUpdIdxL])
-                        && (1 == s_aalDpL[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpR[lUpdIdxM+1][lUpdIdxR])) {
-                        s_aalDpR[lUpdIdxL][lUpdIdxR] = 1;
-                    }
-                }
-                for (SDWORD lUpdIdxM = lUpdIdxL + 1; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update B2: [%d, <%d> %d], %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalDpR[lUpdIdxL][lUpdIdxM],
-                            s_aalDpR[lUpdIdxM][lUpdIdxR]);
-#endif
-
-                    if ((1 == s_aalDpR[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpR[lUpdIdxM][lUpdIdxR])) {
-                        s_aalDpR[lUpdIdxL][lUpdIdxR] = 1;
+                    if ((1 == s_absDpR[lUpdIdxL][lUpdIdxM])
+                        && (1 == s_absDpR[lUpdIdxM][lUpdIdxR])) {
+                        s_absDpR[lUpdIdxL][lUpdIdxR] = 1;
                     }
                 }
             }
@@ -322,7 +297,7 @@ int main(void)
     /* count winners */
     SDWORD lAns = 0;
     for (SDWORD lMid = 1; lMid <= lInput_n; lMid++) {
-        if (s_aalDpR[1][lMid] && s_aalDpL[lMid][lInput_n]) {
+        if (s_absDpR[1][lMid] && s_absDpL[lMid][lInput_n]) {
             lAns++;
         }
     }

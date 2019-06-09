@@ -205,129 +205,80 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-#define MAX_N   (2000)
-char szInput[MAX_N + 1];
+typedef struct {
+    SQWORD sqTBegin;
+    SQWORD sqTEnd;
+    SQWORD sqPos;
+} BLOCK_ST;
+
+typedef enum {
+    BLOCK_START = 0,
+    BLOCK_FINISH
+} E_BLOCK_EV_TYPE;
+
+typedef struct {
+    SQWORD sqTime;
+    E_BLOCK_EV_TYPE eEv;
+    SQWORD sqPos;
+} EVENT_ST;
+
+bool operator< (const EVENT_ST a, const EVENT_ST b)
+{
+    return (a.sqTime < b.sqTime);
+} 
+
 int main(void)
 {
-    SDWORD lInput_n = inputSDWORD();
-    static SDWORD s_aalMatchTbl[MAX_N+1][MAX_N+1];
+    vector<EVENT_ST> vstEvents;
+    vector<SQWORD>  vsqStartTime;
 
-    for (SDWORD lIdxI = 2; lIdxI <= lInput_n; lIdxI++) {
-        inputString(szInput);
-        for (SDWORD lIdxJ = 1; lIdxJ < lIdxI; lIdxJ++) {
-            if ('1' == szInput[lIdxJ - 1]) {
-                s_aalMatchTbl[lIdxI][lIdxJ] = 1;
-                s_aalMatchTbl[lIdxJ][lIdxI] = 0;
+    SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_Q = inputSQWORD();
+
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD sqInput_S = inputSQWORD();
+        SQWORD sqInput_T = inputSQWORD();
+        SQWORD sqInput_X = inputSQWORD();
+
+        vstEvents.emplace_back(EVENT_ST{sqInput_S - sqInput_X, BLOCK_START, sqInput_X});
+        vstEvents.emplace_back(EVENT_ST{sqInput_T - sqInput_X, BLOCK_FINISH, sqInput_X});
+    }
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_Q; sqIdx++) {
+        vsqStartTime.emplace_back(inputSQWORD());
+    }
+
+    sort(vstEvents.begin(), vstEvents.end());
+
+    multiset<SQWORD> setBlockPos;
+    SQWORD sqStartTimeCur = 0;
+    for (auto ev: vstEvents) {
+//        printf("ev time %lld, start time %lld\n", ev.sqTime, vsqStartTime[sqStartTimeCur]);
+        while(1) {
+            if (vsqStartTime.size() <= sqStartTimeCur) {
+                break; 
+            } else if (ev.sqTime <= vsqStartTime[sqStartTimeCur]) {
+                break;
             } else {
-                s_aalMatchTbl[lIdxI][lIdxJ] = 0;
-                s_aalMatchTbl[lIdxJ][lIdxI] = 1;
+                if (setBlockPos.empty()) {
+                    printf("-1\n");
+                } else {
+                    SQWORD sqMaxPos = *(setBlockPos.begin());
+                    printf("%lld\n", sqMaxPos);
+                } 
+                sqStartTimeCur++;
             }
         }
-    }
-#if 0
-    for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n; lUpdIdxL++) {
-        for (SDWORD lUpdIdxR = 1; lUpdIdxR <= lInput_n; lUpdIdxR++) {
-            printf("%d ", s_aalMatchTbl[lUpdIdxL][lUpdIdxR]);
-        }
-        printf("\n");
-    }
-#endif
 
-    static SDWORD s_aalDpL[MAX_N+1][MAX_N+1];
-    static SDWORD s_aalDpR[MAX_N+1][MAX_N+1];
-
-    for (SDWORD lUpdateWidth = 0; lUpdateWidth <= lInput_n; lUpdateWidth++) {
-        for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n - lUpdateWidth; lUpdIdxL++) {
-            SDWORD lUpdIdxR = lUpdIdxL + lUpdateWidth;
-            if (lUpdIdxL == lUpdIdxR) {
-                s_aalDpL[lUpdIdxL][lUpdIdxR] = 1;
-                s_aalDpR[lUpdIdxL][lUpdIdxR] = 1;
-            } else {
-                for (SDWORD lUpdIdxM = lUpdIdxL; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update A1: [%d, <%d> %d], %d %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalMatchTbl[lUpdIdxL][lUpdIdxR],
-                            s_aalDpL[lUpdIdxL][lUpdIdxM],
-                            s_aalDpR[lUpdIdxM+1][lUpdIdxR]);
-#endif
-
-                    if ((1 == s_aalMatchTbl[lUpdIdxL][lUpdIdxR])
-                        && (1 == s_aalDpL[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpR[lUpdIdxM+1][lUpdIdxR])) {
-                        s_aalDpL[lUpdIdxL][lUpdIdxR] = 1;
-                    }
-                }
-                for (SDWORD lUpdIdxM = lUpdIdxL + 1; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update A2: [%d, <%d> %d], %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalDpL[lUpdIdxL][lUpdIdxM],
-                            s_aalDpL[lUpdIdxM][lUpdIdxR]);
-#endif
-
-                    if ((1 == s_aalDpL[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpL[lUpdIdxM][lUpdIdxR])) {
-                        s_aalDpL[lUpdIdxL][lUpdIdxR] = 1;
-                    }
-                }
-
-                for (SDWORD lUpdIdxM = lUpdIdxL; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update B1: [%d, <%d> %d], %d %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalMatchTbl[lUpdIdxR][lUpdIdxL],
-                            s_aalDpL[lUpdIdxL][lUpdIdxM],
-                            s_aalDpR[lUpdIdxM+1][lUpdIdxR]);
-#endif
-
-                    if ((1 == s_aalMatchTbl[lUpdIdxR][lUpdIdxL])
-                        && (1 == s_aalDpL[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpR[lUpdIdxM+1][lUpdIdxR])) {
-                        s_aalDpR[lUpdIdxL][lUpdIdxR] = 1;
-                    }
-                }
-                for (SDWORD lUpdIdxM = lUpdIdxL + 1; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update B2: [%d, <%d> %d], %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalDpR[lUpdIdxL][lUpdIdxM],
-                            s_aalDpR[lUpdIdxM][lUpdIdxR]);
-#endif
-
-                    if ((1 == s_aalDpR[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_aalDpR[lUpdIdxM][lUpdIdxR])) {
-                        s_aalDpR[lUpdIdxL][lUpdIdxR] = 1;
-                    }
-                }
-            }
+        if (BLOCK_START == ev.eEv) {
+            setBlockPos.insert(ev.sqPos);
+        } else {
+            setBlockPos.erase(setBlockPos.find(ev.sqPos));
         }
     }
 
-#if 0
-    for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n; lUpdIdxL++) {
-        for (SDWORD lUpdIdxR = 1; lUpdIdxR <= lInput_n; lUpdIdxR++) {
-            printf("%d ", s_aalDpL[lUpdIdxL][lUpdIdxR]);
-        }
-        printf("\n");
+    for (;sqStartTimeCur < vsqStartTime.size(); sqStartTimeCur++) {
+        printf("-1\n");
     }
-    for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n; lUpdIdxL++) {
-        for (SDWORD lUpdIdxR = 1; lUpdIdxR <= lInput_n; lUpdIdxR++) {
-            printf("%d ", s_aalDpR[lUpdIdxL][lUpdIdxR]);
-        }
-        printf("\n");
-    }
-#endif
-
-    /* count winners */
-    SDWORD lAns = 0;
-    for (SDWORD lMid = 1; lMid <= lInput_n; lMid++) {
-        if (s_aalDpR[1][lMid] && s_aalDpL[lMid][lInput_n]) {
-            lAns++;
-        }
-    }
-
-    printf("%d\n", lAns);
-
+    
     return 0;
 }
