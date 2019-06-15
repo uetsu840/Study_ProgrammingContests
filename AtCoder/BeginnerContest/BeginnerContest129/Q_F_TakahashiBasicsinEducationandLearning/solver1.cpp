@@ -286,6 +286,7 @@ static SQWORD calcModB(
         return (sqInput_B % sqInput_M);
     }
 
+#if 0
     if (0 == (sqDigits % 2)) {
         SQWORD sqMod;
         SQWORD sqModHalf = calcTenPowMod(sqDigits / 2, sqBaseMod, sqBaseNum, sqInput_M);
@@ -300,7 +301,7 @@ static SQWORD calcModB(
         sqMod = addModM(sqMod, sqBaseNum, sqInput_M);
         return sqMod;
     }
-
+#endif
 }
 
 

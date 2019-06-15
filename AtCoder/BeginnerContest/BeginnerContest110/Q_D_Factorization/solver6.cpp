@@ -156,6 +156,53 @@ static inline DOUBLE inputFP(void)
 }
 
 
+/**
+ *  mod による操作ライブラリ
+ */
+
+#define ANS_MOD (1000000007LL)
+ 
+static SQWORD addMod(SQWORD x, SQWORD y)
+{ 
+    return (x + y) % ANS_MOD;
+}
+ 
+static SQWORD subMod(SQWORD x, SQWORD y)
+{
+    return (x - y + ANS_MOD) % ANS_MOD;
+}
+ 
+static SQWORD mulMod(SQWORD x, SQWORD y) 
+{
+    return (x * y) % ANS_MOD;
+}
+ 
+static SQWORD powMod(SQWORD x, SQWORD e) {
+    SQWORD v = 1;
+    for (; e; x = mulMod(x, x), e >>= 1) {
+        if (e & 1) {
+            v = mulMod(v, x);
+        }
+    }
+    return v;
+}
+ 
+static SQWORD divMod(SQWORD x, SQWORD y)
+{
+    return mulMod(x, powMod(y, ANS_MOD - 2));
+}
+ 
+ 
+static SQWORD combMod(SQWORD n, SQWORD k)
+{
+    SQWORD v=1;
+    for(SQWORD i=1; i<=k; i++) {
+        v = divMod(mulMod(v, n-i+1),i);
+    } 
+    return v;
+}
+
+
 static void calcPrimeFactorication(SDWORD lNum, vector<SDWORD> &vlPrimes)
 {
     SDWORD lCur = lNum;
@@ -178,8 +225,6 @@ static void calcPrimeFactorication(SDWORD lNum, vector<SDWORD> &vlPrimes)
     }
 }
 
-#define ANS_MOD (1000000007)
-
 /**
  *   分割数を求める
  */
@@ -198,12 +243,23 @@ static SQWORD getDivNum(SQWORD sqSum, SQWORD sqCnt)
     for (SDWORD lIdx = 0; lIdx < sqCnt; lIdx++) {
         for (SQWORD sqSumIdx = 0; sqSumIdx <= sqSum; sqSumIdx++) {
             s_asqDpTbl[sqSumIdx] = (s_asqDpTbl[sqSumIdx] + s_asqDpTbl[sqSumIdx - 1]) % ANS_MOD;
-//            printf("%lld %lld |", sqSumIdx, s_asqDpTbl[sqSumIdx]);
         }
-//        printf("\n");
     }
 
     return s_asqDpTbl[sqSum];
+}
+
+/**
+ *  分割数を求める。
+ *      0以上。 
+ */
+static SQWORD getDivNum2(SQWORD sqSum, SQWORD sqCnt)
+{
+    /**
+     *  combination で求める。
+     *  0の箱があってもよい。
+     */
+    return combMod(sqSum + sqCnt - 1, sqCnt - 1);
 }
 
 
@@ -218,7 +274,8 @@ int main(void)
     
     SQWORD sqAns = 1;
     for (auto it:vlPrimes) {
-        sqAns = (sqAns * getDivNum((SQWORD)it, lInput_N)) % ANS_MOD;
+//        sqAns = (sqAns * getDivNum((SQWORD)it, lInput_N)) % ANS_MOD;
+        sqAns = (sqAns * getDivNum2((SQWORD)it, lInput_N)) % ANS_MOD;
     }
     printf("%lld\n", sqAns);
 
