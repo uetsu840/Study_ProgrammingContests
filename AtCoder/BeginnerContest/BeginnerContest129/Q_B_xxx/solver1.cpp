@@ -204,40 +204,25 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
-#define MAX_STR_LEN     (100)
-
-struct restaurant {
-    string name;
-    SDWORD lPoint;
-    SDWORD lIdx;
-};
-
-bool operator< (const restaurant &a, const restaurant &b)
-{
-    if (a.name == b.name) {
-        return (a.lPoint > b.lPoint);
-    }
-    return a.name < b.name;
-}
-
 int main(void)
 {
-    char input_S[MAX_STR_LEN];
+    SDWORD lInput_N = inputSDWORD();
 
-    SQWORD sqInput_N = inputSQWORD();
+    vector<SDWORD> veclWeight;
 
-    vector<restaurant> vRestaulants;
-
-    for (SDWORD lIdx = 1; lIdx <= sqInput_N; lIdx++) {
-        inputString(input_S);
-        SDWORD lPoint = inputSDWORD();
-        vRestaulants.emplace_back(restaurant{string(input_S), lPoint, lIdx});  
+    for (SDWORD lIdx = 0; lIdx < lInput_N; lIdx++) {
+        SDWORD lInput_W = inputSDWORD();
+        veclWeight.emplace_back(lInput_W);
     }
-    sort(vRestaulants.begin(), vRestaulants.end());
 
-    for (auto res: vRestaulants) {
-        printf("%d\n", res.lIdx);
+    SDWORD lAns = MAX_SDWORD;
+    for (SDWORD lDiv = 1; lDiv < lInput_N; lDiv++) {
+        SDWORD lSum1 = accumulate(veclWeight.begin(), veclWeight.begin() + lDiv, 0);
+        SDWORD lSum2 = accumulate(veclWeight.begin() + (lDiv), veclWeight.end(), 0);
+        lAns = min(lAns, abs(lSum1 - lSum2));
     }
+    printf("%d\n", lAns);
+
 
     return 0;
 }

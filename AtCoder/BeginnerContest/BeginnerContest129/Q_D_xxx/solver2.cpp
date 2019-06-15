@@ -163,73 +163,54 @@ int main()
     SDWORD lInput_H = inputSDWORD();
     SDWORD lInput_W = inputSDWORD();
 
-    static vector<SDWORD> s_avecObsRow[N_MAX_ROWS];
-    static vector<SDWORD> s_avecObsCol[N_MAX_COLS];
+    static vector<SDWORD> s_avecObsRow[N_MAX_ROWS + 1];
+    static vector<SDWORD> s_avecObsCol[N_MAX_COLS + 1];
     char acInput_Row[N_MAX_COLS + 1];
-    static bool s_aabIsObs[N_MAX_ROWS][N_MAX_COLS];
+    static bool s_aabIsObs[N_MAX_ROWS + 1][N_MAX_COLS + 1];
 
-    for (SDWORD lRowIdx = 0; lRowIdx < lInput_H; lRowIdx++) {
+    /* insert border */
+    for (SDWORD lRowNum = 1; lRowNum <= lInput_H; lRowNum++) {
+        s_avecObsRow[lRowNum].emplace_back(0);
+    }
+    for (SDWORD lColNum = 1; lColNum <= lInput_W; lColNum++) {
+        s_avecObsCol[lColNum].emplace_back(0);
+    }
+
+    for (SDWORD lRowNum = 1; lRowNum <= lInput_H; lRowNum++) {
         inputString(acInput_Row);
-        for (SDWORD lColIdx = 0; lColIdx < lInput_W; lColIdx++) {
-            if (acInput_Row[lColIdx] == '#') {
+        for (SDWORD lColNum = 1; lColNum <= lInput_W; lColNum++) {
+            if (acInput_Row[lColNum - 1] == '#') {
                 /* obstacles */
-                s_avecObsRow[lRowIdx].emplace_back(lColIdx);
-                s_avecObsCol[lColIdx].emplace_back(lRowIdx);
-                s_aabIsObs[lRowIdx][lColIdx] = true;
+                s_avecObsRow[lRowNum].emplace_back(lColNum);
+                s_avecObsCol[lColNum].emplace_back(lRowNum);
+                s_aabIsObs[lRowNum][lColNum] = true;
             }
         }
     }
+
+    /* insert border */
+    for (SDWORD lRowNum = 1; lRowNum <= lInput_H; lRowNum++) {
+        s_avecObsRow[lRowNum].emplace_back(lInput_W + 1);
+    }
+    for (SDWORD lColNum = 1; lColNum <= lInput_W; lColNum++) {
+        s_avecObsCol[lColNum].emplace_back(lInput_H + 1);
+    }
+
     SDWORD lAns = 0;
-    for (SDWORD lRowIdx = 0; lRowIdx < lInput_H; lRowIdx++) {
-        for (SDWORD lColIdx = 0; lColIdx < lInput_W; lColIdx++) {
+    for (SDWORD lRowIdx = 1; lRowIdx <= lInput_H; lRowIdx++) {
+        for (SDWORD lColIdx = 1; lColIdx <= lInput_W; lColIdx++) {
             if (!s_aabIsObs[lRowIdx][lColIdx]) {
                 auto &vecRow = s_avecObsRow[lRowIdx];
                 auto &vecCol = s_avecObsCol[lColIdx];
 
-
                 SDWORD lNumRow, lNumCol;
-                if (0 == vecRow.size()) {
-                    lNumRow = lInput_W - 1;
-                } else {
-                    auto it_row_upper = upper_bound(vecRow.begin(), vecRow.end(), lColIdx);
-                    SDWORD lNumRowL, lNumRowR;
-                    if (it_row_upper == vecRow.begin()) {
-                        lNumRowL = 0;
-                    } else {
-                        auto it_row_lower = it_row_upper - 1;
-                        lNumRowL = *it_row_lower + 1;
-                    }
-                    if (it_row_upper == vecRow.end()) {
-                        lNumRowR = lInput_W - 1;
-                    } else {
-                        lNumRowR = *it_row_upper - 1;
-                    }
-                    lNumRow = lNumRowR - lNumRowL;
-//                    printf("Row %d %d\n", lNumRowR, lNumRowL);
-                }
+                auto it_row_upper = upper_bound(vecRow.begin(), vecRow.end(), lColIdx);
+                lNumRow = (*it_row_upper - *(it_row_upper - 1)) - 2;
+                auto it_col_upper = upper_bound(vecCol.begin(), vecCol.end(), lRowIdx);
+                lNumCol = (*it_col_upper - *(it_col_upper - 1)) - 2;
 
-                if (0 == vecCol.size()) {
-                    lNumCol = lInput_H - 1;
-                } else {
-                    auto it_col_upper = upper_bound(vecCol.begin(), vecCol.end(), lRowIdx);
-                    SDWORD lNumColL, lNumColR;
-                    if (it_col_upper == vecCol.begin()) {
-                        lNumColL = 0;
-                    } else {
-                        auto it_col_lower = it_col_upper - 1;
-                        lNumColL = *it_col_lower + 1;
-                    }
-                    if (it_col_upper == vecCol.end()) {
-                        lNumColR = lInput_H - 1;
-                    } else {
-                        lNumColR = *it_col_upper - 1;
-                    }
-                    lNumCol = lNumColR - lNumColL;
-//                    printf("Col %d %d\n", lNumColR, lNumColL);
-                }
-                lAns = max(lAns, lNumCol + lNumRow + 1);
+                lAns = max(lAns, lNumRow + lNumCol + 1);
 
-  //              printf("[%d %d] %d %d\n", lRowIdx, lColIdx, lNumRow, lNumCol);
             }
         }
     }

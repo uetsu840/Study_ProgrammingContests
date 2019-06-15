@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <numeric>
 #include <list>
-#include <bitset>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -205,104 +204,136 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
+static SQWORD addModM(SQWORD x, SQWORD y, SQWORD m)
+{ 
+    return (x + y) % m;
+}
+ 
+static SQWORD subModM(SQWORD x, SQWORD y, SQWORD m)
+{
+    return (x - y + ANS_MOD) % m;
+}
 
-#define MAX_N   (2000)
-char szInput[MAX_N + 1];
-static bitset<MAX_N + 1> s_abitMatchTbl[MAX_N + 1];
+static SQWORD mulModM(SQWORD x, SQWORD y, SQWORD m) 
+{
+    return (x * y) % m;
+}
+ 
+static SQWORD powModM(SQWORD x, SQWORD e, SQWORD m) {
+    SQWORD v = 1;
+    for (; e; x = mulModM(x, x, m), e >>= 1) {
+        if (e & 1) {
+            v = mulModM(v, x, m);
+        }
+    }
+    return v;
+}
+ 
+
+/**
+ *  f(l)
+ */
+static SQWORD calcTenPowMod(
+    SQWORD sqDigits, 
+    SQWORD sqBaseNum,
+    SQWORD sqInput_M)
+{
+    if (1 == sqDigits) {
+        return 1;
+    }
+
+    if (0 == (sqDigits % 2)) {
+        SQWORD sqMod;
+        SQWORD sqModHalf = calcTenPowMod(sqDigits / 2, sqBaseNum, sqInput_M);
+        sqMod = mulModM(sqModHalf
+                        ,powModM(sqBaseNum, sqDigits / 2, sqInput_M)
+                        ,sqInput_M);
+        sqMod = addModM(sqMod, sqModHalf, sqInput_M); 
+        return sqMod;
+    } else {
+        SQWORD sqMod =  calcTenPowMod(sqDigits - 1, sqBaseNum, sqInput_M);
+        sqMod = mulModM(sqMod, sqBaseNum, sqInput_M);
+        sqMod = addModM(sqMod, sqBaseNum, sqInput_M);
+        return sqMod;
+    }
+}
+
+static SQWORD calcModA(
+    SQWORD sqDigits,            /* 項数 */
+    SQWORD sqPowTen,            /* 10のべき乗数 */
+    SQWORD sqInput_M,           /* M */
+    SQWORD sqInput_A)           /* A */
+{
+    SQWORD sqBaseNum = pow(10, sqPowTen);
+    SQWORD sqRet = powModM(sqInput_A, 
+                            calcTenPowMod(sqDigits, sqBaseNum, sqInput_M), sqInput_M);
+    return sqRet;
+}    
+
+
+/**
+ *  g(l+1) = g(l) * sqBaseNum + Bl
+ *  g(2l)  = g(l) * sqBaseNum^l + g(l) + Bl*f(l) 
+ */
+static SQWORD calcModB(
+    SQWORD sqDigits, 
+    SQWORD sqBaseMod, 
+    SQWORD sqBaseNum,
+    SQWORD sqInput_M,
+    SQWORD sqInput_B)
+{
+    if (1 == sqDigits) {
+        return (sqInput_B % sqInput_M);
+    }
+
+    if (0 == (sqDigits % 2)) {
+        SQWORD sqMod;
+        SQWORD sqModHalf = calcTenPowMod(sqDigits / 2, sqBaseMod, sqBaseNum, sqInput_M);
+        sqMod = mulModM(sqModHalf
+                        ,powModM(sqBaseNum, sqDigits / 2, sqInput_M)
+                        ,sqInput_M);
+        sqMod = addModM(sqMod, sqModHalf, sqInput_M); 
+        return sqMod;
+    } else {
+        SQWORD sqMod =  calcTenPowMod(sqDigits - 1, sqBaseMod, sqBaseNum, sqInput_M);
+        sqMod = mulModM(sqMod, sqBaseNum, sqInput_M);
+        sqMod = addModM(sqMod, sqBaseNum, sqInput_M);
+        return sqMod;
+    }
+
+}
+
+
 
 int main(void)
 {
-    SDWORD lInput_n = inputSDWORD();
-    for (SDWORD lIdxI = 2; lIdxI <= lInput_n; lIdxI++) {
-        inputString(szInput);
-        for (SDWORD lIdxJ = 1; lIdxJ < lIdxI; lIdxJ++) {
-            if ('0' == szInput[lIdxJ - 1]) {
-                s_abitMatchTbl[lIdxJ][lIdxI] = true;
-            }
+    SQWORD sqInput_L = inputSQWORD();
+    SQWORD sqInput_A = inputSQWORD();
+    SQWORD sqInput_B = inputSQWORD();
+    SQWORD sqInput_M = inputSQWORD();
+
+    SQWORD sqSequenceMax = sqInput_A + sqInput_B * (sqInput_L - 1);
+
+    /* 後ろ側から順に計算してゆく */
+    for (SQWORD sqDecPowIdx = 18; sqDecPowIdx <= 0; sqDecPowIdx--) {
+        SQWORD sqR = pow(10, sqDecPowIdx);
+        SQWORD sqL = pow(10, sqDecPowIdx + 1) - 1;
+
+        SQWORD sqIdxR, sqIdxL;
+        if (sqR < sqInput_A) {
+            sqIdxR = 0;
+        } else {
+            sqIdxR = (sqInput_A - sqR + (sqInput_B - 1)) / sqInput_B;
         }
-    }
-#if 0
-    for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n; lUpdIdxL++) {
-        for (SDWORD lUpdIdxR = 1; lUpdIdxR <= lInput_n; lUpdIdxR++) {
-            printf("%d ", s_aalMatchTbl[lUpdIdxL][lUpdIdxR]);
+        if (sqSequenceMax <= sqL) {
+            sqIdxL = sqIdxL - 1;
+        } else {
+            sqIdxL = (sqL - sqInput_A) / sqInput_B;
         }
-        printf("\n");
+
+
+
     }
-#endif
-
-    static bitset<MAX_N + 1> s_absDpL[MAX_N+1];
-    static bitset<MAX_N + 1> s_absDpR[MAX_N+1];
-
-    for (SDWORD lUpdateWidth = 0; lUpdateWidth <= lInput_n; lUpdateWidth++) {
-        for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n - lUpdateWidth; lUpdIdxL++) {
-            SDWORD lUpdIdxR = lUpdIdxL + lUpdateWidth;
-            if (lUpdIdxL == lUpdIdxR) {
-                s_absDpL[lUpdIdxL][lUpdIdxR] = 1;
-                s_absDpR[lUpdIdxL][lUpdIdxR] = 1;
-            } else {
-                for (SDWORD lUpdIdxM = lUpdIdxL; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update A1: [%d, <%d> %d], %d %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalMatchTbl[lUpdIdxL][lUpdIdxR],
-                            s_aalDpL[lUpdIdxL][lUpdIdxM],
-                            s_aalDpR[lUpdIdxM+1][lUpdIdxR]);
-#endif
-
-                    if ((s_absDpL[lUpdIdxL][lUpdIdxM])
-                        && (s_absDpR[lUpdIdxM+1][lUpdIdxR])) {
-                        if (s_abitMatchTbl[lUpdIdxL][lUpdIdxR]) {
-                            s_absDpL[lUpdIdxL][lUpdIdxR] = true;
-                        } else {
-                            s_absDpR[lUpdIdxL][lUpdIdxR] = true;
-                        }
-                    }
-                }
-                for (SDWORD lUpdIdxM = lUpdIdxL + 1; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
-#if 0
-                    printf("update A2: [%d, <%d> %d], %d %d\n", 
-                            lUpdIdxL, lUpdIdxM, lUpdIdxR,
-                            s_aalDpL[lUpdIdxL][lUpdIdxM],
-                            s_aalDpL[lUpdIdxM][lUpdIdxR]);
-#endif
-
-                    if ((1 == s_absDpL[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_absDpL[lUpdIdxM][lUpdIdxR])) {
-                        s_absDpL[lUpdIdxL][lUpdIdxR] = 1;
-                    }
-                    if ((1 == s_absDpR[lUpdIdxL][lUpdIdxM])
-                        && (1 == s_absDpR[lUpdIdxM][lUpdIdxR])) {
-                        s_absDpR[lUpdIdxL][lUpdIdxR] = 1;
-                    }
-                }
-            }
-        }
-    }
-
-#if 0
-    for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n; lUpdIdxL++) {
-        for (SDWORD lUpdIdxR = 1; lUpdIdxR <= lInput_n; lUpdIdxR++) {
-            printf("%d ", s_aalDpL[lUpdIdxL][lUpdIdxR]);
-        }
-        printf("\n");
-    }
-    for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n; lUpdIdxL++) {
-        for (SDWORD lUpdIdxR = 1; lUpdIdxR <= lInput_n; lUpdIdxR++) {
-            printf("%d ", s_aalDpR[lUpdIdxL][lUpdIdxR]);
-        }
-        printf("\n");
-    }
-#endif
-
-    /* count winners */
-    SDWORD lAns = 0;
-    for (SDWORD lMid = 1; lMid <= lInput_n; lMid++) {
-        if (s_absDpR[1][lMid] && s_absDpL[lMid][lInput_n]) {
-            lAns++;
-        }
-    }
-
-    printf("%d\n", lAns);
 
     return 0;
 }

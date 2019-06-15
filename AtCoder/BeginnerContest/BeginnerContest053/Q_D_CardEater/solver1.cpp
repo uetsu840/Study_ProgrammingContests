@@ -39,6 +39,7 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
+
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
@@ -154,88 +155,24 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-/*----------------------------------------------*/
-#define N_MAX_ROWS  (2000)
-#define N_MAX_COLS  (2000)
+#define MAX_NUMBER  (100000)
 
 int main()
 {
-    SDWORD lInput_H = inputSDWORD();
-    SDWORD lInput_W = inputSDWORD();
+    SQWORD  sqInput_N = inputSQWORD();
+ 
+    static SDWORD s_alCntCards[MAX_NUMBER + 1];
 
-    static vector<SDWORD> s_avecObsRow[N_MAX_ROWS];
-    static vector<SDWORD> s_avecObsCol[N_MAX_COLS];
-    char acInput_Row[N_MAX_COLS + 1];
-    static bool s_aabIsObs[N_MAX_ROWS][N_MAX_COLS];
-
-    for (SDWORD lRowIdx = 0; lRowIdx < lInput_H; lRowIdx++) {
-        inputString(acInput_Row);
-        for (SDWORD lColIdx = 0; lColIdx < lInput_W; lColIdx++) {
-            if (acInput_Row[lColIdx] == '#') {
-                /* obstacles */
-                s_avecObsRow[lRowIdx].emplace_back(lColIdx);
-                s_avecObsCol[lColIdx].emplace_back(lRowIdx);
-                s_aabIsObs[lRowIdx][lColIdx] = true;
-            }
+    SDWORD lDupCnt = 0;
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SDWORD lNumber = inputSDWORD();
+        if (0 < s_alCntCards[lNumber]) {
+            lDupCnt++;
         }
-    }
-    SDWORD lAns = 0;
-    for (SDWORD lRowIdx = 0; lRowIdx < lInput_H; lRowIdx++) {
-        for (SDWORD lColIdx = 0; lColIdx < lInput_W; lColIdx++) {
-            if (!s_aabIsObs[lRowIdx][lColIdx]) {
-                auto &vecRow = s_avecObsRow[lRowIdx];
-                auto &vecCol = s_avecObsCol[lColIdx];
-
-
-                SDWORD lNumRow, lNumCol;
-                if (0 == vecRow.size()) {
-                    lNumRow = lInput_W - 1;
-                } else {
-                    auto it_row_upper = upper_bound(vecRow.begin(), vecRow.end(), lColIdx);
-                    SDWORD lNumRowL, lNumRowR;
-                    if (it_row_upper == vecRow.begin()) {
-                        lNumRowL = 0;
-                    } else {
-                        auto it_row_lower = it_row_upper - 1;
-                        lNumRowL = *it_row_lower + 1;
-                    }
-                    if (it_row_upper == vecRow.end()) {
-                        lNumRowR = lInput_W - 1;
-                    } else {
-                        lNumRowR = *it_row_upper - 1;
-                    }
-                    lNumRow = lNumRowR - lNumRowL;
-//                    printf("Row %d %d\n", lNumRowR, lNumRowL);
-                }
-
-                if (0 == vecCol.size()) {
-                    lNumCol = lInput_H - 1;
-                } else {
-                    auto it_col_upper = upper_bound(vecCol.begin(), vecCol.end(), lRowIdx);
-                    SDWORD lNumColL, lNumColR;
-                    if (it_col_upper == vecCol.begin()) {
-                        lNumColL = 0;
-                    } else {
-                        auto it_col_lower = it_col_upper - 1;
-                        lNumColL = *it_col_lower + 1;
-                    }
-                    if (it_col_upper == vecCol.end()) {
-                        lNumColR = lInput_H - 1;
-                    } else {
-                        lNumColR = *it_col_upper - 1;
-                    }
-                    lNumCol = lNumColR - lNumColL;
-//                    printf("Col %d %d\n", lNumColR, lNumColL);
-                }
-                lAns = max(lAns, lNumCol + lNumRow + 1);
-
-  //              printf("[%d %d] %d %d\n", lRowIdx, lColIdx, lNumRow, lNumCol);
-            }
-        }
+        s_alCntCards[lNumber]++;
     }
 
-
-    printf("%d\n", lAns);
+    printf("%d\n", sqInput_N - ((lDupCnt + 1) / 2) * 2);
 
     return 0;
 }

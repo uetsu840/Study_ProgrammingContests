@@ -13,6 +13,7 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
+#include <list>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -39,6 +40,7 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
+
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
@@ -47,6 +49,9 @@ static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+
+static inline SDWORD DIV_UP_N(SDWORD a, SDWORD b) {return (a + b-1) / b;}
+static inline SQWORD DIV_UP_N(SQWORD a, SQWORD b) {return (a + b-1) / b;}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -154,88 +159,120 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-/*----------------------------------------------*/
-#define N_MAX_ROWS  (2000)
-#define N_MAX_COLS  (2000)
 
-int main()
+/**
+ *  mod による操作ライブラリ
+ */
+
+#define ANS_MOD (1000000007LL)
+ 
+static SQWORD addMod(SQWORD x, SQWORD y)
+{ 
+    return (x + y) % ANS_MOD;
+}
+ 
+static SQWORD subMod(SQWORD x, SQWORD y)
 {
-    SDWORD lInput_H = inputSDWORD();
-    SDWORD lInput_W = inputSDWORD();
-
-    static vector<SDWORD> s_avecObsRow[N_MAX_ROWS];
-    static vector<SDWORD> s_avecObsCol[N_MAX_COLS];
-    char acInput_Row[N_MAX_COLS + 1];
-    static bool s_aabIsObs[N_MAX_ROWS][N_MAX_COLS];
-
-    for (SDWORD lRowIdx = 0; lRowIdx < lInput_H; lRowIdx++) {
-        inputString(acInput_Row);
-        for (SDWORD lColIdx = 0; lColIdx < lInput_W; lColIdx++) {
-            if (acInput_Row[lColIdx] == '#') {
-                /* obstacles */
-                s_avecObsRow[lRowIdx].emplace_back(lColIdx);
-                s_avecObsCol[lColIdx].emplace_back(lRowIdx);
-                s_aabIsObs[lRowIdx][lColIdx] = true;
-            }
+    return (x - y + ANS_MOD) % ANS_MOD;
+}
+ 
+static SQWORD mulMod(SQWORD x, SQWORD y) 
+{
+    return (x * y) % ANS_MOD;
+}
+ 
+static SQWORD powMod(SQWORD x, SQWORD e) {
+    SQWORD v = 1;
+    for (; e; x = mulMod(x, x), e >>= 1) {
+        if (e & 1) {
+            v = mulMod(v, x);
         }
     }
-    SDWORD lAns = 0;
-    for (SDWORD lRowIdx = 0; lRowIdx < lInput_H; lRowIdx++) {
-        for (SDWORD lColIdx = 0; lColIdx < lInput_W; lColIdx++) {
-            if (!s_aabIsObs[lRowIdx][lColIdx]) {
-                auto &vecRow = s_avecObsRow[lRowIdx];
-                auto &vecCol = s_avecObsCol[lColIdx];
+    return v;
+}
+ 
+static SQWORD divMod(SQWORD x, SQWORD y)
+{
+    return mulMod(x, powMod(y, ANS_MOD - 2));
+}
+ 
+ 
+static SQWORD combMod(SQWORD n, SQWORD k)
+{
+    SQWORD v=1;
+    for(SQWORD i=1; i<=k; i++) {
+        v = divMod(mulMod(v, n-i+1),i);
+    } 
+    return v;
+}
 
+/*----------------------------------------------*/
 
-                SDWORD lNumRow, lNumCol;
-                if (0 == vecRow.size()) {
-                    lNumRow = lInput_W - 1;
-                } else {
-                    auto it_row_upper = upper_bound(vecRow.begin(), vecRow.end(), lColIdx);
-                    SDWORD lNumRowL, lNumRowR;
-                    if (it_row_upper == vecRow.begin()) {
-                        lNumRowL = 0;
-                    } else {
-                        auto it_row_lower = it_row_upper - 1;
-                        lNumRowL = *it_row_lower + 1;
-                    }
-                    if (it_row_upper == vecRow.end()) {
-                        lNumRowR = lInput_W - 1;
-                    } else {
-                        lNumRowR = *it_row_upper - 1;
-                    }
-                    lNumRow = lNumRowR - lNumRowL;
-//                    printf("Row %d %d\n", lNumRowR, lNumRowL);
-                }
+static bool isAllDestroyed(
+    SQWORD sqCnt,
+    SQWORD sqInput_A,
+    SQWORD sqInput_B,
+    const vector<SQWORD> &vecsqInput_h)
+{
+    SQWORD sqBase = sqInput_B * sqCnt;
+    SQWORD sqNeedAttackCnt = 0;
+    for (auto target: vecsqInput_h) {
+        SQWORD sqRest = max((SQWORD)0, target - sqBase);
 
-                if (0 == vecCol.size()) {
-                    lNumCol = lInput_H - 1;
-                } else {
-                    auto it_col_upper = upper_bound(vecCol.begin(), vecCol.end(), lRowIdx);
-                    SDWORD lNumColL, lNumColR;
-                    if (it_col_upper == vecCol.begin()) {
-                        lNumColL = 0;
-                    } else {
-                        auto it_col_lower = it_col_upper - 1;
-                        lNumColL = *it_col_lower + 1;
-                    }
-                    if (it_col_upper == vecCol.end()) {
-                        lNumColR = lInput_H - 1;
-                    } else {
-                        lNumColR = *it_col_upper - 1;
-                    }
-                    lNumCol = lNumColR - lNumColL;
-//                    printf("Col %d %d\n", lNumColR, lNumColL);
-                }
-                lAns = max(lAns, lNumCol + lNumRow + 1);
-
-  //              printf("[%d %d] %d %d\n", lRowIdx, lColIdx, lNumRow, lNumCol);
-            }
-        }
+        sqNeedAttackCnt += DIV_UP_N(sqRest, sqInput_A - sqInput_B);
     }
 
+    if (sqNeedAttackCnt <= sqCnt) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
-    printf("%d\n", lAns);
+/**
+*   2分探索
+*/
+static SQWORD binarySearch(
+    bool (*judge)(SQWORD, SQWORD, SQWORD, const vector<SQWORD>&), 
+    SQWORD sqInitLb, 
+    SQWORD sqInitUb, 
+    SQWORD sqInput_A,
+    SQWORD sqInput_B,
+    const vector<SQWORD> &vecsqInput_h)
+{
+    SQWORD sqLb = sqInitLb;
+    SQWORD sqUb = sqInitUb;
+
+    while (1LL < sqUb - sqLb) {
+        SQWORD sqMid = (sqUb + sqLb) / 2LL;
+        if (judge(sqMid, sqInput_A, sqInput_B, vecsqInput_h)) {
+            sqUb = sqMid;
+        } else {
+            sqLb = sqMid;
+        }
+    }
+    return sqUb;
+}
+
+
+
+int main(void)
+{
+    SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_A = inputSQWORD();
+    SQWORD sqInput_B = inputSQWORD();
+
+    vector<SQWORD> vecsqInput_h;
+
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD sqInput_h = inputSQWORD();
+        vecsqInput_h.emplace_back(sqInput_h);
+    }
+
+    sort(vecsqInput_h.begin(), vecsqInput_h.end(), greater<SQWORD>());
+    
+    SQWORD sqAns = binarySearch(isAllDestroyed, 0, MAX_SDWORD, sqInput_A, sqInput_B, vecsqInput_h);
+    printf("%lld\n", sqAns);
 
     return 0;
 }

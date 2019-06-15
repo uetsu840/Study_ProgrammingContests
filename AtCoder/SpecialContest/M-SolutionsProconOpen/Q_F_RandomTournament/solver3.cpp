@@ -13,6 +13,8 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
+#include <list>
+#include <bitset>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -38,6 +40,7 @@ using FLOAT  = float;
 #define MAX_DWORD  (0xFFFFFFFF)
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
+
 
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
@@ -154,86 +157,126 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-/*----------------------------------------------*/
-#define N_MAX_ROWS  (2000)
-#define N_MAX_COLS  (2000)
 
-int main()
+/**
+ *  mod による操作ライブラリ
+ */
+
+#define ANS_MOD (1000000007LL)
+ 
+static SQWORD addMod(SQWORD x, SQWORD y)
+{ 
+    return (x + y) % ANS_MOD;
+}
+ 
+static SQWORD subMod(SQWORD x, SQWORD y)
 {
-    SDWORD lInput_H = inputSDWORD();
-    SDWORD lInput_W = inputSDWORD();
+    return (x - y + ANS_MOD) % ANS_MOD;
+}
+ 
+static SQWORD mulMod(SQWORD x, SQWORD y) 
+{
+    return (x * y) % ANS_MOD;
+}
+ 
+static SQWORD powMod(SQWORD x, SQWORD e) {
+    SQWORD v = 1;
+    for (; e; x = mulMod(x, x), e >>= 1) {
+        if (e & 1) {
+            v = mulMod(v, x);
+        }
+    }
+    return v;
+}
+ 
+static SQWORD divMod(SQWORD x, SQWORD y)
+{
+    return mulMod(x, powMod(y, ANS_MOD - 2));
+}
+ 
+ 
+static SQWORD combMod(SQWORD n, SQWORD k)
+{
+    SQWORD v=1;
+    for(SQWORD i=1; i<=k; i++) {
+        v = divMod(mulMod(v, n-i+1),i);
+    } 
+    return v;
+}
 
-    static vector<SDWORD> s_avecObsRow[N_MAX_ROWS];
-    static vector<SDWORD> s_avecObsCol[N_MAX_COLS];
-    char acInput_Row[N_MAX_COLS + 1];
-    static bool s_aabIsObs[N_MAX_ROWS][N_MAX_COLS];
+/*----------------------------------------------*/
 
-    for (SDWORD lRowIdx = 0; lRowIdx < lInput_H; lRowIdx++) {
-        inputString(acInput_Row);
-        for (SDWORD lColIdx = 0; lColIdx < lInput_W; lColIdx++) {
-            if (acInput_Row[lColIdx] == '#') {
-                /* obstacles */
-                s_avecObsRow[lRowIdx].emplace_back(lColIdx);
-                s_avecObsCol[lColIdx].emplace_back(lRowIdx);
-                s_aabIsObs[lRowIdx][lColIdx] = true;
+#define MAX_N   (2000)
+char szInput[MAX_N + 1];
+static bitset<MAX_N + 1> s_abitMatchTbl[MAX_N + 1];
+
+int main(void)
+{
+    SDWORD lInput_n = inputSDWORD();
+    for (SDWORD lIdxI = 2; lIdxI <= lInput_n; lIdxI++) {
+        inputString(szInput);
+        for (SDWORD lIdxJ = 1; lIdxJ < lIdxI; lIdxJ++) {
+            if ('0' == szInput[lIdxJ - 1]) {
+                s_abitMatchTbl[lIdxJ][lIdxI] = true;
             }
         }
     }
+
+    static bitset<MAX_N + 1> s_absDpL[MAX_N+1];
+    static bitset<MAX_N + 1> s_absDpR[MAX_N+1];
+
+    for (SDWORD lPos = 1; lPos <= lInput_n; lPos++) {
+        s_absDpL[lPos][lPos] = 1;
+        s_absDpR[lPos][lPos] = 1;
+    }
+    for (SDWORD lUpdateWidth = 1; lUpdateWidth <= lInput_n; lUpdateWidth++) {
+        for (SDWORD lUpdIdxL = 1; lUpdIdxL <= lInput_n - lUpdateWidth; lUpdIdxL++) {
+            SDWORD lUpdIdxR = lUpdIdxL + lUpdateWidth;
+            /* LR */
+            bool bCondLR = false;
+            bool bCondLL = false;
+            bool bCondRR = false;
+            for (SDWORD lUpdIdxM = lUpdIdxL; lUpdIdxM < lUpdIdxR; lUpdIdxM++) {
+                bool bDpL  = s_absDpL[lUpdIdxL][lUpdIdxM];
+                bool bDpML = s_absDpL[lUpdIdxM][lUpdIdxR];
+                bool bDpR  = s_absDpR[lUpdIdxL][lUpdIdxM];
+                bool bDpMR = s_absDpR[lUpdIdxM][lUpdIdxR];
+                bool bDp1R = s_absDpR[lUpdIdxM+1][lUpdIdxR];
+                if (bDpL && bDp1R) {
+                    bCondLR = true;
+                }
+                if (lUpdIdxM != lUpdIdxL) {
+                    if (bDpL && bDpML) {
+                        bCondLL = true;
+                    }
+                    if (bDpR && bDpMR) {
+                        bCondRR = true;
+                    }
+                }
+            }
+            if (bCondLR) {
+                if (s_abitMatchTbl[lUpdIdxL][lUpdIdxR]) {
+                    s_absDpL[lUpdIdxL].set(lUpdIdxR, true);
+                } else {
+                    s_absDpR[lUpdIdxL].set(lUpdIdxR, true);
+                }
+            }
+            if (bCondLL) {
+                s_absDpL[lUpdIdxL].set(lUpdIdxR, true);
+            }
+            if (bCondRR) {
+                s_absDpR[lUpdIdxL].set(lUpdIdxR, true);
+            }
+        }
+    }
+
+    /* count winners */
     SDWORD lAns = 0;
-    for (SDWORD lRowIdx = 0; lRowIdx < lInput_H; lRowIdx++) {
-        for (SDWORD lColIdx = 0; lColIdx < lInput_W; lColIdx++) {
-            if (!s_aabIsObs[lRowIdx][lColIdx]) {
-                auto &vecRow = s_avecObsRow[lRowIdx];
-                auto &vecCol = s_avecObsCol[lColIdx];
-
-
-                SDWORD lNumRow, lNumCol;
-                if (0 == vecRow.size()) {
-                    lNumRow = lInput_W - 1;
-                } else {
-                    auto it_row_upper = upper_bound(vecRow.begin(), vecRow.end(), lColIdx);
-                    SDWORD lNumRowL, lNumRowR;
-                    if (it_row_upper == vecRow.begin()) {
-                        lNumRowL = 0;
-                    } else {
-                        auto it_row_lower = it_row_upper - 1;
-                        lNumRowL = *it_row_lower + 1;
-                    }
-                    if (it_row_upper == vecRow.end()) {
-                        lNumRowR = lInput_W - 1;
-                    } else {
-                        lNumRowR = *it_row_upper - 1;
-                    }
-                    lNumRow = lNumRowR - lNumRowL;
-//                    printf("Row %d %d\n", lNumRowR, lNumRowL);
-                }
-
-                if (0 == vecCol.size()) {
-                    lNumCol = lInput_H - 1;
-                } else {
-                    auto it_col_upper = upper_bound(vecCol.begin(), vecCol.end(), lRowIdx);
-                    SDWORD lNumColL, lNumColR;
-                    if (it_col_upper == vecCol.begin()) {
-                        lNumColL = 0;
-                    } else {
-                        auto it_col_lower = it_col_upper - 1;
-                        lNumColL = *it_col_lower + 1;
-                    }
-                    if (it_col_upper == vecCol.end()) {
-                        lNumColR = lInput_H - 1;
-                    } else {
-                        lNumColR = *it_col_upper - 1;
-                    }
-                    lNumCol = lNumColR - lNumColL;
-//                    printf("Col %d %d\n", lNumColR, lNumColL);
-                }
-                lAns = max(lAns, lNumCol + lNumRow + 1);
-
-  //              printf("[%d %d] %d %d\n", lRowIdx, lColIdx, lNumRow, lNumCol);
-            }
+    for (SDWORD lMid = 1; lMid <= lInput_n; lMid++) {
+        if (s_absDpR[1][lMid] && s_absDpL[lMid][lInput_n]) {
+            lAns++;
         }
     }
-
 
     printf("%d\n", lAns);
 

@@ -205,80 +205,35 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-typedef struct {
-    SQWORD sqTBegin;
-    SQWORD sqTEnd;
-    SQWORD sqPos;
-} BLOCK_ST;
-
-typedef enum {
-    BLOCK_START = 0,
-    BLOCK_FINISH
-} E_BLOCK_EV_TYPE;
-
-typedef struct {
-    SQWORD sqTime;
-    E_BLOCK_EV_TYPE eEv;
-    SQWORD sqPos;
-} EVENT_ST;
-
-bool operator< (const EVENT_ST a, const EVENT_ST b)
-{
-    return (a.sqTime < b.sqTime);
-} 
+#define MAX_DIGITS  (100001)
 
 int main(void)
 {
-    vector<EVENT_ST> vstEvents;
-    vector<SQWORD>  vsqStartTime;
+    char acInput_L[MAX_DIGITS + 1];
+    inputString(acInput_L);
+    SDWORD lNumDigit = strlen(acInput_L);
 
-    SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_Q = inputSQWORD();
+    SQWORD sqDpA;       /* 一致 */
+    SQWORD sqDpB;       /* 未満 */
 
-    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
-        SQWORD sqInput_S = inputSQWORD();
-        SQWORD sqInput_T = inputSQWORD();
-        SQWORD sqInput_X = inputSQWORD();
+    SQWORD sqDpANext;
+    SQWORD sqDpBNext;
 
-        vstEvents.emplace_back(EVENT_ST{sqInput_S - sqInput_X, BLOCK_START, sqInput_X});
-        vstEvents.emplace_back(EVENT_ST{sqInput_T - sqInput_X, BLOCK_FINISH, sqInput_X});
-    }
-    for (SQWORD sqIdx = 0; sqIdx < sqInput_Q; sqIdx++) {
-        vsqStartTime.emplace_back(inputSQWORD());
-    }
+    sqDpA = 2;
+    sqDpB = 1;
 
-    sort(vstEvents.begin(), vstEvents.end());
-
-    multiset<SQWORD> setBlockPos;
-    SQWORD sqStartTimeCur = 0;
-    for (auto ev: vstEvents) {
-//        printf("ev time %lld, start time %lld\n", ev.sqTime, vsqStartTime[sqStartTimeCur]);
-        while(1) {
-            if (vsqStartTime.size() <= sqStartTimeCur) {
-                break; 
-            } else if (ev.sqTime <= vsqStartTime[sqStartTimeCur]) {
-                break;
-            } else {
-                if (setBlockPos.empty()) {
-                    printf("-1\n");
-                } else {
-                    SQWORD sqMaxPos = *(setBlockPos.begin());
-                    printf("%lld\n", sqMaxPos);
-                } 
-                sqStartTimeCur++;
-            }
-        }
-
-        if (BLOCK_START == ev.eEv) {
-            setBlockPos.insert(ev.sqPos);
+    for (SDWORD lDigit = 1; lDigit < lNumDigit; lDigit++) {
+        if ('1' == acInput_L[lDigit]) {
+            sqDpANext = mulMod(sqDpA, 2LL);                     /* 10, 01 */
+            sqDpBNext = addMod(mulMod(sqDpB, 3LL), sqDpA);      /* 10, 01, 00 + 00 */
         } else {
-            setBlockPos.erase(setBlockPos.find(ev.sqPos));
+            sqDpANext = sqDpA;                                  /* 00 */
+            sqDpBNext = mulMod(sqDpB, 3LL);                     /* 00, 10, 01 */
         }
+        sqDpA = sqDpANext;
+        sqDpB = sqDpBNext;
     }
 
-    for (;sqStartTimeCur < vsqStartTime.size(); sqStartTimeCur++) {
-        printf("-1\n");
-    }
-    
+    printf("%lld\n", addMod(sqDpA, sqDpB));
     return 0;
 }

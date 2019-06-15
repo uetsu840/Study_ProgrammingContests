@@ -207,10 +207,15 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 int main(void)
 {
-    SQWORD sqInput_A = inputSQWORD();
-    SQWORD sqInput_P = inputSQWORD();
+    SDWORD lInput_P = inputSDWORD();
+    SDWORD lInput_Q = inputSDWORD();
+    SDWORD lInput_R = inputSDWORD();
 
-    SQWORD sqAns = (sqInput_A * 3 + sqInput_P) / 2;
-    printf("%lld\n", sqAns);
-    return 0;
+    SDWORD lAns = MAX_SDWORD;
+
+    lAns = min(lAns, (lInput_P + lInput_Q));
+    lAns = min(lAns, (lInput_Q + lInput_R));
+    lAns = min(lAns, (lInput_P + lInput_R));
+
+    printf("%d\n", lAns);
 }

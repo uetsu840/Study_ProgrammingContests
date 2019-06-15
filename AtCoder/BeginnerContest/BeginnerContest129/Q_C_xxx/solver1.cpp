@@ -205,73 +205,37 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-#define MAX_NUM_LIGIT   (10)
-
-static SDWORD bitcount(
-    SDWORD lBit)
-{
-    SDWORD lCnt = 0;
-    for (SDWORD lIdx = 0; lIdx < DWORD_BITS; lIdx++) {
-        if (lBit & 0x1) {
-            lCnt++;
-        }
-        lBit >>= 1;
-    }
-//    printf("bc : %d\n", lCnt);
-    return lCnt;
-}
-
-static bool isLightAllOn(
-    SQWORD sqNumLight, 
-    const SQWORD *psqCondBitmap, 
-    const SDWORD *plReqNums,
-    SQWORD sqSwBitmap)
-{
-//    printf("---%lld\n", sqSwBitmap);
-    for (SDWORD lLightNo = 0; lLightNo < sqNumLight; lLightNo++) {
-        SQWORD sqCond = *(psqCondBitmap + lLightNo);
-        SDWORD lReqNum = *(plReqNums + lLightNo);
-        SQWORD sqOnLights = (sqCond & sqSwBitmap);
-        SDWORD lBitCount = bitcount((SDWORD)sqOnLights);
-//        printf("%llx %llx req %d bc %d\n", sqCond, sqOnLights, lReqNum, lBitCount);
-        if ((lBitCount % 2) != lReqNum) {
-//            printf("F\n");
-            return false;
-        }
-    }
-//    printf("T\n");
-    return true;
-}
+#define MAX_STAIRS  (100000)
 
 int main(void)
 {
-    SQWORD sqInput_K = inputSQWORD();
+    SQWORD sqInput_N = inputSQWORD();
     SQWORD sqInput_M = inputSQWORD();
+    static bool s_abIsBroken[MAX_STAIRS + 1];
 
-    SQWORD sqCondition[MAX_NUM_LIGIT + 1];
-    SDWORD alReqNo[MAX_NUM_LIGIT + 1];
-
-    for (SQWORD sqLIdx = 0; sqLIdx < sqInput_M; sqLIdx++) {
-        SQWORD sqNumSw = inputSQWORD();
-        SQWORD sqBitMap = 0;
-        for (SQWORD sqSwIdx = 0; sqSwIdx < sqNumSw; sqSwIdx++) {
-            SQWORD sqSwNo = inputSQWORD();
-            sqBitMap |= (0x1 << (sqSwNo - 1));
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_M; sqIdx++) {
+        SQWORD sqInput_a = inputSQWORD();
+        s_abIsBroken[sqInput_a] = true;
+    }
+    static SQWORD s_asqDpTbl[MAX_STAIRS + 1];
+    /* initialize */
+    s_asqDpTbl[0] = 1;
+    if (s_abIsBroken[1]) {
+        s_asqDpTbl[1] = 0;
+    } else {
+        s_asqDpTbl[1] = 1;
+    }
+    
+    for (SQWORD sqIdx = 2; sqIdx <= sqInput_N; sqIdx++) {
+        if (s_abIsBroken[sqIdx]) {
+            s_asqDpTbl[sqIdx] = 0;
+        } else {
+            s_asqDpTbl[sqIdx] = addMod(s_asqDpTbl[sqIdx - 1], s_asqDpTbl[sqIdx - 2]);
         }
-        sqCondition[sqLIdx] = sqBitMap;
+//        printf(":%lld\n", s_asqDpTbl[sqIdx]);
     }
-    for (SQWORD sqLIdx = 0; sqLIdx < sqInput_M; sqLIdx++) {
-        SDWORD lNumReq = inputSDWORD();
-        alReqNo[sqLIdx] = lNumReq;
-    }
-
-    SQWORD sqAns = 0;
-    for (SDWORD lSwBitmap = 0; lSwBitmap < (0x1<<sqInput_K); lSwBitmap++) {
-        if (isLightAllOn(sqInput_M, sqCondition, alReqNo, lSwBitmap)) {
-            sqAns++;
-        }
-    }
-    printf("%d\n", sqAns);
+    SQWORD sqAns = s_asqDpTbl[sqInput_N];
+    printf("%lld\n", sqAns);
 
     return 0;
 }

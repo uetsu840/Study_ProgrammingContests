@@ -13,6 +13,7 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
+#include <list>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -39,6 +40,7 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
+
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
@@ -47,6 +49,9 @@ static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+
+static inline SDWORD DIV_UP_N(SDWORD a, SDWORD b) {return (a + b-1) / b;}
+static inline SQWORD DIV_UP_N(SQWORD a, SQWORD b) {return (a + b-1) / b;}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -154,88 +159,122 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-/*----------------------------------------------*/
-#define N_MAX_ROWS  (2000)
-#define N_MAX_COLS  (2000)
 
-int main()
+/**
+ *  mod による操作ライブラリ
+ */
+
+#define ANS_MOD (1000000007LL)
+ 
+static SQWORD addMod(SQWORD x, SQWORD y)
+{ 
+    return (x + y) % ANS_MOD;
+}
+ 
+static SQWORD subMod(SQWORD x, SQWORD y)
 {
-    SDWORD lInput_H = inputSDWORD();
-    SDWORD lInput_W = inputSDWORD();
-
-    static vector<SDWORD> s_avecObsRow[N_MAX_ROWS];
-    static vector<SDWORD> s_avecObsCol[N_MAX_COLS];
-    char acInput_Row[N_MAX_COLS + 1];
-    static bool s_aabIsObs[N_MAX_ROWS][N_MAX_COLS];
-
-    for (SDWORD lRowIdx = 0; lRowIdx < lInput_H; lRowIdx++) {
-        inputString(acInput_Row);
-        for (SDWORD lColIdx = 0; lColIdx < lInput_W; lColIdx++) {
-            if (acInput_Row[lColIdx] == '#') {
-                /* obstacles */
-                s_avecObsRow[lRowIdx].emplace_back(lColIdx);
-                s_avecObsCol[lColIdx].emplace_back(lRowIdx);
-                s_aabIsObs[lRowIdx][lColIdx] = true;
-            }
+    return (x - y + ANS_MOD) % ANS_MOD;
+}
+ 
+static SQWORD mulMod(SQWORD x, SQWORD y) 
+{
+    return (x * y) % ANS_MOD;
+}
+ 
+static SQWORD powMod(SQWORD x, SQWORD e) {
+    SQWORD v = 1;
+    for (; e; x = mulMod(x, x), e >>= 1) {
+        if (e & 1) {
+            v = mulMod(v, x);
         }
     }
-    SDWORD lAns = 0;
-    for (SDWORD lRowIdx = 0; lRowIdx < lInput_H; lRowIdx++) {
-        for (SDWORD lColIdx = 0; lColIdx < lInput_W; lColIdx++) {
-            if (!s_aabIsObs[lRowIdx][lColIdx]) {
-                auto &vecRow = s_avecObsRow[lRowIdx];
-                auto &vecCol = s_avecObsCol[lColIdx];
+    return v;
+}
+ 
+static SQWORD divMod(SQWORD x, SQWORD y)
+{
+    return mulMod(x, powMod(y, ANS_MOD - 2));
+}
+ 
+ 
+static SQWORD combMod(SQWORD n, SQWORD k)
+{
+    SQWORD v=1;
+    for(SQWORD i=1; i<=k; i++) {
+        v = divMod(mulMod(v, n-i+1),i);
+    } 
+    return v;
+}
 
+/*----------------------------------------------*/
 
-                SDWORD lNumRow, lNumCol;
-                if (0 == vecRow.size()) {
-                    lNumRow = lInput_W - 1;
-                } else {
-                    auto it_row_upper = upper_bound(vecRow.begin(), vecRow.end(), lColIdx);
-                    SDWORD lNumRowL, lNumRowR;
-                    if (it_row_upper == vecRow.begin()) {
-                        lNumRowL = 0;
-                    } else {
-                        auto it_row_lower = it_row_upper - 1;
-                        lNumRowL = *it_row_lower + 1;
-                    }
-                    if (it_row_upper == vecRow.end()) {
-                        lNumRowR = lInput_W - 1;
-                    } else {
-                        lNumRowR = *it_row_upper - 1;
-                    }
-                    lNumRow = lNumRowR - lNumRowL;
-//                    printf("Row %d %d\n", lNumRowR, lNumRowL);
-                }
+typedef struct {
+    SQWORD sqA;
+    SQWORD sqB;
+    SQWORD sqCost;
+} ST_ELEM;
 
-                if (0 == vecCol.size()) {
-                    lNumCol = lInput_H - 1;
-                } else {
-                    auto it_col_upper = upper_bound(vecCol.begin(), vecCol.end(), lRowIdx);
-                    SDWORD lNumColL, lNumColR;
-                    if (it_col_upper == vecCol.begin()) {
-                        lNumColL = 0;
-                    } else {
-                        auto it_col_lower = it_col_upper - 1;
-                        lNumColL = *it_col_lower + 1;
-                    }
-                    if (it_col_upper == vecCol.end()) {
-                        lNumColR = lInput_H - 1;
-                    } else {
-                        lNumColR = *it_col_upper - 1;
-                    }
-                    lNumCol = lNumColR - lNumColL;
-//                    printf("Col %d %d\n", lNumColR, lNumColL);
-                }
-                lAns = max(lAns, lNumCol + lNumRow + 1);
+int main(void)
+{
+    SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_Ma = inputSQWORD();
+    SQWORD sqInput_Mb = inputSQWORD();
 
-  //              printf("[%d %d] %d %d\n", lRowIdx, lColIdx, lNumRow, lNumCol);
+    vector<ST_ELEM> vecElem;
+
+    for (SDWORD lIdx = 0; lIdx < sqInput_N; lIdx++) {
+        SQWORD sqInput_a = inputSQWORD();
+        SQWORD sqInput_b = inputSQWORD();
+        SQWORD sqInput_c = inputSQWORD();
+
+        vecElem.emplace_back(ST_ELEM{ sqInput_a, sqInput_b, sqInput_c});
+    }
+
+    SQWORD sqHalf = sqInput_N / 2;
+
+    vector<ST_ELEM> vecstFormer;
+    vector<ST_ELEM> vecstLatter;
+    SQWORD sqBitHalfMax = 1 << sqHalf;
+    for (SQWORD sqSel = 0; sqSel < sqBitHalfMax; sqSel++) {
+        SQWORD sqSumA = 0;
+        SQWORD sqSumB = 0;
+        SQWORD sqSumCost = 0;
+        SDWORD lIdx = 0;
+        for (SDWORD lBit = 1; lBit < sqBitHalfMax; lBit<<= 1, lIdx++) {
+            if (lBit & sqSel) {
+                sqSumA += vecElem[lIdx].sqA;
+                sqSumB += vecElem[lIdx].sqB;
+                sqSumCost += vecElem[lIdx].sqCost;
             }
         }
+        vecstFormer.emplace_back(ST_ELEM{sqSumA, sqSumB, sqSumCost});
+    }
+
+    SQWORD sqBitMax = (1 << (sqInput_N));
+    for (SQWORD sqSel = sqBitHalfMax - 1; sqSel < sqBitMax; sqSel+=sqBitHalfMax) {
+        printf(">%llx\n", sqSel);
+        SQWORD sqSumA = 0;
+        SQWORD sqSumB = 0;
+        SQWORD sqSumCost = 0;
+        SDWORD lIdx = sqHalf;
+        for (SDWORD lBit = sqBitHalfMax; lBit < sqBitMax; lBit<<= 1, lIdx++) {
+            if (lBit & sqSel) {
+                sqSumA += vecElem[lIdx].sqA;
+                sqSumB += vecElem[lIdx].sqB;
+                sqSumCost += vecElem[lIdx].sqCost;
+            }
+        }
+        vecstLatter.emplace_back(ST_ELEM{sqSumA, sqSumB, sqSumCost});
+    }
+
+    for (auto f: vecstFormer) {
+        printf("f %lld %lld %lld\n", f.sqA, f.sqB, f.sqCost);
+    }
+    for (auto l: vecstLatter) {
+        printf("l %lld %lld %lld\n", l.sqA, l.sqB, l.sqCost);
     }
 
 
-    printf("%d\n", lAns);
 
     return 0;
 }
