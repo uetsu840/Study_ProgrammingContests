@@ -65,7 +65,7 @@ static inline void inputString(char *pcStr)
     char *pcCur = pcStr;
     for (;;) {
         char c = getchar();
-        if (('\n' == c) || (EOF == c)) {
+        if (('\n' == c) || (EOF == c) || (' ' == c)) {
             break;
         }
         *pcCur = c;
@@ -205,8 +205,39 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
+#define MAX_BALLS   (50)
+
 int main(void)
 {
-    
+    SQWORD sqInput_N = inputSQWORD();
+
+    vector<pair<SQWORD, SQWORD>> vecpairBalls;
+
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD sqInput_x = inputSQWORD();
+        SQWORD sqInput_y = inputSQWORD();
+        vecpairBalls.emplace_back(make_pair(sqInput_x, sqInput_y));
+    }
+
+    map<pair<SQWORD, SQWORD>, SQWORD> mapDiffCnt;
+    for (SQWORD sqIdxJ = 0; sqIdxJ < sqInput_N; sqIdxJ++) {
+        for (SQWORD sqIdxK = 0; sqIdxK < sqInput_N; sqIdxK++) {
+            if (sqIdxJ != sqIdxK) {
+                pair<SQWORD, SQWORD> pairsqDiffPos;
+                pairsqDiffPos.first  = vecpairBalls[sqIdxJ].first  - vecpairBalls[sqIdxK].first;
+                pairsqDiffPos.second = vecpairBalls[sqIdxJ].second - vecpairBalls[sqIdxK].second;
+
+                mapDiffCnt[pairsqDiffPos]++;
+            }
+        }
+    }
+
+    SQWORD sqCntMax = 0; 
+    for (auto diff: mapDiffCnt) {
+        sqCntMax = max(diff.second, sqCntMax);
+    }
+
+    printf("%lld\n", sqInput_N - sqCntMax);
+
     return 0;
 }

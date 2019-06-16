@@ -205,9 +205,16 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-#define MAX_STAIRS  (100000)
-
 int main(void)
 {
+    SDWORD lInput_N = inputSDWORD();
+    SDWORD lInput_K = inputSDWORD();
+
+    if (1 == lInput_K) {
+        printf("0\n");
+    } else {
+        printf("%d\n", (lInput_N - lInput_K));
+    }
+    
     return 0;
 }

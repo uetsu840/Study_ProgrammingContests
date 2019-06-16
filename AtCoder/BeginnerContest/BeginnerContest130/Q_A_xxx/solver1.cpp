@@ -65,7 +65,7 @@ static inline void inputString(char *pcStr)
     char *pcCur = pcStr;
     for (;;) {
         char c = getchar();
-        if (('\n' == c) || (EOF == c) || (' ' == c)) {
+        if (('\n' == c) || (EOF == c)) {
             break;
         }
         *pcCur = c;
@@ -204,8 +204,8 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
+
 int main(void)
 {
-
     return 0;
 }
