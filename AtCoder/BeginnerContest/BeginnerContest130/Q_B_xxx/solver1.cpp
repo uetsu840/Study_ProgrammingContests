@@ -207,5 +207,26 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 int main(void)
 {
+    SDWORD lInput_N = inputSDWORD();
+    SDWORD lInput_X = inputSDWORD();
+    vector<SDWORD> veclInput_L;
+
+    for (SDWORD lIdx = 0; lIdx < lInput_N; lIdx++) {
+        SDWORD lInput_L = inputSDWORD();
+        veclInput_L.emplace_back(lInput_L);
+    }
+    veclInput_L.emplace_back(0);
+
+    SDWORD lPos = 0;
+    SDWORD lAns = 0;
+    for (SDWORD lIdx = 0; lIdx <= lInput_N; lIdx++) {
+        if (lPos <= lInput_X) {
+            lAns++;
+        }
+        lPos = lPos + veclInput_L[lIdx];
+    }
+
+    printf("%d\n", lAns);
+
     return 0;
 }

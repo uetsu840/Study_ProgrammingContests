@@ -160,5 +160,33 @@ static inline DOUBLE inputFP(void)
 
 int main()
 {
+    SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_K = inputSQWORD();
+    vector<SQWORD> vecsqA;
+    vector<SQWORD> vecsqCumSum;
+    vecsqCumSum.emplace_back(0);
+
+    SQWORD sqCumSum = 0;
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD sqInput_a = inputSQWORD();
+        sqCumSum += sqInput_a;
+        vecsqA.emplace_back(sqInput_a);
+        vecsqCumSum.emplace_back(sqCumSum);
+    }
+
+    SDWORD lCur = 0;
+    SQWORD sqAns = 0;
+    for (auto it = vecsqCumSum.begin(); it != vecsqCumSum.end(); ++it, lCur++) {
+        SQWORD sqCeil = *it + sqInput_K;
+        auto it_left = lower_bound(it, vecsqCumSum.end(), sqCeil);
+
+        SQWORD sqRemNum = it_left - it;
+        SQWORD sqAddNum = (sqInput_N - lCur + 1) - sqRemNum;
+        sqAns += sqAddNum;
+//        printf("%lld %lld %lld\n", sqCeil, sqRemNum, sqAddNum);
+    }
+    printf("%lld\n", sqAns);
+
+
     return 0;
 }

@@ -13,7 +13,6 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
-#include <list>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -39,7 +38,6 @@ using FLOAT  = float;
 #define MAX_DWORD  (0xFFFFFFFF)
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
-
 
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
@@ -157,55 +155,41 @@ static inline DOUBLE inputFP(void)
 }
 
 
-/**
- *  mod による操作ライブラリ
- */
-
-#define ANS_MOD (1000000007LL)
- 
-static SQWORD addMod(SQWORD x, SQWORD y)
-{ 
-    return (x + y) % ANS_MOD;
-}
- 
-static SQWORD subMod(SQWORD x, SQWORD y)
-{
-    return (x - y + ANS_MOD) % ANS_MOD;
-}
- 
-static SQWORD mulMod(SQWORD x, SQWORD y) 
-{
-    return (x * y) % ANS_MOD;
-}
- 
-static SQWORD powMod(SQWORD x, SQWORD e) {
-    SQWORD v = 1;
-    for (; e; x = mulMod(x, x), e >>= 1) {
-        if (e & 1) {
-            v = mulMod(v, x);
-        }
-    }
-    return v;
-}
- 
-static SQWORD divMod(SQWORD x, SQWORD y)
-{
-    return mulMod(x, powMod(y, ANS_MOD - 2));
-}
- 
- 
-static SQWORD combMod(SQWORD n, SQWORD k)
-{
-    SQWORD v=1;
-    for(SQWORD i=1; i<=k; i++) {
-        v = divMod(mulMod(v, n-i+1),i);
-    } 
-    return v;
-}
 
 /*----------------------------------------------*/
 
-int main(void)
+int main()
 {
+    SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_K = inputSQWORD();
+    vector<SQWORD> vecsqA;
+    vector<SQWORD> vecsqCumSum;
+    vecsqCumSum.emplace_back(0);
+
+    SQWORD sqCumSum = 0;
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD sqInput_a = inputSQWORD();
+        sqCumSum += sqInput_a;
+        vecsqA.emplace_back(sqInput_a);
+        vecsqCumSum.emplace_back(sqCumSum);
+    }
+
+    /* しゃくとり法でやる */
+
+
+    SQWORD sqAns = 0;
+    SQWORD sqIdxL = 0;
+    SQWORD sqIdxR = 0;
+    for (;sqIdxL <= sqInput_N; sqIdxL++) {
+        for (;sqIdxR <= sqInput_N; sqIdxR++) {
+            if (sqInput_K <= vecsqCumSum[sqIdxR] - vecsqCumSum[sqIdxL]) {
+//                printf("%lld %lld\n", sqIdxL, sqIdxR);
+                sqAns += (sqInput_N - sqIdxR + 1);
+                break;
+            }
+        }
+    }
+    printf("%lld\n", sqAns);
+
     return 0;
 }

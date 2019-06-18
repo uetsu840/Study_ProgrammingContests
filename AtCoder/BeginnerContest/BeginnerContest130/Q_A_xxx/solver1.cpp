@@ -206,6 +206,16 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 /*----------------------------------------------*/
 
 int main(void)
-{
+{  
+    SDWORD lInput_X = inputSDWORD();
+    SDWORD lInput_A = inputSDWORD();
+
+    if (lInput_X < lInput_A) {
+        printf("0\n");
+    } else {
+        printf("10\n");
+    }
+
+
     return 0;
 }

@@ -205,26 +205,59 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
+#define MAX_STRING  (2000)
+
 int main(void)
 {
-    SQWORD sqInput_W = inputSDWORD();
-    SQWORD sqInput_H = inputSDWORD();
+    SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_M = inputSQWORD();
 
-    SQWORD sqInput_x = inputSDWORD();
-    SQWORD sqInput_y = inputSDWORD();
+    vector<SQWORD> vecsqS;
+    vector<SQWORD> vecsqT;
 
-    /* 分割方法を判定 */
-    bool bIsDividable = false;
-    if ((sqInput_x * 2 == sqInput_W) && (sqInput_y * 2 == sqInput_H)) {
-        bIsDividable = true;
+    vecsqS.emplace_back(0);
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD sqS = inputSQWORD();
+        vecsqS.emplace_back(sqS);
+    }
+    vecsqT.emplace_back(0);
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_M; sqIdx++) {
+        SQWORD sqT = inputSQWORD();
+        vecsqT.emplace_back(sqT);
     }
 
-    printf("%.9f ", ((DOUBLE)sqInput_H * (DOUBLE)sqInput_W) / 2.0);
-    if (bIsDividable) {
-        printf("1\n");
-    } else {
-        printf("0\n");
+    /*
+    *   dp[i][j] = sum(dp[m][n])  (if A[i] = A[j], 1<m< i, 1<n<j )
+    *   dp[i][j] = 0              (if A[i] <> A[j])
+    */
+    static SQWORD s_aasqDpTbl[MAX_STRING + 1][MAX_STRING + 1];
+    static SQWORD s_aasqSumTblST[MAX_STRING + 1][MAX_STRING + 1];
+    
+    SQWORD sqMaxI = 0;
+    SQWORD sqMaxJ = 0;
+    for (SQWORD sqIdxI = 0; sqIdxI <= sqInput_N; sqIdxI++) {
+        for (SQWORD sqIdxJ = 0; sqIdxJ <= sqInput_M; sqIdxJ++) {
+            if ((0 == sqIdxI) || (0 == sqIdxJ)) {
+                s_aasqDpTbl[sqIdxI][sqIdxJ] = 1;
+                s_aasqSumTblST[sqIdxI][sqIdxJ] = 1;
+            } else {
+                SQWORD sqDp;
+                if (vecsqS[sqIdxI] == vecsqT[sqIdxJ]) {
+                    sqDp = s_aasqSumTblST[sqIdxI - 1][sqIdxJ - 1];
+                } else {
+                    sqDp = 0;
+                }
+                s_aasqDpTbl[sqIdxI][sqIdxJ] = sqDp;
+                SQWORD sqNextSum = 0;
+                sqNextSum = addMod(sqNextSum, s_aasqSumTblST[sqIdxI-1][sqIdxJ]);
+                sqNextSum = addMod(sqNextSum, s_aasqSumTblST[sqIdxI][sqIdxJ-1]);
+                sqNextSum = subMod(sqNextSum, s_aasqSumTblST[sqIdxI-1][sqIdxJ-1]);
+                sqNextSum = addMod(sqNextSum, sqDp);
+                s_aasqSumTblST[sqIdxI][sqIdxJ] = sqNextSum;
+            }
+        }
     }
+    printf("%lld\n", s_aasqSumTblST[sqInput_N][sqInput_M]);
 
     return 0;
 }
