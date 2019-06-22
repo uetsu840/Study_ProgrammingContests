@@ -13,7 +13,6 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
-#include <list>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -156,56 +155,61 @@ static inline DOUBLE inputFP(void)
     }
 }
 
+#define MAX_STRING  (1000000)
 
-/**
- *  mod による操作ライブラリ
- */
+static char s_acInput[MAX_STRING + 1];
 
-#define ANS_MOD (1000000007LL)
- 
-static SQWORD addMod(SQWORD x, SQWORD y)
-{ 
-    return (x + y) % ANS_MOD;
-}
- 
-static SQWORD subMod(SQWORD x, SQWORD y)
+static void getCharCntAndType(
+    vector<char> &vecCharType,
+    vector<SQWORD> &vecsqCharCnt)
 {
-    return (x - y + ANS_MOD) % ANS_MOD;
-}
- 
-static SQWORD mulMod(SQWORD x, SQWORD y) 
-{
-    return (x * y) % ANS_MOD;
-}
- 
-static SQWORD powMod(SQWORD x, SQWORD e) {
-    SQWORD v = 1;
-    for (; e; x = mulMod(x, x), e >>= 1) {
-        if (e & 1) {
-            v = mulMod(v, x);
+    inputString(s_acInput);
+    SDWORD lStrLen = strlen(s_acInput);
+    SDWORD lContCnt = 1;
+    for (SDWORD lStrIdx = 0; lStrIdx < lStrLen; lStrIdx++) {
+        if (s_acInput[lStrIdx] != s_acInput[lStrIdx + 1]) {
+            vecCharType.emplace_back(s_acInput[lStrIdx]);
+            vecsqCharCnt.emplace_back(lContCnt);
+            lContCnt = 1;
+        } else {
+            lContCnt++;
         }
     }
-    return v;
-}
- 
-static SQWORD divMod(SQWORD x, SQWORD y)
-{
-    return mulMod(x, powMod(y, ANS_MOD - 2));
-}
- 
- 
-static SQWORD combMod(SQWORD n, SQWORD k)
-{
-    SQWORD v=1;
-    for(SQWORD i=1; i<=k; i++) {
-        v = divMod(mulMod(v, n-i+1),i);
-    } 
-    return v;
 }
 
-/*----------------------------------------------*/
-
-int main(void)
+int main()
 {
+    SQWORD sqInput_N = inputSQWORD();
+
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        vector<char> veccCharTypeRef;
+        vector<SQWORD> vecsqCharCntRef;
+        vector<char> veccCharTypeChk;
+        vector<SQWORD> vecsqCharCntChk;
+
+        bool bMatch = true;
+        getCharCntAndType(veccCharTypeRef, vecsqCharCntRef);
+        getCharCntAndType(veccCharTypeChk, vecsqCharCntChk);
+
+        if (veccCharTypeRef.size() != veccCharTypeChk.size()) {
+            bMatch = false;
+        }
+        for (SDWORD lIdx = 0; lIdx < veccCharTypeRef.size(); lIdx++) {
+            if (vecsqCharCntChk[lIdx] < vecsqCharCntRef[lIdx]) {
+                bMatch = false;
+                break;
+            }
+            if (veccCharTypeChk[lIdx] != veccCharTypeRef[lIdx]) {
+                bMatch = false;
+                break;
+            }
+        }
+
+        if (bMatch) {
+            printf("YES\n");
+        } else {
+            printf("NO\n");
+        }
+    }
     return 0;
 }
