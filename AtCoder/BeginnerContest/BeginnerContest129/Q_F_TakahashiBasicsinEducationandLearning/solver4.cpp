@@ -253,7 +253,6 @@ static SQWORD calcTenPowSequenceMod(
     SQWORD sqBaseNum,   /* 10^d */
     SQWORD sqMod)       /* Mod */
 {
-
     if (0 == sqDigits) {
         return 0;
     }
@@ -340,8 +339,8 @@ static SQWORD calcModB(
 /**
  * メイン
  * 
- *      何パターンか通らない。おそらくループのインデックスの扱いが違うと思う。
- *      (そこをYoutubeからコピーしてきた(solver4.cpp)ら、通った)
+ *  ループのインデックスの扱いを、Youtubeからこぴってきた版。
+ *  Accepted
  */
 
 int main(void)
@@ -351,50 +350,46 @@ int main(void)
     SQWORD sqInput_B = inputSQWORD();
     SQWORD sqInput_M = inputSQWORD();
 
-    SQWORD sqSequenceMax = sqInput_A + sqInput_B * (sqInput_L - 1);
+    SQWORD sqLast = sqInput_A + sqInput_B * (sqInput_L - 1);
 
     SQWORD sqAns = 0;
-    SQWORD sqDecOfsPowMod = 1;
+    SQWORD sqTen = 10;
 
-    /* 後ろ側から順に計算してゆく */
-    for (SQWORD sqDecPowIdx = 17; 0 <= sqDecPowIdx; sqDecPowIdx--) {
-        SQWORD sqL = powSQWORD(10LL, sqDecPowIdx);
-        SQWORD sqR = powSQWORD(10LL, sqDecPowIdx + 1LL) - 1LL;
-
-        SQWORD sqIdxR, sqIdxL;
-        if (sqL <= sqInput_A) {
-            sqIdxL = 0;
-        } else {
-            sqIdxL = (sqL - sqInput_A + (sqInput_B - (SQWORD)1)) / sqInput_B;
+    for (SQWORD sqDecPowIdx = 1; sqDecPowIdx<=18; sqDecPowIdx++, sqTen *= 10) {
+        SQWORD sqL = sqTen / 10;
+        SQWORD sqR = sqTen - 1;
+        if (sqLast < sqL) {
+            continue;
         }
-        if (sqSequenceMax <= sqR) {
-            sqIdxR = sqInput_L - (SQWORD)1;
-        } else {
-            if (sqR < sqInput_A) {
-                sqIdxR = -1;
+        if (sqR < sqInput_A) {
+            continue;
+        }
+
+        SQWORD sqNa = 0;
+        SQWORD sqNl = 0;
+        {
+            if (sqL <= sqInput_A) {
+                sqNa = sqInput_A;
             } else {
-                sqIdxR = (sqR - sqInput_A) / sqInput_B;
+                sqNa = ((sqL - sqInput_A) + (sqInput_B -1)) / sqInput_B * sqInput_B + sqInput_A;
+                sqNa = min(sqNa, sqLast);
             }
         }
-        if (sqIdxL <= sqIdxR) {
-            SQWORD sqTmp_A = sqInput_A + sqInput_B * sqIdxL;
-            SQWORD sqK = sqIdxR - sqIdxL + 1;
-
-//            printf(":::[%lld %lld] %lld %lld\n", sqIdxL, sqIdxR, sqK, sqDecPowIdx);
-            SQWORD sqPartA = calcModA(sqK, powSQWORD(10, sqDecPowIdx + 1), sqInput_M, sqTmp_A);
-            SQWORD sqPartB = calcModB(sqK, powSQWORD(10, sqDecPowIdx + 1), sqInput_M, sqInput_B);
-
-            SQWORD sqSum = addModM(sqPartA, sqPartB, sqInput_M);
-//            printf("A:%lld B:%lld M<%lld>\n", sqPartA, sqPartB, sqSum);            
-            sqAns = addModM(sqAns, mulModM(sqSum, sqDecOfsPowMod, sqInput_M), sqInput_M);
-
-            sqDecOfsPowMod = mulModM(sqDecOfsPowMod, 
-                                    powModM(10, 
-                                            mulModM((sqIdxR - sqIdxL + 1), (sqDecPowIdx + 1), sqInput_M),
-                                            sqInput_M),
-                                    sqInput_M);
-//            printf("ofs %lld\n", sqDecOfsPowMod);
+        {
+            SQWORD nLast = 0;
+            if (sqLast <= sqR) {
+                nLast = sqLast;
+            } else {
+                nLast = (sqR - sqInput_A) / sqInput_B * sqInput_B + sqInput_A;
+            }
+            sqNl = (nLast - sqNa) / sqInput_B + 1;
         }
+
+        sqAns = mulModM(sqAns, powModM(sqTen, sqNl, sqInput_M), sqInput_M);
+        SQWORD sqPartA = calcModA(sqNl, sqTen, sqInput_M, sqNa);
+        SQWORD sqPartB = calcModB(sqNl, sqTen, sqInput_M, sqInput_B);
+        sqAns = addModM(sqAns, sqPartA, sqInput_M);
+        sqAns = addModM(sqAns, sqPartB, sqInput_M);
     }
     printf("%lld\n", sqAns);
 

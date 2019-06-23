@@ -249,32 +249,32 @@ struct BinaryIndexedTree {
 };
 
 /* score info */
-struct ST_SCORE_INFO {
-    SQWORD sqScore;
+struct ST_TIME_INFO {
+    SQWORD sqTime;
     SQWORD sqIdx;
     SQWORD sqOrder;
 
-    ST_SCORE_INFO(SQWORD s, SQWORD i) {
-        sqScore = s;
+    ST_TIME_INFO(SQWORD t, SQWORD i) {
+        sqTime = t;
         sqIdx = i;
         sqOrder = 0;
     }
 };
 
-bool isScoreLess(const ST_SCORE_INFO &a, const ST_SCORE_INFO &b)
+bool isScoreLess(const ST_TIME_INFO &a, const ST_TIME_INFO &b)
 {
-    return a.sqScore < b.sqScore;
+    return a.sqTime < b.sqTime;
 }
 
-bool isIdxLess(const ST_SCORE_INFO &a, const ST_SCORE_INFO &b)
+bool isIdxLess(const ST_TIME_INFO &a, const ST_TIME_INFO &b)
 {
     return a.sqIdx < b.sqIdx;
 }
 
-static void printScores(const vector<ST_SCORE_INFO> &vecScores)
+static void printTimes(const vector<ST_TIME_INFO> &vecTime)
 {
-   for (auto score: vecScores) {
-        printf("[%lld %lld] ", score.sqScore, score.sqOrder);
+   for (auto time: vecTime) {
+        printf("[%lld %lld] ", time.sqTime, time.sqTime);
     }
     printf("\n");
 }
@@ -287,23 +287,23 @@ int main()
     BinaryIndexedTree bitCount(sqInput_n);
     BinaryIndexedTree bitSum(sqInput_n);
 
-    vector<ST_SCORE_INFO> vecsqScores;
+    vector<ST_TIME_INFO> vecstTimes;
     for (SQWORD sqIdx = 1; sqIdx <= sqInput_n; sqIdx++) {
-        SQWORD sqScore = inputSQWORD();
-        vecsqScores.emplace_back(sqScore, sqIdx);
+        SQWORD sqTime = inputSQWORD();
+        vecstTimes.emplace_back(sqTime, sqIdx);
     }
-    sort(vecsqScores.begin(), vecsqScores.end(), isScoreLess);
+    sort(vecstTimes.begin(), vecstTimes.end(), isScoreLess);
 
     for (SQWORD sqOrderIdx = 0; sqOrderIdx < sqInput_n; sqOrderIdx++) {
-        vecsqScores[sqOrderIdx].sqOrder = sqOrderIdx + 1;   
+        vecstTimes[sqOrderIdx].sqOrder = sqOrderIdx + 1;   
     }
-    sort(vecsqScores.begin(), vecsqScores.end(), isIdxLess);
+    sort(vecstTimes.begin(), vecstTimes.end(), isIdxLess);
 
     /* caution : bit has idex of 1..n (not 0..n-1) */
     SQWORD sqStudentCount = 0;
 
-    for (auto score:vecsqScores) {
-        SQWORD sqMaxTime = sqInput_M - score.sqScore;
+    for (auto time:vecstTimes) {
+        SQWORD sqMaxTime = sqInput_M - time.sqTime;
 
         SQWORD sqBound = bitSum.findSumUpperBound(sqMaxTime);
         SQWORD sqCount = 0;
@@ -312,8 +312,8 @@ int main()
         }
         printf("%lld\n", sqCount);
 
-        bitSum.Add(score.sqOrder, score.sqScore);
-        bitCount.Add(score.sqOrder, 1);
+        bitSum.Add(time.sqOrder, time.sqTime);
+        bitCount.Add(time.sqOrder, 1);
 
         sqStudentCount++;
     }
