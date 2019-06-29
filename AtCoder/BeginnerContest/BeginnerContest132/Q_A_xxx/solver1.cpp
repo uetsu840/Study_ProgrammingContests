@@ -60,20 +60,6 @@ using M_BOOL = bool;
 #define M_FALSE (false)
 #define DIVISOR (1000000007)
 
-static inline void inputStringSpSeparated(char *pcStr)
-{
-    char *pcCur = pcStr;
-    for (;;) {
-        char c = getchar();
-        if (('\n' == c) || (EOF == c) || (' ' == c)) {
-            break;
-        }
-        *pcCur = c;
-        pcCur++;
-    }
-    *pcCur = '\0';
-}
-
 static inline void inputString(char *pcStr)
 {
     char *pcCur = pcStr;
@@ -219,74 +205,9 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-#define SQWORD_INF      (2000000000)
-#define SQWORD_INF_N    (-2000000000)
-
-static void vectorSqSort(vector<SQWORD> &vec)
-{
-    sort(vec.begin(), vec.end());
-}
-
-static void getIntersection(
-    vector<SQWORD> &vsqStp,
-    vector<SQWORD> &vsqInc,
-    vector<SQWORD> &vsqDec,
-    DOUBLE &dSect0,
-    DOUBLE &dSect1)
-{
-    
-
-
-}
+#define CODE_LEN    (4)
 
 int main(void)
-{
-    SQWORD sqInput_N = inputSQWORD();
-    char acDir[2];
-
-    vector<SQWORD> sqX_R;
-    vector<SQWORD> sqX_Stop;
-    vector<SQWORD> sqX_L;
-    vector<SQWORD> sqY_U;
-    vector<SQWORD> sqY_Stop;
-    vector<SQWORD> sqY_D;
-
-
-    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
-        SQWORD sqInput_x = inputSQWORD();
-        SQWORD sqInput_y = inputSQWORD();
-        inputStringSpSeparated(acDir);
-
-        switch (acDir[0]) {
-        case 'U':
-            sqX_Stop.emplace_back(sqInput_x);
-            sqY_U.emplace_back(sqInput_y);
-            break;
-        case 'D':
-            sqX_Stop.emplace_back(sqInput_x);
-            sqY_D.emplace_back(sqInput_y);
-            break;
-        case 'R':
-            sqX_R.emplace_back(sqInput_x);
-            sqY_Stop.emplace_back(sqInput_y);
-            break;
-        case 'L':
-            sqX_L.emplace_back(sqInput_x);
-            sqY_Stop.emplace_back(sqInput_y);
-            break;
-        default:
-            printf("oops!\n");
-        }
-    }
-
-    vectorSqSort(sqX_R);
-    vectorSqSort(sqX_Stop);
-    vectorSqSort(sqX_L);
-    vectorSqSort(sqY_U);
-    vectorSqSort(sqY_Stop);
-    vectorSqSort(sqY_D);
-
-
-
+{  
     return 0;
 }
