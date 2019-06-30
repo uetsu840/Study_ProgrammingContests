@@ -155,25 +155,74 @@ static inline DOUBLE inputFP(void)
 }
 
 
+/**
+ *  mod による操作ライブラリ
+ */
+
+#define ANS_MOD (1000000007LL)
+ 
+static SQWORD addMod(SQWORD x, SQWORD y)
+{ 
+    return (x + y) % ANS_MOD;
+}
+ 
+static SQWORD subMod(SQWORD x, SQWORD y)
+{
+    return (x - y + ANS_MOD) % ANS_MOD;
+}
+ 
+static SQWORD mulMod(SQWORD x, SQWORD y) 
+{
+    return (x * y) % ANS_MOD;
+}
+ 
+static SQWORD powMod(SQWORD x, SQWORD e) {
+    SQWORD v = 1;
+    for (; e; x = mulMod(x, x), e >>= 1) {
+        if (e & 1) {
+            v = mulMod(v, x);
+        }
+    }
+    return v;
+}
+ 
+static SQWORD divMod(SQWORD x, SQWORD y)
+{
+    return mulMod(x, powMod(y, ANS_MOD - 2));
+}
+ 
+ 
+static SQWORD combMod(SQWORD n, SQWORD k)
+{
+    SQWORD v=1;
+    for(SQWORD i=1; i<=k; i++) {
+        v = divMod(mulMod(v, n-i+1),i);
+    } 
+    return v;
+}
+
 
 /*----------------------------------------------*/
 
-struct WORK_ST {
-    SQWORD sqTime;
-    SQWORD sqLimit;
-
-    WORK_ST(SQWORD t, SQWORD l) {
-        sqTime = t;
-        sqLimit = l;
-    }
-};
-
-bool operator< (const WORK_ST &a, const WORK_ST &b) {
-    return a.sqLimit < b.sqLimit;
-}
-
 int main()
 {
+    SDWORD lInput_N = inputSDWORD();
+    SDWORD lInput_K = inputSDWORD();
 
+    SQWORD sqComb_Blue = 1;
+    SQWORD sqComb_Red = lInput_N - lInput_K + 1;
+
+    for (SDWORD lDivNum = 2; lDivNum <= lInput_K + 1; lDivNum++) {
+//        printf(" B %lld R %lld\n", sqComb_Blue, sqComb_Red);
+        SQWORD sqAns = mulMod(sqComb_Blue, sqComb_Red);
+        printf("%lld\n", sqAns);
+
+
+        sqComb_Blue = mulMod(sqComb_Blue, lInput_K - lDivNum + 1);
+        sqComb_Blue = divMod(sqComb_Blue, lDivNum - 1);
+
+        sqComb_Red = mulMod(sqComb_Red, (lInput_N - lInput_K + 1) - lDivNum + 1);
+        sqComb_Red = divMod(sqComb_Red, lDivNum);   
+    }
     return 0;
 }

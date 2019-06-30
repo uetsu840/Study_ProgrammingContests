@@ -46,9 +46,6 @@ using FLOAT  = float;
 
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
-
-static inline SQWORD ABS(SQWORD a) { return 0 <= a ? a : -a; }; 
-static inline DOUBLE ABS(DOUBLE a) { return 0 <= a ? a : -a; };
 static inline DOUBLE MAX(DOUBLE a, DOUBLE b) { return a > b ? a : b; }
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
 static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
@@ -60,7 +57,7 @@ static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 
 static inline bool DoubleIsZero(const DOUBLE &a)
 {
-    return ABS(a) < DOUBLE_EPS;
+    return abs(a) < DOUBLE_EPS;
 }
 
 #define BYTE_BITS   (8)

@@ -65,7 +65,7 @@ static inline void inputString(char *pcStr)
     char *pcCur = pcStr;
     for (;;) {
         char c = getchar();
-        if (('\n' == c) || (EOF == c) || (' ' == c)) {
+        if (('\n' == c) || (EOF == c)) {
             break;
         }
         *pcCur = c;
@@ -205,25 +205,81 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-int main(void)
+#define MAX_V           (100000)
+#define SQWORD_INF      (1000000000000000000)
+
+struct EDGE_ST {
+    SQWORD sqTo;
+    SQWORD sqCost;
+
+    EDGE_ST(SQWORD to, SQWORD cost) {
+        sqTo = to;
+        sqCost = cost;
+    };
+};
+
+void getNextPnts(SDWORD lStart, const vector<EDGE_ST> *pvstEdges, set<SQWORD> &setNextPnts)
 {
-    SDWORD lInput_n = inputSDWORD();
-    vector<SDWORD> veclP;
-
-    for (SDWORD lIdx = 0; lIdx < lInput_n; lIdx++) {
-        SDWORD lInput_P = inputSDWORD();
-        veclP.emplace_back(lInput_P);
-    }
-
-    SDWORD lAns = 0;
-    for (SDWORD lIdx = 1; lIdx < lInput_n - 1; lIdx++) {
-        if ((veclP[lIdx - 1] < veclP[lIdx]) && (veclP[lIdx] < veclP[lIdx + 1])) {
-            lAns++;
-        }
-        if ((veclP[lIdx + 1] < veclP[lIdx]) && (veclP[lIdx] < veclP[lIdx - 1])) {
-            lAns++;
+    for (auto edge1: pvstEdges[lStart]) {
+        for (auto edge2: pvstEdges[edge1.sqTo]) {
+            for (auto edge3: pvstEdges[edge2.sqTo]) {
+//                printf("-->%lld\n", edge3.sqTo);
+                setNextPnts.insert(edge3.sqTo);
+            }
         }
     }
-    printf("%d\n", lAns);
+}
+
+#define NUM_HOPS        (3)
+#define MAX_PNTS        (100000)
+
+int main()
+{
+    SQWORD sqInput_N = inputSQWORD();       /* number of islands */
+    SQWORD sqInput_M = inputSQWORD();       /* number of queries */
+    vector<EDGE_ST> vstEdges[sqInput_N + 1];
+
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_M; sqIdx++) {
+        SQWORD sq_u = inputSQWORD();
+        SQWORD sq_v = inputSQWORD();
+        vstEdges[sq_u].emplace_back(EDGE_ST(sq_v, 1));
+    }
+
+    SQWORD sqInput_S = inputSQWORD();
+    SQWORD sqInput_T = inputSQWORD();
+
+    queue<pair<SQWORD, SQWORD>> quePnt;
+
+    static SQWORD   s_aasqDist[MAX_PNTS + 1][NUM_HOPS];
+    for (SDWORD lIdx = 0; lIdx < ArrayLength(s_aasqDist); lIdx++) {
+        for (SDWORD lDim = 0; lDim < ArrayLength(s_aasqDist[0]); lDim++) {
+            s_aasqDist[lIdx][lDim] = SQWORD_INF;
+        }
+    }
+
+    quePnt.push(make_pair(sqInput_S, 0));
+    s_aasqDist[sqInput_S][0] = 0;
+    while (!(quePnt.empty())) {
+        SQWORD sqV = quePnt.front().first;
+        SQWORD sqDim  = quePnt.front().second;
+        quePnt.pop();
+
+        for (auto next: vstEdges[sqV]) {
+            SDWORD lNextPhase = (sqDim + 1) % NUM_HOPS;
+            if (SQWORD_INF == s_aasqDist[next.sqTo][lNextPhase]) {
+                s_aasqDist[next.sqTo][lNextPhase] = s_aasqDist[sqV][sqDim] + 1;
+                quePnt.push(make_pair(next.sqTo, lNextPhase));
+            }
+        }
+    }
+
+    SQWORD sqDist = s_aasqDist[sqInput_T][0];
+    if (SQWORD_INF == sqDist) {
+        printf("-1\n");
+    } else {
+        printf("%lld\n", sqDist / 3);
+    }
+    
     return 0;
 }
+

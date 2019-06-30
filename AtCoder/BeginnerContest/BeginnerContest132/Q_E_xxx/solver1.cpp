@@ -204,8 +204,88 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
-int main(void)
-{
 
+#define MAX_V           (100000)
+#define SQWORD_INF      (1000000000000000000)
+
+struct EDGE_ST {
+    SQWORD sqTo;
+    SQWORD sqCost;
+
+    EDGE_ST(SQWORD to, SQWORD cost) {
+        sqTo = to;
+        sqCost = cost;
+    };
+};
+
+void getNextPnts(SDWORD lStart, const vector<EDGE_ST> *pvstEdges, set<SQWORD> &setNextPnts)
+{
+    for (auto edge1: pvstEdges[lStart]) {
+        for (auto edge2: pvstEdges[edge1.sqTo]) {
+            for (auto edge3: pvstEdges[edge2.sqTo]) {
+//                printf("-->%lld\n", edge3.sqTo);
+                setNextPnts.insert(edge3.sqTo);
+            }
+        }
+    }
+}
+
+void execQuery(SQWORD sqFrom, SQWORD sqTo, const vector<EDGE_ST> *pvstEdges)
+{
+    typedef pair<SDWORD, SDWORD> P;
+    vector<SQWORD> cost(MAX_V + 1, SQWORD_INF);
+    priority_queue<P, vector<P>, greater<P>> que;
+    
+    cost[sqFrom] = 0;
+    que.push(P(0, sqFrom));
+
+    while (!que.empty()) {
+        P p = que.top();
+        que.pop();
+
+        SDWORD v = p.second;
+        if (p.first <= cost[v]) {
+            for (SDWORD lIdx = 0; lIdx < pvstEdges[v].size(); lIdx++) {
+                set<SQWORD> setNextPnts;
+                getNextPnts(v, pvstEdges, setNextPnts);
+                
+                for (auto pnt: setNextPnts) {
+                    if (cost[pnt] > cost[v] + 1) {
+                        cost[pnt] = cost[v] + 1;
+                        que.push(P(cost[pnt], pnt));
+                    }
+                }
+            }
+        }
+    }
+
+    SQWORD sqLastHeight;
+    if (cost[sqTo] == SQWORD_INF) {
+        printf("-1\n");
+    } else {
+        printf("%lld\n", cost[sqTo]);
+    }
+}
+
+
+int main()
+{
+    SQWORD sqInput_N = inputSQWORD();       /* number of islands */
+    SQWORD sqInput_M = inputSQWORD();       /* number of queries */
+    vector<EDGE_ST> vstEdges[sqInput_N + 1];
+
+//    printf("n:%lld m:%lld x:%lld\n", sqInput_N, sqInput_N, sqInput_X);
+
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_M; sqIdx++) {
+        SQWORD sq_u = inputSQWORD();
+        SQWORD sq_v = inputSQWORD();
+        vstEdges[sq_u].emplace_back(EDGE_ST(sq_v, 1));
+    }
+
+    SQWORD sqInput_S = inputSQWORD();
+    SQWORD sqInput_T = inputSQWORD();
+    execQuery(sqInput_S, sqInput_T, vstEdges);
+    
     return 0;
 }
+

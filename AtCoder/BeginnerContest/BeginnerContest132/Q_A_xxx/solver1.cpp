@@ -205,9 +205,25 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-#define CODE_LEN    (4)
+#define INPUT_LEN   (4)
+#define ALPH_NUM    (26)
 
 int main(void)
 {  
+    char acInput[INPUT_LEN + 1];
+    static SDWORD alCnt[ALPH_NUM];
+    inputString(acInput);
+
+    for (SDWORD lIdx = 0; lIdx < INPUT_LEN; lIdx++) {
+        alCnt[(acInput[lIdx] - 'A')]++;
+    }
+    for (SDWORD lIdx = 0; lIdx < ArrayLength(alCnt); lIdx++) {
+        if (!((0 == alCnt[lIdx]) || (2 == alCnt[lIdx]))) {
+            printf("No\n");
+            return 0;
+        }
+    }
+    printf("Yes\n");
+
     return 0;
 }
