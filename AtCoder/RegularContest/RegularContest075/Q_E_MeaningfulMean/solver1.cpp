@@ -40,25 +40,31 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
+#define MAX_DOUBLE      (1.0e+308)
+#define DOUBLE_EPS      (1.0e-12)
+#define MIN_DOUBLE_N    (-1.0e+308)
 
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
+static inline DOUBLE ABS(DOUBLE a) {return a > 0 ? a : -a; }
+static inline DOUBLE MAX(DOUBLE a, DOUBLE b) { return a > b ? a : b; }
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
 static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
 static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
+static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+
+static inline bool DoubleIsZero(const DOUBLE &a)
+{
+    return ABS(a) < DOUBLE_EPS;
+}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
 #define DWORD_BITS  (32)
 #define QWORD_BITS  (64)
-
-using M_BOOL = bool;
-#define M_TRUE (true)
-#define M_FALSE (false)
-#define DIVISOR (1000000007)
 
 static inline void inputStringSpSeparated(char *pcStr)
 {
@@ -93,7 +99,7 @@ static inline SQWORD inputSQWORD(void)
 {
     SQWORD sqNumber = 0;
     SQWORD sqMultiplier = 1;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -104,7 +110,7 @@ static inline SQWORD inputSQWORD(void)
         if (('0' <= c) && (c <= '9')) {
             sqNumber *= 10LL;
             sqNumber += (SQWORD)(c - '0');
-            bRead = M_TRUE;
+            bRead = true;
         } else {
             if (bRead) {
                 return sqNumber * sqMultiplier;
@@ -118,7 +124,7 @@ static inline SDWORD inputSDWORD(void)
 {
     SDWORD lNumber = 0;
     SDWORD lMultiplier = 1;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -129,7 +135,7 @@ static inline SDWORD inputSDWORD(void)
         if (('0' <= c) && (c <= '9')) {
             lNumber *= 10;
             lNumber += (c - '0');
-            bRead = M_TRUE;
+            bRead = true;
         } else {
             if (bRead) {
                 return lNumber * lMultiplier;
@@ -145,7 +151,7 @@ static inline DOUBLE inputFP(void)
     DOUBLE dMultiplier = 1.0;
     DWORD dwFpCnt = 0;
     DOUBLE *pdCur = &dInt;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -158,7 +164,7 @@ static inline DOUBLE inputFP(void)
         } else if (('0' <= c) && (c <= '9')) {
             (*pdCur) *= 10;
             (*pdCur) += (DOUBLE)(c - '0');
-            bRead = M_TRUE;
+            bRead = true;
             if (pdCur == &dFrac) {
                 dwFpCnt++;
             }
@@ -218,47 +224,27 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
-struct POINT {
-    SQWORD sqX;
-    SQWORD sqY;
-};
-
-bool operator< (const POINT &a, const POINT &b) {
-    return a.sqX < b.sqX;
-}
-
-#define MAX_COORDINATE  (100000)
 
 int main(void)
 {
     SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_K = inputSQWORD();
 
-    vector<POINT> vecPoints;
+    multiset<SQWORD>    setNums;
 
-    static set<POINT> s_asetPntsX[MAX_COORDINATE + 1];
-    static set<POINT> s_asetPntsY[MAX_COORDINATE + 1];
-
+    SQWORD sqCurOfs = 0;
+    SQWORD sqAns = 0;
     for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
-        SQWORD sqInput_x = inputSQWORD();
-        SQWORD sqInput_y = inputSQWORD();
+        SQWORD sqInput_a = inputSQWORD();
+        SQWORD sqAOfs = sqInput_a - sqInput_K;
 
-        POINT pnt;
-        pnt.sqX = sqInput_x;
-        pnt.sqY = sqInput_y;
-        vecPoints.emplace_back(pnt);
-        s_asetPntsX[sqInput_x].insert(pnt);
-        s_asetPntsY[sqInput_y].insert(pnt);
+        setNums.insert(sqAOfs - sqCurOfs);
+//        printf("--- %lld %lld %lld\n", sqAOfs, sqCurOfs, distance(setNums.lower_bound(-sqCurOfs), setNums.end()));
+        sqAns += distance(setNums.lower_bound(-sqCurOfs), setNums.end());
+        
+        sqCurOfs = sqCurOfs - (sqAOfs);
     }
+    printf("%lld\n", sqAns);
 
-    for (SQWORD sqX = 1; sqX <= MAX_COORDINATE; sqX++) {
-        if (1 < s_asetPntsX[sqX].size()) {
-            for (auto pnt: s_asetPntsX[sqX]) {
-                if (1 < s_asetPntsY[pnt.sqY].size()) {
-                    
-                }
-            }
-        }
-    }
-
-
+    return 0;
 }

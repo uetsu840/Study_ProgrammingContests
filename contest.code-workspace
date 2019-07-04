@@ -41,7 +41,10 @@
             "cstddef": "cpp",
             "unordered_set": "cpp",
             "algorithm": "cpp",
-            "bitset": "cpp"
+            "bitset": "cpp",
+            "forward_list": "cpp",
+            "list": "cpp",
+            "valarray": "cpp"
         }
 	}
 }
