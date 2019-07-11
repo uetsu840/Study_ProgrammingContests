@@ -13,6 +13,7 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
+#include <list>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -39,25 +40,44 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
+#define MAX_DOUBLE      (1.0e+308)
+#define DOUBLE_EPS      (1.0e-12)
+#define MIN_DOUBLE_N    (-1.0e+308)
 
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
+static inline DOUBLE MAX(DOUBLE a, DOUBLE b) { return a > b ? a : b; }
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
 static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
 static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
+static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+
+static inline bool DoubleIsZero(const DOUBLE &a)
+{
+    return abs(a) < DOUBLE_EPS;
+}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
 #define DWORD_BITS  (32)
 #define QWORD_BITS  (64)
 
-using M_BOOL = bool;
-#define M_TRUE (true)
-#define M_FALSE (false)
-#define DIVISOR (1000000007)
+static inline void inputStringSpSeparated(char *pcStr)
+{
+    char *pcCur = pcStr;
+    for (;;) {
+        char c = getchar();
+        if (('\n' == c) || (EOF == c) || (' ' == c)) {
+            break;
+        }
+        *pcCur = c;
+        pcCur++;
+    }
+    *pcCur = '\0';
+}
 
 static inline void inputString(char *pcStr)
 {
@@ -78,7 +98,7 @@ static inline SQWORD inputSQWORD(void)
 {
     SQWORD sqNumber = 0;
     SQWORD sqMultiplier = 1;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -89,7 +109,7 @@ static inline SQWORD inputSQWORD(void)
         if (('0' <= c) && (c <= '9')) {
             sqNumber *= 10LL;
             sqNumber += (SQWORD)(c - '0');
-            bRead = M_TRUE;
+            bRead = true;
         } else {
             if (bRead) {
                 return sqNumber * sqMultiplier;
@@ -103,7 +123,7 @@ static inline SDWORD inputSDWORD(void)
 {
     SDWORD lNumber = 0;
     SDWORD lMultiplier = 1;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -114,7 +134,7 @@ static inline SDWORD inputSDWORD(void)
         if (('0' <= c) && (c <= '9')) {
             lNumber *= 10;
             lNumber += (c - '0');
-            bRead = M_TRUE;
+            bRead = true;
         } else {
             if (bRead) {
                 return lNumber * lMultiplier;
@@ -130,7 +150,7 @@ static inline DOUBLE inputFP(void)
     DOUBLE dMultiplier = 1.0;
     DWORD dwFpCnt = 0;
     DOUBLE *pdCur = &dInt;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -143,7 +163,7 @@ static inline DOUBLE inputFP(void)
         } else if (('0' <= c) && (c <= '9')) {
             (*pdCur) *= 10;
             (*pdCur) += (DOUBLE)(c - '0');
-            bRead = M_TRUE;
+            bRead = true;
             if (pdCur == &dFrac) {
                 dwFpCnt++;
             }
@@ -156,66 +176,56 @@ static inline DOUBLE inputFP(void)
 }
 
 
-#define SQWORD_INF_N        (-10000000000)
+/**
+ *  mod による操作ライブラリ
+ */
 
-#define MAX_N (100000)
-static char acInputS[MAX_N + 1];
-
-static SDWORD countContinuousChar(char *pcStr, char cTarget)
+#define ANS_MOD (1000000007LL)
+ 
+static SQWORD addMod(SQWORD x, SQWORD y)
+{ 
+    return (x + y) % ANS_MOD;
+}
+ 
+static SQWORD subMod(SQWORD x, SQWORD y)
 {
-    SDWORD lCnt = 0;
-    for (;;) {
-        if (*(pcStr + lCnt) == cTarget) {
-            lCnt++;
-        } else {
-            return lCnt;
+    return (x - y + ANS_MOD) % ANS_MOD;
+}
+ 
+static SQWORD mulMod(SQWORD x, SQWORD y) 
+{
+    return (x * y) % ANS_MOD;
+}
+ 
+static SQWORD powMod(SQWORD x, SQWORD e) {
+    SQWORD v = 1;
+    for (; e; x = mulMod(x, x), e >>= 1) {
+        if (e & 1) {
+            v = mulMod(v, x);
         }
     }
+    return v;
+}
+ 
+static SQWORD divMod(SQWORD x, SQWORD y)
+{
+    return mulMod(x, powMod(y, ANS_MOD - 2));
+}
+ 
+ 
+static SQWORD combMod(SQWORD n, SQWORD k)
+{
+    SQWORD v=1;
+    for(SQWORD i=1; i<=k; i++) {
+        v = divMod(mulMod(v, n-i+1),i);
+    } 
+    return v;
 }
 
-int main()
+/*----------------------------------------------*/
+
+int main(void)
 {
-    SDWORD lInputN = inputSDWORD();
-    SDWORD lInputK = inputSDWORD();
 
-    inputString(acInputS);
-
-    vector<pair<SDWORD, SDWORD>> vSeqCnt;
-
-    SDWORD lSeqCnt0 = 0;
-    SDWORD lSeqCnt1 = 0;
-    SDWORD lIdx = 0;
-    char *pcCur = acInputS;
-    for (;;) {
-        lSeqCnt0 = countContinuousChar(pcCur, '0');
-        pcCur+= lSeqCnt0;
-        lSeqCnt1 = countContinuousChar(pcCur, '1');
-        pcCur+= lSeqCnt1;
-
-        vSeqCnt.emplace_back(make_pair(lSeqCnt0, lSeqCnt1));
-        if (acInputS + lInputN <= pcCur) {
-            break;
-        }
-    } 
-
-    /* 移動合計をとる */
-    SDWORD lMovingSum = 0;
-    <pair<SDWORD, SDWORD>> queSections;
-    SDWORD lAns = 0;
-    for (auto it: vSeqCnt) {
-        lMovingSum += (it.first + it.second);
-        queSections.push(it);
-        SDWORD lLength;
-        if (lInputK < queSections.size()) {
-            auto it_remove = queSections.front();
-            queSections.pop();
-            lMovingSum -= (it_remove.first + it_remove.second);
-            lLength = lMovingSum + it_remove.second;
-        } else {
-            lLength = lMovingSum;
-        }
-        lAns = max(lAns, lLength);
-    }
-    printf("%d\n", lAns);
     return 0;
 }

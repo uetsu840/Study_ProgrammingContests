@@ -47,17 +47,24 @@ using FLOAT  = float;
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
 static inline DOUBLE MAX(DOUBLE a, DOUBLE b) { return a > b ? a : b; }
-static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
-static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
-static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
 static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
+
+static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
+
+static inline SQWORD MAX(SQWORD a, SQWORD b) { return a > b ? a : b; }
+static inline SQWORD MIN(SQWORD a, SQWORD b) { return a < b ? a : b; }
+
+static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
+
+static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 
+static inline DOUBLE ABS(DOUBLE a) { return 0 < a ? a : -a; }
 static inline bool DoubleIsZero(const DOUBLE &a)
 {
-    return abs(a) < DOUBLE_EPS;
+    return ABS(a) < DOUBLE_EPS;
 }
 
 #define BYTE_BITS   (8)
@@ -223,147 +230,14 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
-struct ST_AXIS_MOTION {
-    SQWORD sqInit;
-    SQWORD sqDir;
-};
-
-/**
- *  最大と最小を取り出してリストに格納する。
- */
-static void putMinMax(
-    vector<ST_AXIS_MOTION> &vecstTgt,
-    vector<SQWORD> &vecsqPos,
-    SQWORD sqDir)
-{
-    sort(vecsqPos.begin(), vecsqPos.end());
-    if (0 < vecsqPos.size()) {
-        auto it = vecsqPos.begin();
-        vecstTgt.emplace_back(ST_AXIS_MOTION{*it, sqDir});
-    }
-    if (1 < vecsqPos.size()) {
-        auto it_e = vecsqPos.end() - 1;
-        vecstTgt.emplace_back(ST_AXIS_MOTION{*it_e, sqDir});
-    }
-}
-
-/**
- *  入力を取得する
- */
-static void getInput(
-    vector<ST_AXIS_MOTION> &vecstX,
-    vector<ST_AXIS_MOTION> &vecstY)
-{
-    SQWORD sqInput_N = inputSQWORD();
-    char acDir[2];
-
-    vector<SQWORD> vecsqX_R;
-    vector<SQWORD> vecsqX_Stop;
-    vector<SQWORD> vecsqX_L;
-    vector<SQWORD> vecsqY_U;
-    vector<SQWORD> vecsqY_Stop;
-    vector<SQWORD> vecsqY_D;
-
-    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
-        SQWORD sqInput_x = inputSQWORD();
-        SQWORD sqInput_y = inputSQWORD();
-        inputStringSpSeparated(acDir);
-
-        switch (acDir[0]) {
-        case 'U':
-            vecsqX_Stop.emplace_back(sqInput_x);
-            vecsqY_U.emplace_back(sqInput_y);
-            break;
-        case 'D':
-            vecsqX_Stop.emplace_back(sqInput_x);
-            vecsqY_D.emplace_back(sqInput_y);
-            break;
-        case 'R':
-            vecsqX_R.emplace_back(sqInput_x);
-            vecsqY_Stop.emplace_back(sqInput_y);
-            break;
-        case 'L':
-            vecsqX_L.emplace_back(sqInput_x);
-            vecsqY_Stop.emplace_back(sqInput_y);
-            break;
-        default:
-            printf("oops!\n");
-        }
-    }
-
-    /**
-     * 最大値と最小値だけを抽出する 
-     */
-    /* X軸方向 */
-    putMinMax(vecstX, vecsqX_R, 1);
-    putMinMax(vecstX, vecsqX_Stop, 0);
-    putMinMax(vecstX, vecsqX_L, -1);
-
-    /* Y方向 */
-    putMinMax(vecstY, vecsqY_U, 1);
-    putMinMax(vecstY, vecsqY_Stop, 0);
-    putMinMax(vecstY, vecsqY_D, -1); 
-}
-
-void pushCrossTime(
-    vector<ST_AXIS_MOTION> &vecstMotion,
-    vector<DOUBLE> &vecdCrossTime)
-{
-    for (auto it1 = vecstMotion.begin(); it1 != vecstMotion.end(); ++it1) {
-        for (auto it2 = vecstMotion.begin(); it2 != vecstMotion.end(); ++it2) {
-            if (it1->sqDir != it2->sqDir) {
-                DOUBLE dCorssTime = (DOUBLE)(it2->sqInit - it1->sqInit) / (DOUBLE)(it1->sqDir - it2->sqDir);
-                if (0.0 < dCorssTime) {
-                    vecdCrossTime.emplace_back(dCorssTime);
-                }
-            }
-        }
-    }
-}
-
-DOUBLE getBoundingBoxMinMax(
-    const vector<ST_AXIS_MOTION> &vecstAxis,
-    DOUBLE dCrossTime) 
-{
-    DOUBLE dMax = MIN_DOUBLE_N;
-    DOUBLE dMin = MAX_DOUBLE;
-    for (auto pnt_ax: vecstAxis) {
-        DOUBLE dPos = (DOUBLE)pnt_ax.sqInit + (DOUBLE)pnt_ax.sqDir * dCrossTime;
-        dMax = MAX(dMax, dPos);
-        dMin = MIN(dMin, dPos);
-    }
-    return (dMax - dMin);
-}
-
-DOUBLE getBoudingBox(
-    const vector<ST_AXIS_MOTION> &vecstX,
-    const vector<ST_AXIS_MOTION> &vecstY,
-    DOUBLE dCrossTime)
-{
-    DOUBLE dWidthX = getBoundingBoxMinMax(vecstX, dCrossTime);
-    DOUBLE dWidthY = getBoundingBoxMinMax(vecstY, dCrossTime);
-
-//    printf("%f %f\n", dWidthX, dWidthY);
-
-    return dWidthX * dWidthY;
-}
-
 
 int main(void)
 {
-    vector<ST_AXIS_MOTION> vecstX;
-    vector<ST_AXIS_MOTION> vecstY;
-    vector<DOUBLE> vecCrossTime;
-    getInput(vecstX, vecstY);
-    vecCrossTime.emplace_back(0.0);
-    pushCrossTime(vecstX, vecCrossTime);
-    pushCrossTime(vecstY, vecCrossTime);
+    SDWORD lInput_N = inputSDWORD();
+    SDWORD lInput_A = inputSDWORD();
+    SDWORD lInput_B = inputSDWORD();
 
-    DOUBLE dMinBoudingBox = MAX_DOUBLE;
-    for (auto time: vecCrossTime) {
-        dMinBoudingBox = min(dMinBoudingBox, getBoudingBox(vecstX, vecstY, time));
-    }
-    printf("%.8f\n", dMinBoudingBox);
+    printf("%d\n", min(lInput_N * lInput_A, lInput_B));
 
     return 0;
 }
