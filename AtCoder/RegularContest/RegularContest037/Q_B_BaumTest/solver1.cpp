@@ -40,25 +40,31 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
+#define MAX_DOUBLE      (1.0e+308)
+#define DOUBLE_EPS      (1.0e-12)
+#define MIN_DOUBLE_N    (-1.0e+308)
 
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
+static inline DOUBLE ABS(DOUBLE a) {return a > 0 ? a : -a; }
+static inline DOUBLE MAX(DOUBLE a, DOUBLE b) { return a > b ? a : b; }
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
 static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
 static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
+static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+
+static inline bool DoubleIsZero(const DOUBLE &a)
+{
+    return ABS(a) < DOUBLE_EPS;
+}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
 #define DWORD_BITS  (32)
 #define QWORD_BITS  (64)
-
-using M_BOOL = bool;
-#define M_TRUE (true)
-#define M_FALSE (false)
-#define DIVISOR (1000000007)
 
 static inline void inputStringSpSeparated(char *pcStr)
 {
@@ -93,7 +99,7 @@ static inline SQWORD inputSQWORD(void)
 {
     SQWORD sqNumber = 0;
     SQWORD sqMultiplier = 1;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -104,7 +110,7 @@ static inline SQWORD inputSQWORD(void)
         if (('0' <= c) && (c <= '9')) {
             sqNumber *= 10LL;
             sqNumber += (SQWORD)(c - '0');
-            bRead = M_TRUE;
+            bRead = true;
         } else {
             if (bRead) {
                 return sqNumber * sqMultiplier;
@@ -118,7 +124,7 @@ static inline SDWORD inputSDWORD(void)
 {
     SDWORD lNumber = 0;
     SDWORD lMultiplier = 1;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -129,7 +135,7 @@ static inline SDWORD inputSDWORD(void)
         if (('0' <= c) && (c <= '9')) {
             lNumber *= 10;
             lNumber += (c - '0');
-            bRead = M_TRUE;
+            bRead = true;
         } else {
             if (bRead) {
                 return lNumber * lMultiplier;
@@ -145,7 +151,7 @@ static inline DOUBLE inputFP(void)
     DOUBLE dMultiplier = 1.0;
     DWORD dwFpCnt = 0;
     DOUBLE *pdCur = &dInt;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -158,7 +164,7 @@ static inline DOUBLE inputFP(void)
         } else if (('0' <= c) && (c <= '9')) {
             (*pdCur) *= 10;
             (*pdCur) += (DOUBLE)(c - '0');
-            bRead = M_TRUE;
+            bRead = true;
             if (pdCur == &dFrac) {
                 dwFpCnt++;
             }
@@ -218,8 +224,53 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
+#define MAX_N   (100)
+
+vector<SQWORD> s_avecsqEdge[MAX_N + 1];
+static bool s_abIsVisited[MAX_N + 1];
+
+static bool dfs(SQWORD sqNode, SQWORD sqParent)
+{
+    s_abIsVisited[sqNode] = true;
+
+    for (auto nextNode: s_avecsqEdge[sqNode]) {
+        if (nextNode != sqParent) {
+            if (s_abIsVisited[nextNode]) {
+                return false;
+            }
+            if (!dfs(nextNode, sqNode)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+
 int main(void)
 {
-    
+
+    SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_M = inputSQWORD();
+
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_M; sqIdx++) {
+        SQWORD sqInput_u = inputSQWORD();
+        SQWORD sqInput_v = inputSQWORD();
+
+        s_avecsqEdge[sqInput_u].emplace_back(sqInput_v);
+        s_avecsqEdge[sqInput_v].emplace_back(sqInput_u);
+    }
+
+    SQWORD sqAns = 0;
+    for (SQWORD sqStartNode = 1; sqStartNode <= sqInput_N; sqStartNode++) {
+        if (!s_abIsVisited[sqStartNode]) {
+            if (dfs(sqStartNode, -1)) {
+                sqAns++;
+            }
+        }
+    }
+
+    printf("%lld\n", sqAns);
+
     return 0;
 }
