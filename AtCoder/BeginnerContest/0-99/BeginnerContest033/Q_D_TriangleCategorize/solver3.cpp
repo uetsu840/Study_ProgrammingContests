@@ -13,6 +13,7 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
+#include <list>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -39,7 +40,6 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
-
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
@@ -49,15 +49,35 @@ static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 
+
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
 #define DWORD_BITS  (32)
 #define QWORD_BITS  (64)
 
-using M_BOOL = bool;
-#define M_TRUE (true)
-#define M_FALSE (false)
-#define DIVISOR (1000000007)
+#define DIVISOR     (1000000007)
+
+#define DOUBLE_EPS  (1.0e-15)
+static inline DOUBLE ABS(DOUBLE a) { return 0 < a ? a : -a;}
+
+static inline bool doubleIsEqual(DOUBLE a, DOUBLE b)
+{
+    return ABS(a-b) < DOUBLE_EPS;
+}
+
+static inline void inputStringSpSeparated(char *pcStr)
+{
+    char *pcCur = pcStr;
+    for (;;) {
+        char c = getchar();
+        if (('\n' == c) || (EOF == c) || (' ' == c)) {
+            break;
+        }
+        *pcCur = c;
+        pcCur++;
+    }
+    *pcCur = '\0';
+}
 
 static inline void inputString(char *pcStr)
 {
@@ -78,7 +98,7 @@ static inline SQWORD inputSQWORD(void)
 {
     SQWORD sqNumber = 0;
     SQWORD sqMultiplier = 1;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -89,7 +109,7 @@ static inline SQWORD inputSQWORD(void)
         if (('0' <= c) && (c <= '9')) {
             sqNumber *= 10LL;
             sqNumber += (SQWORD)(c - '0');
-            bRead = M_TRUE;
+            bRead = true;
         } else {
             if (bRead) {
                 return sqNumber * sqMultiplier;
@@ -103,7 +123,7 @@ static inline SDWORD inputSDWORD(void)
 {
     SDWORD lNumber = 0;
     SDWORD lMultiplier = 1;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -114,7 +134,7 @@ static inline SDWORD inputSDWORD(void)
         if (('0' <= c) && (c <= '9')) {
             lNumber *= 10;
             lNumber += (c - '0');
-            bRead = M_TRUE;
+            bRead = true;
         } else {
             if (bRead) {
                 return lNumber * lMultiplier;
@@ -130,7 +150,7 @@ static inline DOUBLE inputFP(void)
     DOUBLE dMultiplier = 1.0;
     DWORD dwFpCnt = 0;
     DOUBLE *pdCur = &dInt;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -143,7 +163,7 @@ static inline DOUBLE inputFP(void)
         } else if (('0' <= c) && (c <= '9')) {
             (*pdCur) *= 10;
             (*pdCur) += (DOUBLE)(c - '0');
-            bRead = M_TRUE;
+            bRead = true;
             if (pdCur == &dFrac) {
                 dwFpCnt++;
             }
@@ -156,23 +176,27 @@ static inline DOUBLE inputFP(void)
 }
 
 
-#define ANS_MOD (1000000007LL)
+/**
+ *  mod による操作ライブラリ
+ */
 
+#define ANS_MOD (1000000007LL)
+ 
 static SQWORD addMod(SQWORD x, SQWORD y)
 { 
     return (x + y) % ANS_MOD;
 }
-
+ 
 static SQWORD subMod(SQWORD x, SQWORD y)
 {
     return (x - y + ANS_MOD) % ANS_MOD;
 }
-
+ 
 static SQWORD mulMod(SQWORD x, SQWORD y) 
 {
     return (x * y) % ANS_MOD;
 }
-
+ 
 static SQWORD powMod(SQWORD x, SQWORD e) {
     SQWORD v = 1;
     for (; e; x = mulMod(x, x), e >>= 1) {
@@ -182,13 +206,13 @@ static SQWORD powMod(SQWORD x, SQWORD e) {
     }
     return v;
 }
-
+ 
 static SQWORD divMod(SQWORD x, SQWORD y)
 {
     return mulMod(x, powMod(y, ANS_MOD - 2));
 }
-
-
+ 
+ 
 static SQWORD combMod(SQWORD n, SQWORD k)
 {
     SQWORD v=1;
@@ -198,77 +222,96 @@ static SQWORD combMod(SQWORD n, SQWORD k)
     return v;
 }
 
-static SQWORD getCombination(SQWORD n, SQWORD k)
+/*----------------------------------------------*/
+struct POSITION {
+    SDWORD lX;
+    SDWORD lY;
+};
+
+#define MAX_POINTS  (2000)
+static POSITION s_astPosition[MAX_POINTS];
+
+static void getAngleNum(
+    SDWORD lPointIdx,
+    SDWORD lNumPoints,
+    SQWORD &sqDullAngleNum,
+    SQWORD &sqRightAngleNum)
 {
-    SQWORD sqRet = 1;
-    for (SQWORD sqIdx = 0; sqIdx < k; sqIdx++) {
-        sqRet *= (n-sqIdx);
+//    printf("points > [%d] %d %d\n", lPointIdx, s_astPosition[lPointIdx].lX, s_astPosition[lPointIdx].lY);
+
+    vector<DOUBLE> vecdAngle;
+    sqDullAngleNum = 0;
+    sqRightAngleNum = 0;
+
+    for (SDWORD lIdx = 0; lIdx < lNumPoints; lIdx++) {
+        if (lIdx != lPointIdx) {
+            POSITION stRelPos;
+            SDWORD lRelX = s_astPosition[lIdx].lX - s_astPosition[lPointIdx].lX;
+            SDWORD lRelY = s_astPosition[lIdx].lY - s_astPosition[lPointIdx].lY;
+
+            DOUBLE dAngle = atan2((DOUBLE)lRelY, (DOUBLE)lRelX);
+            vecdAngle.push_back(dAngle);
+        }
     }
-    for (SQWORD sqIdx = 0; sqIdx < k; sqIdx++) {
-        sqRet /= (sqIdx + 1);
+    sort(vecdAngle.begin(), vecdAngle.end());
+    SQWORD sqRelNum = lNumPoints - 1;
+
+    for (SDWORD lIdx = 0; lIdx < sqRelNum; lIdx++) {
+        vecdAngle.push_back(vecdAngle[lIdx] + M_PI * 2);
     }
 
-    return sqRet;
+    SQWORD sqFirstIdx = 0;
+    SQWORD sqLastIdx = 1;
+    SQWORD sqKRAngleNum = 0;
+
+    for (sqFirstIdx = 0; sqFirstIdx < sqRelNum; sqFirstIdx++) {
+        while(1) {
+            if (doubleIsEqual(vecdAngle[sqLastIdx] - (M_PI / 2.0), vecdAngle[sqFirstIdx])) {
+                sqRightAngleNum++;
+                sqLastIdx++;
+            } else if (vecdAngle[sqLastIdx] < vecdAngle[sqFirstIdx] + (M_PI / 2.0)) {
+                sqLastIdx++;
+            } else {
+                break;
+            }
+        }
+//        printf("[%d %d]\n", lLastIdx, lFirstIdx);
+        sqKRAngleNum += (sqLastIdx - sqFirstIdx - 1);
+    }
+    sqDullAngleNum = sqRelNum * (sqRelNum - 1) / 2 - sqKRAngleNum;
+//    printf("%d | R:%d D:%d\n", lKRAngleNum,  lRightAngleNum, lDullAngleNum);
+    return;
 }
 
-static void calcPrimeFactorication(SQWORD sqNum, vector<pair<SQWORD, SQWORD>> &vlPrimes)
+
+
+int main(void)
 {
-    SQWORD sqCur = sqNum;
-    SQWORD sqUpper = sqrt(sqNum) + 1;
-    for (SQWORD sqDiv = 2; sqDiv <= sqUpper; sqDiv++) {
-        SDWORD lPowerCnt = 0;
-        while(0 == sqCur % sqDiv) {
-            sqCur /= sqDiv;
-            lPowerCnt++;
-        }
-        if (0 < lPowerCnt) {
-            vlPrimes.emplace_back(make_pair(sqDiv, lPowerCnt));
-        }
-        if (1 == sqCur) {
-            break;
-        }
-    }
-    if (1 < sqCur) {
-        vlPrimes.emplace_back(make_pair(sqCur, 1));
-    }
-}
+    SQWORD sqInput_N = inputSDWORD();
 
-static void getPrimeSum(
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes, 
-    SQWORD sqCur, 
-    SQWORD sqInput_N, 
-    SQWORD &sqSum)
-{
-    if (vpairlPrimes.empty()) {
-        SQWORD sqM = sqInput_N / sqCur - 1;
-        if (sqCur < sqM) {
-            sqSum += sqM;
-        }
-        return;
+    for (SDWORD lIdx = 0; lIdx < sqInput_N; lIdx++) {
+        SDWORD lInput_x = inputSDWORD();
+        SDWORD lInput_y = inputSDWORD();
+
+        s_astPosition[lIdx].lX = lInput_x;
+        s_astPosition[lIdx].lY = lInput_y;
     }
 
-    auto prime = vpairlPrimes.back();
-    vpairlPrimes.pop_back();
-    SQWORD sqDiv = sqCur;
+    SQWORD sqRightAngleNumTtl = 0;
+    SQWORD sqDullANgleNumTtl = 0;
 
-    for (SDWORD lPow = 0; lPow <= prime.second; lPow++) {
-        getPrimeSum(vpairlPrimes, sqDiv, sqInput_N, sqSum);
-        sqDiv *= prime.first;
+    for (SDWORD lIdx = 0; lIdx < sqInput_N; lIdx++) {
+        SQWORD sqRightAngleNum;
+        SQWORD sqDullAngleNum;
+        getAngleNum(lIdx, sqInput_N, sqDullAngleNum, sqRightAngleNum);
+
+        sqRightAngleNumTtl += sqRightAngleNum;
+        sqDullANgleNumTtl  += sqDullAngleNum;
     }
-}
 
+    SQWORD sqTriangleTtl = (sqInput_N * (sqInput_N - 1) * (sqInput_N - 2)) / 6;
+    SQWORD lKeenAngleTriNum = sqTriangleTtl - sqRightAngleNumTtl - sqDullANgleNumTtl;
 
-int main()
-{
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes;
-
-    SQWORD sqInput_N = inputSQWORD();
-
-    calcPrimeFactorication(sqInput_N, vpairlPrimes);
-
-    SQWORD sqAns = 0;
-    getPrimeSum(vpairlPrimes, 1, sqInput_N, sqAns);
-
-    printf("%lld\n", sqAns);
+    printf("%lld %lld %lld\n", lKeenAngleTriNum, sqRightAngleNumTtl, sqDullANgleNumTtl);
     return 0;
 }

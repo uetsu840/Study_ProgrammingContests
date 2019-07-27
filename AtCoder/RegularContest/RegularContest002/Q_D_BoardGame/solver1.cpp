@@ -218,71 +218,160 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
-struct POSITION {
-    SDWORD lX;
-    SDWORD lY;
+
+#define MAX_WIDTH   (2000)
+#define SDWORD_INF  (100100100)
+
+struct PIECE_STATUS_ONE_ST {
+    SDWORD lBaseScore_o;    
+    SDWORD lBaseScore_x;
+    SDWORD lCount_o;
+    SDWORD lCount_x;
+    SDWORD lGap;
 };
 
-#define MAX_POINTS  (2000)
-
-static inline SDWORD length2(const POSITION *pstPos1, const POSITION *pstPos2)
+bool operator< (const PIECE_STATUS_ONE_ST &a, const PIECE_STATUS_ONE_ST &b)
 {
-    SDWORD lDx = (pstPos1->lX - pstPos2->lX);
-    SDWORD lDy = (pstPos1->lY - pstPos2->lY);
-
-    return (lDx * lDx) + (lDy * lDy);
+    return (a.lCount_o + a.lCount_x) > (b.lCount_o + b.lCount_x);
 }
 
-static SDWORD s_aalEdge[MAX_POINTS][MAX_POINTS];
-
-int main(void)
+static void processSingleLine(
+    SDWORD lInput_W,
+    vector<pair<SDWORD, SDWORD>> vecpairObj,
+    SDWORD &lMinDist_x,
+    SDWORD &lMinDist_o,
+    vector<PIECE_STATUS_ONE_ST> &vecPiece)
 {
-    static POSITION s_astPosition[MAX_POINTS];
+    lMinDist_x = SDWORD_INF;
+    lMinDist_o = SDWORD_INF;
+    auto it = vecpairObj.begin();
 
-    SDWORD lInput_N = inputSDWORD();
-
-    for (SDWORD lIdx = 0; lIdx < lInput_N; lIdx++) {
-        SDWORD lInput_x = inputSDWORD();
-        SDWORD lInput_y = inputSDWORD();
-
-        s_astPosition[lIdx].lX = lInput_x;
-        s_astPosition[lIdx].lY = lInput_y;
-    }
-
-    for (SDWORD lIdx0 = 0; lIdx0 < lInput_N - 1; lIdx0++) {
-        for (SDWORD lIdx1 = lIdx0 + 1; lIdx1 < lInput_N; lIdx1++) {
-            POSITION pos0 = s_astPosition[lIdx0];
-            POSITION pos1 = s_astPosition[lIdx1];
-            s_aalEdge[lIdx0][lIdx1] = length2(&pos0, &pos1);
+    while (it != vecpairObj.end()) {
+        SDWORD lCount_x = 0;
+        SDWORD lCount_o = 0;
+        vector<SDWORD> vec_o;
+        vector<SDWORD> vec_x;
+        while (it->first == 0) {
+            vec_o.emplace_back(it->second);
+            ++it;
+            if (it == vecpairObj.end()) {
+                break;
+            }
         }
-    }
-
-    SDWORD lAns0 = 0;
-    SDWORD lAns1 = 0;
-
-    for (SDWORD lIdx0 = 0; lIdx0 < lInput_N - 2; lIdx0++) {
-        for (SDWORD lIdx1 = lIdx0 + 1; lIdx1 < lInput_N - 1; lIdx1++) {
-            for (SDWORD lIdx2 = lIdx1 + 1; lIdx2 < lInput_N; lIdx2++) {
-                SDWORD lAA = s_aalEdge[lIdx0][lIdx1];
-                SDWORD lBB = s_aalEdge[lIdx1][lIdx2];
-                SDWORD lCC = s_aalEdge[lIdx0][lIdx2];
-
-                SDWORD lC = max(max(lAA, lBB), lCC);
-                SDWORD lRest = lAA + lBB + lCC - lC;
-
-                if (lC < lRest) {
-                    lAns0++;
-                } else if (lC == lRest) {
-                    lAns1++;
+        if (it != vecpairObj.end()) {
+            while (it->first == 1) {
+                vec_x.emplace_back(it->second);
+                ++it;
+                if (it == vecpairObj.end()) {
+                    break;
                 }
             }
         }
-    }
-    SDWORD lAns2 = ((SQWORD)lInput_N * (SQWORD)(lInput_N - 1) * (SQWORD)(lInput_N - 2)) / 6
-                    - (SQWORD)lAns0
-                    - (SQWORD)lAns1;
-    printf("%d %d %d\n", lAns0, lAns1, lAns2);
 
+        if (vec_o.empty()) {
+            /* xのみ */
+            lMinDist_x = *(vec_x.begin());
+        } else if (vec_x.empty()) {
+            /* oのみ */
+            lMinDist_o = lInput_W - *(vec_o.end() - 1) - 1;
+        } else {
+            /* o と x */
+            SDWORD lBasePos_o = *(vec_o.rbegin());
+            for (auto it_o = vec_o.rbegin(); it_o != vec_o.rend(); ++it_o) {
+                lCount_o += (lBasePos_o - *(it_o));
+                lBasePos_o--;
+            }
+            SDWORD lBasePos_x = *(vec_x.begin());
+            for (auto it_x = vec_x.begin(); it_x != vec_x.end(); ++it_x) {
+                lCount_x += ((*it_x) - lBasePos_x);
+                lBasePos_x++;
+            }
+
+            PIECE_STATUS_ONE_ST stPieceOne;
+            stPieceOne.lBaseScore_o = lCount_o;
+            stPieceOne.lBaseScore_x = lCount_x;
+            stPieceOne.lCount_o = vec_o.size();
+            stPieceOne.lCount_x = vec_x.size();
+            stPieceOne.lGap = *(vec_x.begin()) - *(vec_o.rbegin()) - 1;
+            vecPiece.emplace_back(stPieceOne);
+        }
+    }
+}
+
+
+int main(void)
+{
+    SDWORD lInput_H = inputSDWORD();
+    SDWORD lInput_W = inputSDWORD();
+    char acInput[MAX_WIDTH + 1];
+
+    SDWORD lMinDist_x = SDWORD_INF;
+    SDWORD lMinDist_o = SDWORD_INF;
+    vector<PIECE_STATUS_ONE_ST> vecstPiece;
+
+    for (SDWORD lRowIdx = 0; lRowIdx < lInput_H; lRowIdx++) {
+        inputString(acInput);
+        SDWORD lCnt = 0;
+        vector<pair<SDWORD, SDWORD>> vecpairObj;
+
+        for (SDWORD lColIdx = 0; lColIdx < lInput_W; lColIdx++) {
+            if (acInput[lColIdx] == 'o') {
+                vecpairObj.emplace_back(make_pair(0, lColIdx));
+            } else if (acInput[lColIdx] == 'x') {
+                vecpairObj.emplace_back(make_pair(1, lColIdx));
+            } else {
+                lCnt++;
+            }
+        }
+
+        SDWORD lCurMinDist_x;
+        SDWORD lCurMinDist_o;
+
+        processSingleLine(lInput_W, vecpairObj, lCurMinDist_x, lCurMinDist_o, vecstPiece);
+
+        lMinDist_o = min(lMinDist_o, lCurMinDist_o);
+        lMinDist_x = min(lMinDist_x, lCurMinDist_x);
+    }
+
+    sort(vecstPiece.begin(), vecstPiece.end());
+
+    SDWORD lTurn = 0;
+    SQWORD sqTtlCnt_o = 0;
+    SQWORD sqTtlCnt_x = 0;
+    for (auto pieces: vecstPiece) {
+        SDWORD lMid;
+        if (lTurn % 2 == 0) {
+            /* turn o */
+            lMid = (pieces.lGap) / 2;
+        } else {
+            /* turn x */
+            lMid = (pieces.lGap - 1) / 2;
+        }
+        SDWORD lGain_o = lMid;
+        SDWORD lGain_x = pieces.lGap - lMid - 1;
+#if 0
+        printf("gap:%d mid:%d base:%d co:%d\n", 
+                pieces.lGap, lMid, pieces.lBaseScore_o, pieces.lCount_o);
+#endif
+        sqTtlCnt_o += (SQWORD)((SQWORD)pieces.lBaseScore_o + (SQWORD)lGain_o * (SQWORD)pieces.lCount_o);       
+        sqTtlCnt_x += (SQWORD)((SQWORD)pieces.lBaseScore_x + (SQWORD)lGain_x * (SQWORD)pieces.lCount_x);
+        lTurn += pieces.lGap - 1;       
+    }
+
+//    printf("%lld %lld %d %d\n", sqTtlCnt_o, sqTtlCnt_x, lMinDist_o, lMinDist_x);
+    if ((lMinDist_o != SDWORD_INF) || (lMinDist_x != SDWORD_INF)) {
+        if (lMinDist_o <= lMinDist_x) {
+            printf("o\n");
+        } else {
+            printf("x\n");
+        }
+    } else {
+        if (sqTtlCnt_x < sqTtlCnt_o) {
+            printf("o\n");
+        } else {
+            printf("x\n");
+        }
+    }
 
     return 0;
 }

@@ -49,6 +49,7 @@ static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 
+
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
 #define DWORD_BITS  (32)
@@ -56,12 +57,12 @@ static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 
 #define DIVISOR     (1000000007)
 
-#define M_PI        (3.14159265357989)
-#define DOUBLE_EPS  (1.0e-12)
+#define DOUBLE_EPS  (1.0e-15)
+static inline DOUBLE ABS(DOUBLE a) { return 0 < a ? a : -a;}
 
-static inline bool isEqual(DOUBLE a, DOUBLE b)
+static inline bool doubleIsEqual(DOUBLE a, DOUBLE b)
 {
-    return abs(a-b) < DOUBLE_EPS;
+    return ABS(a-b) < DOUBLE_EPS;
 }
 
 static inline void inputStringSpSeparated(char *pcStr)
@@ -230,11 +231,17 @@ struct POSITION {
 #define MAX_POINTS  (2000)
 static POSITION s_astPosition[MAX_POINTS];
 
-static SDWORD getAngleNum(
+static void getAngleNum(
     SDWORD lPointIdx,
-    SDWORD lNumPoints)
+    SDWORD lNumPoints,
+    SDWORD &lDullAngleNum,
+    SDWORD &lRightAngleNum)
 {
+//    printf("points > [%d] %d %d\n", lPointIdx, s_astPosition[lPointIdx].lX, s_astPosition[lPointIdx].lY);
+
     vector<DOUBLE> vecdAngle;
+    lDullAngleNum = 0;
+    lRightAngleNum = 0;
 
     for (SDWORD lIdx = 0; lIdx < lNumPoints; lIdx++) {
         if (lIdx != lPointIdx) {
@@ -254,25 +261,57 @@ static SDWORD getAngleNum(
     }
 
     SDWORD lFirstIdx = 0;
-    SDWORD lLastIdx = 0;
+    SDWORD lLastIdx = 1;
+    SDWORD lKRAngleNum = 0;
 
-    SDWORD lDullAngleNum = 0;
-    SDWORD lRightAngleNum = 0;
     for (lFirstIdx = 0; lFirstIdx < lRelNum; lFirstIdx++) {
         while(1) {
-            if (vecdAngle[lLastIdx] < vecdAngle[lFirstIdx] + (M_PI / 2)) {
-
+            if (doubleIsEqual(vecdAngle[lLastIdx] - (M_PI / 2.0), vecdAngle[lFirstIdx])) {
+                lRightAngleNum++;
+                lLastIdx++;
+            } else if (vecdAngle[lLastIdx] < vecdAngle[lFirstIdx] + (M_PI / 2.0)) {
+                lLastIdx++;
+            } else {
+                break;
             }
         }
-
+//        printf("[%d %d]\n", lLastIdx, lFirstIdx);
+        lKRAngleNum += (lLastIdx - lFirstIdx - 1);
     }
-
+    lDullAngleNum = lRelNum * (lRelNum - 1) / 2 - lKRAngleNum;
+//    printf("%d | R:%d D:%d\n", lKRAngleNum,  lRightAngleNum, lDullAngleNum);
+    return;
 }
 
 
 
 int main(void)
 {
+    SDWORD lInput_N = inputSDWORD();
 
+    for (SDWORD lIdx = 0; lIdx < lInput_N; lIdx++) {
+        SDWORD lInput_x = inputSDWORD();
+        SDWORD lInput_y = inputSDWORD();
+
+        s_astPosition[lIdx].lX = lInput_x;
+        s_astPosition[lIdx].lY = lInput_y;
+    }
+
+    SDWORD lRightAngleNumTtl = 0;
+    SDWORD lDullANgleNumTtl = 0;
+
+    for (SDWORD lIdx = 0; lIdx < lInput_N; lIdx++) {
+        SDWORD lRightAngleNum;
+        SDWORD lDullAngleNum;
+        getAngleNum(lIdx, lInput_N, lDullAngleNum, lRightAngleNum);
+
+        lRightAngleNumTtl += lRightAngleNum;
+        lDullANgleNumTtl  += lDullAngleNum;
+    }
+
+    SDWORD lTriangleTtl = (lInput_N * (lInput_N - 1) * (lInput_N - 2)) / 6;
+    SDWORD lKeenAngleTriNum = lTriangleTtl - lRightAngleNumTtl - lDullANgleNumTtl;
+
+    printf("%lld %lld %lld\n", lKeenAngleTriNum, lRightAngleNumTtl, lDullANgleNumTtl);
     return 0;
 }

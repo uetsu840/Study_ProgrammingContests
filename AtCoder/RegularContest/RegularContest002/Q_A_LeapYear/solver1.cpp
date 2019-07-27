@@ -13,6 +13,7 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
+#include <list>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -58,6 +59,20 @@ using M_BOOL = bool;
 #define M_TRUE (true)
 #define M_FALSE (false)
 #define DIVISOR (1000000007)
+
+static inline void inputStringSpSeparated(char *pcStr)
+{
+    char *pcCur = pcStr;
+    for (;;) {
+        char c = getchar();
+        if (('\n' == c) || (EOF == c) || (' ' == c)) {
+            break;
+        }
+        *pcCur = c;
+        pcCur++;
+    }
+    *pcCur = '\0';
+}
 
 static inline void inputString(char *pcStr)
 {
@@ -156,23 +171,27 @@ static inline DOUBLE inputFP(void)
 }
 
 
-#define ANS_MOD (1000000007LL)
+/**
+ *  mod による操作ライブラリ
+ */
 
+#define ANS_MOD (1000000007LL)
+ 
 static SQWORD addMod(SQWORD x, SQWORD y)
 { 
     return (x + y) % ANS_MOD;
 }
-
+ 
 static SQWORD subMod(SQWORD x, SQWORD y)
 {
     return (x - y + ANS_MOD) % ANS_MOD;
 }
-
+ 
 static SQWORD mulMod(SQWORD x, SQWORD y) 
 {
     return (x * y) % ANS_MOD;
 }
-
+ 
 static SQWORD powMod(SQWORD x, SQWORD e) {
     SQWORD v = 1;
     for (; e; x = mulMod(x, x), e >>= 1) {
@@ -182,13 +201,13 @@ static SQWORD powMod(SQWORD x, SQWORD e) {
     }
     return v;
 }
-
+ 
 static SQWORD divMod(SQWORD x, SQWORD y)
 {
     return mulMod(x, powMod(y, ANS_MOD - 2));
 }
-
-
+ 
+ 
 static SQWORD combMod(SQWORD n, SQWORD k)
 {
     SQWORD v=1;
@@ -198,77 +217,35 @@ static SQWORD combMod(SQWORD n, SQWORD k)
     return v;
 }
 
-static SQWORD getCombination(SQWORD n, SQWORD k)
+/*----------------------------------------------*/
+
+static bool isLeapYear(SQWORD sqYear)
 {
-    SQWORD sqRet = 1;
-    for (SQWORD sqIdx = 0; sqIdx < k; sqIdx++) {
-        sqRet *= (n-sqIdx);
+    bool bIsLeapYear = false;
+
+    if (0 == (sqYear % 4)) {
+        bIsLeapYear = true;
     }
-    for (SQWORD sqIdx = 0; sqIdx < k; sqIdx++) {
-        sqRet /= (sqIdx + 1);
+    if (0 == (sqYear % 100)) {
+        bIsLeapYear = false;
+    }
+    if (0 == (sqYear % 400)) {
+        bIsLeapYear = true;
     }
 
-    return sqRet;
-}
-
-static void calcPrimeFactorication(SQWORD sqNum, vector<pair<SQWORD, SQWORD>> &vlPrimes)
-{
-    SQWORD sqCur = sqNum;
-    SQWORD sqUpper = sqrt(sqNum) + 1;
-    for (SQWORD sqDiv = 2; sqDiv <= sqUpper; sqDiv++) {
-        SDWORD lPowerCnt = 0;
-        while(0 == sqCur % sqDiv) {
-            sqCur /= sqDiv;
-            lPowerCnt++;
-        }
-        if (0 < lPowerCnt) {
-            vlPrimes.emplace_back(make_pair(sqDiv, lPowerCnt));
-        }
-        if (1 == sqCur) {
-            break;
-        }
-    }
-    if (1 < sqCur) {
-        vlPrimes.emplace_back(make_pair(sqCur, 1));
-    }
-}
-
-static void getPrimeSum(
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes, 
-    SQWORD sqCur, 
-    SQWORD sqInput_N, 
-    SQWORD &sqSum)
-{
-    if (vpairlPrimes.empty()) {
-        SQWORD sqM = sqInput_N / sqCur - 1;
-        if (sqCur < sqM) {
-            sqSum += sqM;
-        }
-        return;
-    }
-
-    auto prime = vpairlPrimes.back();
-    vpairlPrimes.pop_back();
-    SQWORD sqDiv = sqCur;
-
-    for (SDWORD lPow = 0; lPow <= prime.second; lPow++) {
-        getPrimeSum(vpairlPrimes, sqDiv, sqInput_N, sqSum);
-        sqDiv *= prime.first;
-    }
+    return bIsLeapYear;
 }
 
 
-int main()
+int main(void)
 {
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes;
+    SQWORD sqInput_Y = inputSQWORD();
 
-    SQWORD sqInput_N = inputSQWORD();
+    if (isLeapYear(sqInput_Y)) {
+        printf("YES\n");
+    } else {
+        printf("NO\n");
+    }
 
-    calcPrimeFactorication(sqInput_N, vpairlPrimes);
-
-    SQWORD sqAns = 0;
-    getPrimeSum(vpairlPrimes, 1, sqInput_N, sqAns);
-
-    printf("%lld\n", sqAns);
     return 0;
 }

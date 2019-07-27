@@ -13,6 +13,7 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
+#include <list>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -58,6 +59,20 @@ using M_BOOL = bool;
 #define M_TRUE (true)
 #define M_FALSE (false)
 #define DIVISOR (1000000007)
+
+static inline void inputStringSpSeparated(char *pcStr)
+{
+    char *pcCur = pcStr;
+    for (;;) {
+        char c = getchar();
+        if (('\n' == c) || (EOF == c) || (' ' == c)) {
+            break;
+        }
+        *pcCur = c;
+        pcCur++;
+    }
+    *pcCur = '\0';
+}
 
 static inline void inputString(char *pcStr)
 {
@@ -156,23 +171,27 @@ static inline DOUBLE inputFP(void)
 }
 
 
-#define ANS_MOD (1000000007LL)
+/**
+ *  mod による操作ライブラリ
+ */
 
+#define ANS_MOD (1000000007LL)
+ 
 static SQWORD addMod(SQWORD x, SQWORD y)
 { 
     return (x + y) % ANS_MOD;
 }
-
+ 
 static SQWORD subMod(SQWORD x, SQWORD y)
 {
     return (x - y + ANS_MOD) % ANS_MOD;
 }
-
+ 
 static SQWORD mulMod(SQWORD x, SQWORD y) 
 {
     return (x * y) % ANS_MOD;
 }
-
+ 
 static SQWORD powMod(SQWORD x, SQWORD e) {
     SQWORD v = 1;
     for (; e; x = mulMod(x, x), e >>= 1) {
@@ -182,13 +201,13 @@ static SQWORD powMod(SQWORD x, SQWORD e) {
     }
     return v;
 }
-
+ 
 static SQWORD divMod(SQWORD x, SQWORD y)
 {
     return mulMod(x, powMod(y, ANS_MOD - 2));
 }
-
-
+ 
+ 
 static SQWORD combMod(SQWORD n, SQWORD k)
 {
     SQWORD v=1;
@@ -198,77 +217,73 @@ static SQWORD combMod(SQWORD n, SQWORD k)
     return v;
 }
 
-static SQWORD getCombination(SQWORD n, SQWORD k)
+/*----------------------------------------------*/
+
+#define SQWORD_INF  (100100100100100100)
+#define N_MAX_A     (200000)
+int main(void)
 {
-    SQWORD sqRet = 1;
-    for (SQWORD sqIdx = 0; sqIdx < k; sqIdx++) {
-        sqRet *= (n-sqIdx);
+    SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_K = inputSQWORD();
+
+    vector<SQWORD> vecsqA;
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD sqInput_A = inputSQWORD();
+        vecsqA.emplace_back(sqInput_A);
     }
-    for (SQWORD sqIdx = 0; sqIdx < k; sqIdx++) {
-        sqRet /= (sqIdx + 1);
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        vecsqA.emplace_back(vecsqA[sqIdx]);
     }
 
-    return sqRet;
-}
+    static vector<SQWORD> vecsqLastIdx(N_MAX_A, SQWORD_INF);
+    static vector<SQWORD> vecsqNextOffset(sqInput_N * 2, sqInput_N);
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N * 2; sqIdx++) {
+        SQWORD sqA = vecsqA[sqIdx];
+        if (vecsqLastIdx[sqA] != SQWORD_INF) {
+            vecsqNextOffset[vecsqLastIdx[sqA]] = sqIdx - vecsqLastIdx[sqA];
+        }
+        vecsqLastIdx[sqA] = sqIdx;
+    }
 
-static void calcPrimeFactorication(SQWORD sqNum, vector<pair<SQWORD, SQWORD>> &vlPrimes)
-{
-    SQWORD sqCur = sqNum;
-    SQWORD sqUpper = sqrt(sqNum) + 1;
-    for (SQWORD sqDiv = 2; sqDiv <= sqUpper; sqDiv++) {
-        SDWORD lPowerCnt = 0;
-        while(0 == sqCur % sqDiv) {
-            sqCur /= sqDiv;
-            lPowerCnt++;
-        }
-        if (0 < lPowerCnt) {
-            vlPrimes.emplace_back(make_pair(sqDiv, lPowerCnt));
-        }
-        if (1 == sqCur) {
+#if 0
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        printf("%lld ", vecsqNextOffset[sqIdx]);
+    }
+#endif
+
+    /* 一巡するところを探す */
+    SQWORD sqIdxCur = 0;
+    SQWORD sqCycleCnt = 0;
+    while(1) {
+        sqCycleCnt += (vecsqNextOffset[sqIdxCur] + 1);
+        sqIdxCur = (sqIdxCur + vecsqNextOffset[sqIdxCur]) % sqInput_N;
+        sqIdxCur = (sqIdxCur + 1) % sqInput_N;
+        if (0 == (sqIdxCur % sqInput_N)) {
             break;
         }
     }
-    if (1 < sqCur) {
-        vlPrimes.emplace_back(make_pair(sqCur, 1));
-    }
-}
+//    printf("%lld\n", sqOffsetSum);
 
-static void getPrimeSum(
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes, 
-    SQWORD sqCur, 
-    SQWORD sqInput_N, 
-    SQWORD &sqSum)
-{
-    if (vpairlPrimes.empty()) {
-        SQWORD sqM = sqInput_N / sqCur - 1;
-        if (sqCur < sqM) {
-            sqSum += sqM;
+    SQWORD sqRemain = (sqInput_N * sqInput_K) % sqCycleCnt;
+    SQWORD sqRemIdxCur = 0;
+    vector<SQWORD> vecsqAns;
+    while(1) {
+        SQWORD sqIdx = sqRemIdxCur % sqInput_N;
+        if (sqRemIdxCur + vecsqNextOffset[sqIdx] < sqRemain) {
+            sqRemIdxCur += vecsqNextOffset[sqIdx];
+            sqRemIdxCur++;
+        } else if (sqRemIdxCur < sqRemain) {
+            vecsqAns.emplace_back(vecsqA[sqIdx]);
+            sqRemIdxCur++;
         }
-        return;
+        if (sqRemain <= sqRemIdxCur) {
+            break;
+        }
     }
-
-    auto prime = vpairlPrimes.back();
-    vpairlPrimes.pop_back();
-    SQWORD sqDiv = sqCur;
-
-    for (SDWORD lPow = 0; lPow <= prime.second; lPow++) {
-        getPrimeSum(vpairlPrimes, sqDiv, sqInput_N, sqSum);
-        sqDiv *= prime.first;
+    for (auto ans: vecsqAns) {
+        printf("%lld ", ans);
     }
-}
+    printf("\n");
 
-
-int main()
-{
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes;
-
-    SQWORD sqInput_N = inputSQWORD();
-
-    calcPrimeFactorication(sqInput_N, vpairlPrimes);
-
-    SQWORD sqAns = 0;
-    getPrimeSum(vpairlPrimes, 1, sqInput_N, sqAns);
-
-    printf("%lld\n", sqAns);
     return 0;
 }
