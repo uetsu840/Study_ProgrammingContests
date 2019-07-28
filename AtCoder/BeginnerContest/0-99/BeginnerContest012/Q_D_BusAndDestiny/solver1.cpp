@@ -218,98 +218,96 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
-#define MAX_STRING  (100000)
 
-static bool matchDigit3(
-    string ref, 
-    string b)
-{
-    for (SDWORD lIdx = 0; lIdx < 3; lIdx++) {
-        if (ref[lIdx] != '?') {
-            if (ref[lIdx] != b[lIdx]) {
-                return false;
+struct EDGE_ST {
+    SQWORD sqTo;
+    SQWORD sqCost;
+
+    EDGE_ST(SQWORD to, SQWORD cost) {
+        sqTo = to;
+        sqCost = cost;
+    };
+};
+
+#define DIST_INF        (100100100100100100)
+#define N_MAX_VERTICE   (300)
+
+class WarshallFloyd {
+    SQWORD  sqNumVertice;
+    const vector<EDGE_ST> *pvecEdge;
+    SQWORD  aaDist[N_MAX_VERTICE + 1][N_MAX_VERTICE + 1];
+
+public:
+    WarshallFloyd(SQWORD sqV, const vector<EDGE_ST> *vE) : sqNumVertice(sqV), pvecEdge(vE) {
+        for (SWORD sqI = 1; sqI <= sqV; sqI++) {
+            for (SQWORD sqJ = 1; sqJ <= sqNumVertice; sqJ++) {
+                aaDist[sqI][sqJ] = DIST_INF;
+            }
+        }
+        for (SQWORD sqI = 1; sqI <= sqNumVertice; sqI++) {
+            for (auto v:pvecEdge[sqI]) {
+                aaDist[sqI][v.sqTo] = v.sqCost;
+            }
+        }
+        for (SQWORD sqI = 1; sqI <= sqNumVertice; sqI++) {
+            aaDist[sqI][sqI] = 0;
+        }
+    };
+
+    void Solve(void)
+    {
+        for (SQWORD sqK = 1; sqK <= sqNumVertice; sqK++) {
+            for (SQWORD sqI = 1; sqI <= sqNumVertice; sqI++) {
+                for (SQWORD sqJ = 1; sqJ <= sqNumVertice; sqJ++) {
+                    aaDist[sqI][sqJ] = min(aaDist[sqI][sqJ],
+                                            aaDist[sqI][sqK] + aaDist[sqK][sqJ]);
+                } 
             }
         }
     }
-    return true;
-}
 
-
-static void countMods(
-    string substr, 
-    vector<SDWORD> &veclMods)
-{
-    for (SDWORD lIdx = 0; lIdx < 13; lIdx++) {
-        veclMods[lIdx] = 0;
+    SQWORD getDist(SQWORD sqI, SQWORD sqJ)
+    {
+        return aaDist[sqI][sqJ];
     }
-    reverse(substr.begin(), substr.end());
 
-    for (SDWORD lNum = 0; lNum < 1000; lNum ++) {
-        char acRefStr[4];
-        sprintf(acRefStr, "%03d", lNum);
-        if (matchDigit3(substr, acRefStr)) {
-            veclMods[lNum % 13] ++;
+    /* 頂点Iからの最大コストの点を求める */
+    SQWORD getMaxDist(SQWORD sqFrom)
+    {
+        SQWORD sqMaxDist = 0;
+        for (SQWORD sqTo = 0; sqTo <= sqNumVertice; sqTo++) {
+            sqMaxDist = max(sqMaxDist, aaDist[sqFrom][sqTo]);
         }
+        return sqMaxDist;
     }
-}
+};
 
 
 int main(void)
 {
-    string str;
+    SQWORD sqInput_N = inputSQWORD();
+    SQWORD sqInput_M = inputSQWORD();
 
-    cin >> str;
-    SQWORD sqNumDigit = str.size();
-    reverse(str.begin(), str.end());
-    str += string("00000");
+    static vector<EDGE_ST>  s_avecEdges[N_MAX_VERTICE + 1];
 
-    SQWORD sqDigitCur = 0;
-    static SDWORD s_alDpTbl[13];
-    static SDWORD s_alDpTblNext[13];
-    for (SDWORD lDpIdx = 0;; lDpIdx++) {
-        char acSepDigit[4];
+    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqInput_M; sqEdgeIdx++) {
+        SQWORD sqInput_a = inputSQWORD();
+        SQWORD sqInput_b = inputSQWORD();
+        SQWORD sqInput_t = inputSQWORD();
 
-        string string3 = str.substr(sqDigitCur, 3);
-        vector<SDWORD> veclMods(13, 0);
-        countMods(string3, veclMods);
-
-        /* update dp */
-        if (0 == lDpIdx) {
-            for (SDWORD lIdx = 0; lIdx < 13; lIdx++) {
-                s_alDpTbl[lIdx] = veclMods[lIdx];
-            }
-        } else {
-            memset(s_alDpTblNext, 0, sizeof(s_alDpTblNext));
-            if (0 == lDpIdx % 2) {
-                for (SDWORD lTblIdx = 0; lTblIdx < 13; lTblIdx++) {
-                    SQWORD sqNextVal = 0;
-                    for (SDWORD lNumIdx = 0; lNumIdx < 13; lNumIdx++) {
-                        sqNextVal = addMod(sqNextVal, 
-                                            mulMod(veclMods[lNumIdx], s_alDpTbl[(13 + lNumIdx - lTblIdx) % 13]));
-                    }
-                    s_alDpTblNext[lTblIdx] = sqNextVal;
-                }
-            } else {
-                for (SDWORD lTblIdx = 0; lTblIdx < 13; lTblIdx++) {
-                    SQWORD sqNextVal = 0;
-                    for (SDWORD lNumIdx = 0; lNumIdx < 13; lNumIdx++) {
-                        sqNextVal = addMod(sqNextVal,
-                                            mulMod(veclMods[lNumIdx], s_alDpTbl[(lNumIdx + lTblIdx) % 13]));
-                    }
-                    s_alDpTblNext[lTblIdx] = sqNextVal;
-                }
-            }
-            memcpy(s_alDpTbl, s_alDpTblNext, sizeof(s_alDpTbl));
-        }
-
-        sqDigitCur += 3;
-        if (sqNumDigit < sqDigitCur) {
-            break;
-        }
+        s_avecEdges[sqInput_a].emplace_back(sqInput_b, sqInput_t);
+        s_avecEdges[sqInput_b].emplace_back(sqInput_a, sqInput_t);
     }
 
-    printf("%d\n", s_alDpTbl[5]);
+    /* Warshall-Floyd */
+    WarshallFloyd w(sqInput_N, s_avecEdges);
+    w.Solve();
 
- 
+    SQWORD sqAns = MAX_SQWORD;
+    for (SQWORD sqIdx = 1; sqIdx <= sqInput_N; sqIdx++) {
+        sqAns = min(sqAns, w.getMaxDist(sqIdx));
+    }
+
+    printf("%lld\n", sqAns);
     return 0;
 }

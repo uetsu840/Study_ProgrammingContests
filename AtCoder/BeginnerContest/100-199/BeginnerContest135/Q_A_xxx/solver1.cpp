@@ -233,5 +233,13 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 int main(void)
 {
+    SQWORD sqA = inputSQWORD();
+    SQWORD sqB = inputSQWORD();
+
+    if (0 < (abs(sqA - sqB)) % 2) {
+        printf("IMPOSSIBLE\n");
+    } else {
+        printf("%lld\n", (sqA + sqB) / 2);
+    }
     return 0;
 }

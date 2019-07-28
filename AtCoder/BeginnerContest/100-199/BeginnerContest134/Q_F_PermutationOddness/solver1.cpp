@@ -219,9 +219,67 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
+#define ARYSIZE_N        (50 + 2)
+#define ARYSIZE_ODDNESS  (ARYSIZE_N * ARYSIZE_N + ARYSIZE_N * 2)
+#define MAX_ODDNESS      (50 * 50)
 
 int main(void)
 {
+    SQWORD sqInput_n = inputSQWORD();
+    SQWORD sqInput_k = inputSQWORD();
+
+    /*
+    *   dp[i][j][k]
+    *       上からi段目、
+    *       保留(未接続線) がj本
+    *       奇妙さがk
+    */
+
+    static SQWORD s_aaasqDp[ARYSIZE_N][ARYSIZE_N][ARYSIZE_ODDNESS];
+
+    s_aaasqDp[0][0][0] = 1;
+    for (SQWORD sqIdxNum = 1; sqIdxNum <= sqInput_n; sqIdxNum++) {
+        for (SQWORD sqUnCon = 0; sqUnCon <= sqIdxNum; sqUnCon++) {
+            for (SQWORD sqOddness = 0; sqOddness <= MAX_ODDNESS; sqOddness++) {
+                /* 〇 --- 〇 */
+                {
+                    SQWORD sqNextUnCon = sqUnCon;
+                    SQWORD *psqDpTbl = &(s_aaasqDp[sqIdxNum][sqNextUnCon][sqOddness + sqUnCon * 2]);
+                    *psqDpTbl = addMod(*psqDpTbl,
+                                         s_aaasqDp[sqIdxNum - 1][sqUnCon][sqOddness]);
+                }
+
+                /* 〇・ ・〇 */
+                {
+                    SQWORD sqNextUnCon = sqUnCon + 1;
+                    SQWORD *psqDpTbl = &(s_aaasqDp[sqIdxNum][sqNextUnCon][sqOddness + sqUnCon * 2]);
+                    *psqDpTbl = addMod(*psqDpTbl,
+                                        s_aaasqDp[sqIdxNum - 1][sqUnCon][sqOddness]);
+                }
+
+                /* 〇↑  ・〇   、  〇・  ↑〇 */
+                {
+                    SQWORD sqNextUnCon = sqUnCon;
+                    SQWORD *psqDpTbl = &(s_aaasqDp[sqIdxNum][sqNextUnCon][sqOddness + sqUnCon * 2]);
+                    SQWORD sqMul = sqUnCon * 2;
+                    *psqDpTbl = addMod(*psqDpTbl,
+                                        mulMod(s_aaasqDp[sqIdxNum - 1][sqUnCon][sqOddness], sqMul));
+                }
+
+                /* 〇↑  ↑〇 */
+                if (1 <= sqUnCon) {
+                    SQWORD sqNextUnCon = sqUnCon - 1;
+                    SQWORD *psqDpTbl = &(s_aaasqDp[sqIdxNum][sqNextUnCon][sqOddness + sqUnCon * 2]);
+                    SQWORD sqMul = mulMod(sqUnCon, sqUnCon);
+                    *psqDpTbl = addMod(*psqDpTbl,
+                                        mulMod(s_aaasqDp[sqIdxNum - 1][sqUnCon][sqOddness], sqMul));
+                }
+            }
+        }
+    }
+
+    SQWORD sqAns = s_aaasqDp[sqInput_n][0][sqInput_k];
+    printf("%lld\n", sqAns);
 
     return 0;
 }

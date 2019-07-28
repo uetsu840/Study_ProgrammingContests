@@ -218,9 +218,42 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
+static bool isSequential(vector<SQWORD> vecP) {
+    for (SQWORD sqIdx = 0; sqIdx < vecP.size() - 1; sqIdx++) {
+        if (vecP[sqIdx + 1] < vecP[sqIdx]) {
+            return false;
+        }
+    }
+    return true;
+}
 
 
 int main(void)
 {
+    SQWORD sqInput_N = inputSQWORD();
+
+    vector<SQWORD> vecsqP;
+
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD sqP = inputSQWORD();
+        vecsqP.emplace_back(sqP);
+    }
+
+    if (isSequential(vecsqP)) {
+        printf("YES\n");
+        return 0;
+    } else {
+        for (SQWORD sqIdxI = 0; sqIdxI < sqInput_N - 1; sqIdxI++) {
+            for (SQWORD sqIdxJ = 0; sqIdxJ < sqInput_N; sqIdxJ++) {
+                swap(vecsqP[sqIdxI], vecsqP[sqIdxJ]);
+                if (isSequential(vecsqP)) {
+                    printf("YES\n");
+                    return 0;
+                }
+                swap(vecsqP[sqIdxI], vecsqP[sqIdxJ]);
+            }
+        }
+    }
+    printf("NO\n");
     return 0;
 }

@@ -218,98 +218,130 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
-#define MAX_STRING  (100000)
 
-static bool matchDigit3(
-    string ref, 
-    string b)
-{
-    for (SDWORD lIdx = 0; lIdx < 3; lIdx++) {
-        if (ref[lIdx] != '?') {
-            if (ref[lIdx] != b[lIdx]) {
-                return false;
+struct EDGE_ST {
+    SQWORD sqTo;
+    SQWORD sqCost;
+
+    EDGE_ST(SQWORD to, SQWORD cost) {
+        sqTo = to;
+        sqCost = cost;
+    };
+};
+
+#define COST_INF        (100100100100100100)
+#define N_MAX_VERTICE   (10000)
+
+class Prim {
+private:
+    SQWORD  sqNumVertice;
+    const   vector<EDGE_ST> *pvecEdge;
+    SQWORD  aMinCost[N_MAX_VERTICE + 1];        /* 部分集合から頂点までの最小コスト */
+    bool    abIsUsed[N_MAX_VERTICE + 1];
+    SQWORD  aaCost[N_MAX_VERTICE + 1][N_MAX_VERTICE + 1];
+    SQWORD  sqIdxMinV;
+    SQWORD  sqIdxMaxV;
+
+public:
+    Prim(
+        SQWORD sqV, 
+        const vector<EDGE_ST> *vE,
+        bool bStartWithZero = false) : sqNumVertice(sqV), pvecEdge(vE) 
+    {
+        if (bStartWithZero) {
+            sqIdxMinV = 0;
+            sqIdxMaxV = sqNumVertice - 1;
+        } else {
+            sqIdxMinV = 1;
+            sqIdxMaxV = sqNumVertice;
+        }
+
+        /* 辺が存在しない箇所のコストはINF */
+        for (SWORD sqI = sqIdxMinV; sqI <= sqV; sqI++) {
+            for (SQWORD sqJ = 1; sqJ <= sqIdxMaxV; sqJ++) {
+                aaCost[sqI][sqJ] = COST_INF;
             }
         }
-    }
-    return true;
-}
-
-
-static void countMods(
-    string substr, 
-    vector<SDWORD> &veclMods)
-{
-    for (SDWORD lIdx = 0; lIdx < 13; lIdx++) {
-        veclMods[lIdx] = 0;
-    }
-    reverse(substr.begin(), substr.end());
-
-    for (SDWORD lNum = 0; lNum < 1000; lNum ++) {
-        char acRefStr[4];
-        sprintf(acRefStr, "%03d", lNum);
-        if (matchDigit3(substr, acRefStr)) {
-            veclMods[lNum % 13] ++;
+        /* 辺が存在する箇所のコストは辺のコストそのもの */
+        for (SQWORD sqI = sqIdxMinV; sqI <= sqIdxMaxV; sqI++) {
+            for (auto v:pvecEdge[sqI]) {
+                aaCost[sqI][v.sqTo] = v.sqCost;
+            }
         }
+        /* 自身へのコストは0 */
+        for (SQWORD sqI = sqIdxMinV; sqI <= sqIdxMaxV; sqI++) {
+            aaCost[sqI][sqI] = 0;
+        }
+
+        /* usedフラグ初期化 */
+        for (SQWORD sqI = sqIdxMinV; sqI <= sqIdxMaxV; sqI++) {
+            abIsUsed[sqI] = false;
+        }
+
+        /* 最小コスト初期化 */
+        for (SQWORD sqV = sqIdxMinV; sqV <= sqIdxMaxV; sqV++) {
+            aMinCost[sqV] = COST_INF;
+        }
+    };
+
+    SQWORD Solve(void)
+    {
+        aMinCost[sqIdxMinV] = 0;
+        SQWORD sqMinCostTtl = 0;
+
+        while(1) {
+            SQWORD sqMinCostV = -1;
+
+            /* 最小全域木に属さない頂点のうち、最小コストの辺で接続されているものを探す */
+            for (SQWORD sqNextV = sqIdxMinV; sqNextV <= sqIdxMaxV; sqNextV++) {
+                if (!abIsUsed[sqNextV]) {
+                    if (-1 == sqMinCostV) {
+                        sqMinCostV = sqNextV;
+                    } else if (aMinCost[sqNextV] < aMinCost[sqMinCostV]) {
+                        sqMinCostV = sqNextV;
+                    }
+                }
+            }
+
+            if (-1 == sqMinCostV) {
+                break;
+            }
+
+            abIsUsed[sqMinCostV] = true;
+            sqMinCostTtl += aMinCost[sqMinCostV];
+
+            /* 加えた頂点から集合の範囲外の各点への最小コストを更新する */
+            for (SQWORD sqV = sqIdxMinV; sqV <= sqIdxMaxV; sqV++) {
+                if (!abIsUsed[sqV]) {
+                    aMinCost[sqV] = min(aMinCost[sqV], aaCost[sqMinCostV][sqV]);
+                }
+            }
+        }
+        return sqMinCostTtl;
     }
-}
+};
 
 
 int main(void)
 {
-    string str;
+    SQWORD sqInput_V = inputSQWORD();
+    SQWORD sqInput_E = inputSQWORD();
 
-    cin >> str;
-    SQWORD sqNumDigit = str.size();
-    reverse(str.begin(), str.end());
-    str += string("00000");
+    static vector<EDGE_ST>  s_avecEdges[N_MAX_VERTICE + 1];
 
-    SQWORD sqDigitCur = 0;
-    static SDWORD s_alDpTbl[13];
-    static SDWORD s_alDpTblNext[13];
-    for (SDWORD lDpIdx = 0;; lDpIdx++) {
-        char acSepDigit[4];
+    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqInput_E; sqEdgeIdx++) {
+        SQWORD sqInput_s = inputSQWORD();
+        SQWORD sqInput_t = inputSQWORD();
+        SQWORD sqInput_w = inputSQWORD();
 
-        string string3 = str.substr(sqDigitCur, 3);
-        vector<SDWORD> veclMods(13, 0);
-        countMods(string3, veclMods);
-
-        /* update dp */
-        if (0 == lDpIdx) {
-            for (SDWORD lIdx = 0; lIdx < 13; lIdx++) {
-                s_alDpTbl[lIdx] = veclMods[lIdx];
-            }
-        } else {
-            memset(s_alDpTblNext, 0, sizeof(s_alDpTblNext));
-            if (0 == lDpIdx % 2) {
-                for (SDWORD lTblIdx = 0; lTblIdx < 13; lTblIdx++) {
-                    SQWORD sqNextVal = 0;
-                    for (SDWORD lNumIdx = 0; lNumIdx < 13; lNumIdx++) {
-                        sqNextVal = addMod(sqNextVal, 
-                                            mulMod(veclMods[lNumIdx], s_alDpTbl[(13 + lNumIdx - lTblIdx) % 13]));
-                    }
-                    s_alDpTblNext[lTblIdx] = sqNextVal;
-                }
-            } else {
-                for (SDWORD lTblIdx = 0; lTblIdx < 13; lTblIdx++) {
-                    SQWORD sqNextVal = 0;
-                    for (SDWORD lNumIdx = 0; lNumIdx < 13; lNumIdx++) {
-                        sqNextVal = addMod(sqNextVal,
-                                            mulMod(veclMods[lNumIdx], s_alDpTbl[(lNumIdx + lTblIdx) % 13]));
-                    }
-                    s_alDpTblNext[lTblIdx] = sqNextVal;
-                }
-            }
-            memcpy(s_alDpTbl, s_alDpTblNext, sizeof(s_alDpTbl));
-        }
-
-        sqDigitCur += 3;
-        if (sqNumDigit < sqDigitCur) {
-            break;
-        }
+        s_avecEdges[sqInput_s].emplace_back(sqInput_t, sqInput_w);
+        s_avecEdges[sqInput_t].emplace_back(sqInput_s, sqInput_w);
     }
 
-    printf("%d\n", s_alDpTbl[5]);
+    /* prim method */
+    static Prim prim(sqInput_V, s_avecEdges, true);
+    SQWORD sqMinCost = prim.Solve();
 
- 
+    printf("%lld\n", sqMinCost);
     return 0;
 }

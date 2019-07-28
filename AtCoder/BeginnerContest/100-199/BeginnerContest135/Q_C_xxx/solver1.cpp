@@ -221,6 +221,41 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 int main(void)
 {
+    SQWORD sqInput_N = inputSQWORD();
+
+    vector<SQWORD> vecA;
+    vector<SQWORD> vecB;
+
+    for (SQWORD sqIdx = 0; sqIdx <= sqInput_N; sqIdx++) {
+        SQWORD sqInput_A = inputSQWORD();
+        vecA.emplace_back(sqInput_A);
+    }
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD sqInput_B = inputSQWORD();
+        vecB.emplace_back(sqInput_B);
+    }
+    vecB.emplace_back(0);
+
+    SQWORD sqAns = 0;
+    SQWORD sqRest = 0;
+    for (SQWORD sqCityIdx = 0; sqCityIdx < sqInput_N + 1; sqCityIdx++) {
+        SQWORD sqRestMCnt;
+        if (vecA[sqCityIdx] < sqRest) {
+            sqRestMCnt = 0;
+        } else {
+            sqRestMCnt = vecA[sqCityIdx] - sqRest;
+        }
+        sqAns += (vecA[sqCityIdx] - sqRestMCnt);
+
+        SQWORD sqDestBCnt = min(sqRestMCnt, vecB[sqCityIdx]);
+        sqAns += (sqDestBCnt);
+
+        /* 持ち越し分 */
+        sqRest = vecB[sqCityIdx] - sqDestBCnt;
+    }
+
+
+    printf("%lld\n", sqAns);
 
     return 0;
 }

@@ -218,98 +218,172 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
-#define MAX_STRING  (100000)
 
-static bool matchDigit3(
-    string ref, 
-    string b)
+typedef struct {
+    vector<DWORD>   vdwPar;
+    vector<DWORD>   vdwRank;
+    vector<DWORD>   vdwCnt;
+    DWORD   dwSize;
+
+    void initUnionFind(
+        DWORD dwSize)
+    {
+        dwSize = dwSize;
+        vdwPar.resize(dwSize);
+        vdwRank.resize(dwSize);
+        vdwCnt.resize(dwSize);
+    
+        for (DWORD dwIdx = 0; dwIdx < dwSize; dwIdx++) {
+            vdwPar[dwIdx]  = dwIdx;
+            vdwRank[dwIdx] = 0;
+            vdwCnt[dwIdx]  = 1;
+        }
+    }
+
+
+    DWORD ufGetParent(DWORD dwIdx) const
+    {
+        return vdwPar[dwIdx];
+    }
+
+    DWORD ufGetRank(DWORD dwIdx) const
+    {
+        return vdwRank[dwIdx];
+    }
+
+    void ufSetParent(DWORD dwIdx, DWORD dwParent)
+    {
+        vdwPar[dwIdx] = dwParent; 
+        if (ufGetRank(dwIdx) == ufGetRank(dwParent)) {
+            (vdwRank[dwParent])++;
+        }
+    }
+
+    DWORD ufGetRoot(DWORD dwIdx) const
+    {
+        if (ufGetParent(dwIdx) == dwIdx) {
+            return dwIdx;
+        } else {
+            DWORD dwParent = ufGetParent(dwIdx);
+            DWORD dwRoot = ufGetRoot(dwParent);
+            return dwRoot;
+        }
+    }
+
+    void ufUnite(DWORD dwX, DWORD dwY)
+    {
+        DWORD dwRootX = ufGetRoot(dwX);
+        DWORD dwRootY = ufGetRoot(dwY);
+
+        if (dwRootX == dwRootY) {
+            return;
+        }
+
+        if (ufGetRank(dwRootX) < ufGetRank(dwRootY)) {
+            ufSetParent(dwRootX, dwRootY);
+            (vdwCnt[dwRootY]) += (vdwCnt[dwRootX]);
+        } else {
+            ufSetParent(dwRootY, dwRootX);
+            (vdwCnt[dwRootX]) += (vdwCnt[dwRootY]);
+        }
+    }
+
+    bool ufIsSame(DWORD dwX, DWORD dwY) const
+    {
+        return (ufGetRoot(dwX)  == ufGetRoot(dwY));
+    }
+} ST_UNION_FIND;
+
+/* ------------------------------------------------------------- */
+
+
+struct EDGE_ST {
+    SQWORD sqV1;
+    SQWORD sqV2;
+    SQWORD sqCost;
+
+    EDGE_ST(SQWORD v1, SQWORD v2, SQWORD cost) {
+        sqV1 = v1;
+        sqV2 = v2;
+        sqCost = cost;
+    };
+};
+
+bool comp(const EDGE_ST &e1, const EDGE_ST &e2)
 {
-    for (SDWORD lIdx = 0; lIdx < 3; lIdx++) {
-        if (ref[lIdx] != '?') {
-            if (ref[lIdx] != b[lIdx]) {
-                return false;
+    return e1.sqCost < e2.sqCost;
+}
+
+#define COST_INF        (100100100100100100)
+#define N_MAX_VERTICE   (10000)
+
+class Kruskal {
+private:
+    SQWORD  sqNumVertice;
+    SQWORD  sqNumEdge;
+    vector<EDGE_ST> vecEdge;
+    SQWORD  sqIdxMinV;
+    SQWORD  sqIdxMaxV;
+
+
+public:
+    Kruskal(SQWORD sqNumV, SQWORD sqNumE, bool bStartWithZero = false)
+    {
+        sqNumVertice = sqNumV;
+        sqNumEdge = sqNumE;
+        if (bStartWithZero) {
+            sqIdxMinV = 0;
+            sqIdxMaxV = sqNumVertice - 1;
+        } else {
+            sqIdxMinV = 1;
+            sqIdxMaxV = sqNumVertice;
+        }
+    }
+
+    void AddEdge(SQWORD sqV1, SQWORD sqV2, SQWORD sqCost) {
+        vecEdge.emplace_back(sqV1, sqV2, sqCost);
+    }
+
+    SQWORD solve(void)
+    {
+        ST_UNION_FIND Uf;
+        Uf.initUnionFind(sqIdxMaxV + 1);
+
+        sort(vecEdge.begin(), vecEdge.end(), comp);
+
+        SQWORD sqCost = 0;
+
+        for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqNumEdge; sqEdgeIdx++) {
+            EDGE_ST e = vecEdge[sqEdgeIdx];
+            if (!Uf.ufIsSame(e.sqV1, e.sqV2)) {
+                Uf.ufUnite(e.sqV1, e.sqV2);
+//                printf("%lld %lld\n", e.sqV1, e.sqV2);
+                sqCost += e.sqCost;
             }
         }
+        return sqCost;
     }
-    return true;
-}
-
-
-static void countMods(
-    string substr, 
-    vector<SDWORD> &veclMods)
-{
-    for (SDWORD lIdx = 0; lIdx < 13; lIdx++) {
-        veclMods[lIdx] = 0;
-    }
-    reverse(substr.begin(), substr.end());
-
-    for (SDWORD lNum = 0; lNum < 1000; lNum ++) {
-        char acRefStr[4];
-        sprintf(acRefStr, "%03d", lNum);
-        if (matchDigit3(substr, acRefStr)) {
-            veclMods[lNum % 13] ++;
-        }
-    }
-}
+};
 
 
 int main(void)
 {
-    string str;
+    SQWORD sqInput_V = inputSQWORD();
+    SQWORD sqInput_E = inputSQWORD();
 
-    cin >> str;
-    SQWORD sqNumDigit = str.size();
-    reverse(str.begin(), str.end());
-    str += string("00000");
+    Kruskal kruskal(sqInput_V, sqInput_E, true);
 
-    SQWORD sqDigitCur = 0;
-    static SDWORD s_alDpTbl[13];
-    static SDWORD s_alDpTblNext[13];
-    for (SDWORD lDpIdx = 0;; lDpIdx++) {
-        char acSepDigit[4];
+    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqInput_E; sqEdgeIdx++) {
+        SQWORD sqInput_s = inputSQWORD();
+        SQWORD sqInput_t = inputSQWORD();
+        SQWORD sqInput_w = inputSQWORD();
 
-        string string3 = str.substr(sqDigitCur, 3);
-        vector<SDWORD> veclMods(13, 0);
-        countMods(string3, veclMods);
-
-        /* update dp */
-        if (0 == lDpIdx) {
-            for (SDWORD lIdx = 0; lIdx < 13; lIdx++) {
-                s_alDpTbl[lIdx] = veclMods[lIdx];
-            }
-        } else {
-            memset(s_alDpTblNext, 0, sizeof(s_alDpTblNext));
-            if (0 == lDpIdx % 2) {
-                for (SDWORD lTblIdx = 0; lTblIdx < 13; lTblIdx++) {
-                    SQWORD sqNextVal = 0;
-                    for (SDWORD lNumIdx = 0; lNumIdx < 13; lNumIdx++) {
-                        sqNextVal = addMod(sqNextVal, 
-                                            mulMod(veclMods[lNumIdx], s_alDpTbl[(13 + lNumIdx - lTblIdx) % 13]));
-                    }
-                    s_alDpTblNext[lTblIdx] = sqNextVal;
-                }
-            } else {
-                for (SDWORD lTblIdx = 0; lTblIdx < 13; lTblIdx++) {
-                    SQWORD sqNextVal = 0;
-                    for (SDWORD lNumIdx = 0; lNumIdx < 13; lNumIdx++) {
-                        sqNextVal = addMod(sqNextVal,
-                                            mulMod(veclMods[lNumIdx], s_alDpTbl[(lNumIdx + lTblIdx) % 13]));
-                    }
-                    s_alDpTblNext[lTblIdx] = sqNextVal;
-                }
-            }
-            memcpy(s_alDpTbl, s_alDpTblNext, sizeof(s_alDpTbl));
-        }
-
-        sqDigitCur += 3;
-        if (sqNumDigit < sqDigitCur) {
-            break;
-        }
+        kruskal.AddEdge(sqInput_s, sqInput_t, sqInput_w);
     }
 
-    printf("%d\n", s_alDpTbl[5]);
+    /* prim method */
+    SQWORD sqMinCost = kruskal.solve();
 
- 
+    printf("%lld\n", sqMinCost);
     return 0;
 }

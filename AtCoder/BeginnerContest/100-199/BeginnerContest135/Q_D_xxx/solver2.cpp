@@ -220,39 +220,7 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 /*----------------------------------------------*/
 #define MAX_STRING  (100000)
 
-static bool matchDigit3(
-    string ref, 
-    string b)
-{
-    for (SDWORD lIdx = 0; lIdx < 3; lIdx++) {
-        if (ref[lIdx] != '?') {
-            if (ref[lIdx] != b[lIdx]) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-
-static void countMods(
-    string substr, 
-    vector<SDWORD> &veclMods)
-{
-    for (SDWORD lIdx = 0; lIdx < 13; lIdx++) {
-        veclMods[lIdx] = 0;
-    }
-    reverse(substr.begin(), substr.end());
-
-    for (SDWORD lNum = 0; lNum < 1000; lNum ++) {
-        char acRefStr[4];
-        sprintf(acRefStr, "%03d", lNum);
-        if (matchDigit3(substr, acRefStr)) {
-            veclMods[lNum % 13] ++;
-        }
-    }
-}
-
+static SQWORD s_aasqDpTbl[MAX_STRING][13];
 
 int main(void)
 {
@@ -260,55 +228,41 @@ int main(void)
 
     cin >> str;
     SQWORD sqNumDigit = str.size();
-    reverse(str.begin(), str.end());
-    str += string("00000");
 
-    SQWORD sqDigitCur = 0;
-    static SDWORD s_alDpTbl[13];
-    static SDWORD s_alDpTblNext[13];
-    for (SDWORD lDpIdx = 0;; lDpIdx++) {
-        char acSepDigit[4];
-
-        string string3 = str.substr(sqDigitCur, 3);
-        vector<SDWORD> veclMods(13, 0);
-        countMods(string3, veclMods);
-
-        /* update dp */
-        if (0 == lDpIdx) {
-            for (SDWORD lIdx = 0; lIdx < 13; lIdx++) {
-                s_alDpTbl[lIdx] = veclMods[lIdx];
-            }
-        } else {
-            memset(s_alDpTblNext, 0, sizeof(s_alDpTblNext));
-            if (0 == lDpIdx % 2) {
-                for (SDWORD lTblIdx = 0; lTblIdx < 13; lTblIdx++) {
-                    SQWORD sqNextVal = 0;
-                    for (SDWORD lNumIdx = 0; lNumIdx < 13; lNumIdx++) {
-                        sqNextVal = addMod(sqNextVal, 
-                                            mulMod(veclMods[lNumIdx], s_alDpTbl[(13 + lNumIdx - lTblIdx) % 13]));
-                    }
-                    s_alDpTblNext[lTblIdx] = sqNextVal;
-                }
-            } else {
-                for (SDWORD lTblIdx = 0; lTblIdx < 13; lTblIdx++) {
-                    SQWORD sqNextVal = 0;
-                    for (SDWORD lNumIdx = 0; lNumIdx < 13; lNumIdx++) {
-                        sqNextVal = addMod(sqNextVal,
-                                            mulMod(veclMods[lNumIdx], s_alDpTbl[(lNumIdx + lTblIdx) % 13]));
-                    }
-                    s_alDpTblNext[lTblIdx] = sqNextVal;
-                }
-            }
-            memcpy(s_alDpTbl, s_alDpTblNext, sizeof(s_alDpTbl));
-        }
-
-        sqDigitCur += 3;
-        if (sqNumDigit < sqDigitCur) {
-            break;
-        }
+    /*  idx 0 */
+    if ('?' == str[0]) {
+        for (SDWORD lIdx = 0; lIdx <= 9; lIdx++) {
+            s_aasqDpTbl[0][lIdx] = 1;
+        } 
+    } else {
+        s_aasqDpTbl[0][str[0] - '0'] = 1;
     }
 
-    printf("%d\n", s_alDpTbl[5]);
+    /* idx 1- */
+    for (SQWORD sqDigit = 1; sqDigit < sqNumDigit; sqDigit++) {
+        char c = str[sqDigit];
+
+        if ('?' == c) {
+            for (SDWORD lPrevDpIdx = 0; lPrevDpIdx < 13; lPrevDpIdx++) {
+                for (SDWORD lIdx = 0; lIdx <= 9; lIdx++) {
+                    SDWORD lCurDpIdx = (lPrevDpIdx * 10 + lIdx) % 13;
+                    s_aasqDpTbl[sqDigit][lCurDpIdx] 
+                        = addMod(s_aasqDpTbl[sqDigit][lCurDpIdx],
+                                    s_aasqDpTbl[sqDigit - 1][lPrevDpIdx]);
+                }
+            }
+        } else {
+            SDWORD lNum = c - '0';
+            for (SDWORD lPrevDpIdx = 0; lPrevDpIdx < 13; lPrevDpIdx++) {
+                SDWORD lCurDpIdx = (lPrevDpIdx * 10 + lNum) % 13;
+                s_aasqDpTbl[sqDigit][lCurDpIdx] 
+                        = addMod(s_aasqDpTbl[sqDigit][lCurDpIdx],
+                                    s_aasqDpTbl[sqDigit - 1][lPrevDpIdx]);
+            }   
+        }   
+    }
+
+    printf("%lld\n", s_aasqDpTbl[sqNumDigit - 1][5]);
 
  
     return 0;
