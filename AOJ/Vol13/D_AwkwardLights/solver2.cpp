@@ -219,171 +219,202 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-typedef struct {
-    vector<DWORD>   vdwPar;
-    vector<DWORD>   vdwRank;
-    vector<DWORD>   vdwCnt;
-    DWORD   dwSize;
-
-    void initUnionFind(
-        DWORD dwSize)
-    {
-        dwSize = dwSize;
-        vdwPar.resize(dwSize);
-        vdwRank.resize(dwSize);
-        vdwCnt.resize(dwSize);
-    
-        for (DWORD dwIdx = 0; dwIdx < dwSize; dwIdx++) {
-            vdwPar[dwIdx]  = dwIdx;
-            vdwRank[dwIdx] = 0;
-            vdwCnt[dwIdx]  = 1;
-        }
-    }
-
-
-    DWORD ufGetParent(DWORD dwIdx) const
-    {
-        return vdwPar[dwIdx];
-    }
-
-    DWORD ufGetRank(DWORD dwIdx) const
-    {
-        return vdwRank[dwIdx];
-    }
-
-    void ufSetParent(DWORD dwIdx, DWORD dwParent)
-    {
-        vdwPar[dwIdx] = dwParent; 
-        if (ufGetRank(dwIdx) == ufGetRank(dwParent)) {
-            (vdwRank[dwParent])++;
-        }
-    }
-
-    DWORD ufGetRoot(DWORD dwIdx) const
-    {
-        if (ufGetParent(dwIdx) == dwIdx) {
-            return dwIdx;
-        } else {
-            DWORD dwParent = ufGetParent(dwIdx);
-            DWORD dwRoot = ufGetRoot(dwParent);
-            return dwRoot;
-        }
-    }
-
-    void ufUnite(DWORD dwX, DWORD dwY)
-    {
-        DWORD dwRootX = ufGetRoot(dwX);
-        DWORD dwRootY = ufGetRoot(dwY);
-
-        if (dwRootX == dwRootY) {
-            return;
-        }
-
-        if (ufGetRank(dwRootX) < ufGetRank(dwRootY)) {
-            ufSetParent(dwRootX, dwRootY);
-            (vdwCnt[dwRootY]) += (vdwCnt[dwRootX]);
-        } else {
-            ufSetParent(dwRootY, dwRootX);
-            (vdwCnt[dwRootX]) += (vdwCnt[dwRootY]);
-        }
-    }
-
-    bool ufIsSame(DWORD dwX, DWORD dwY) const
-    {
-        return (ufGetRoot(dwX)  == ufGetRoot(dwY));
-    }
-} ST_UNION_FIND;
-
-/* ------------------------------------------------------------- */
-
-
-struct EDGE_ST {
-    SQWORD sqV1;
-    SQWORD sqV2;
-    SQWORD sqCost;
-
-    EDGE_ST(SQWORD v1, SQWORD v2, SQWORD cost) {
-        sqV1 = v1;
-        sqV2 = v2;
-        sqCost = cost;
-    };
-};
-
-bool comp(const EDGE_ST &e1, const EDGE_ST &e2)
-{
-    return e1.sqCost < e2.sqCost;
-}
-
-#define COST_INF        (100100100100100100)
-#define N_MAX_VERTICE   (10000)
-
-class Kruskal {
+class Matrix {
 private:
-    SQWORD  sqNumVertice;
-    SQWORD  sqNumEdge;
-    vector<EDGE_ST> vecEdge;
-    SQWORD  sqIdxMinV;
-    SQWORD  sqIdxMaxV;
+    SQWORD nRows;
+    SQWORD nCols;
+    vector<SQWORD> vecsqVal;
 
+    SQWORD getIdx(SQWORD r, SQWORD c) {
+        return r * nCols + c;
+    }
+    SQWORD op_sub(SQWORD a, SQWORD b) {
+        return (a^b);
+    }
 
 public:
-    Kruskal(SQWORD sqNumV, SQWORD sqNumE, bool bStartWithZero = false)
-    {
-        sqNumVertice = sqNumV;
-        sqNumEdge = sqNumE;
-        if (bStartWithZero) {
-            sqIdxMinV = 0;
-            sqIdxMaxV = sqNumVertice - 1;
-        } else {
-            sqIdxMinV = 1;
-            sqIdxMaxV = sqNumVertice;
+    Matrix(SQWORD r, SQWORD c) : nRows(r), nCols(c) {
+        vecsqVal.resize(r * c);
+    };
+    void setValue(SQWORD r, SQWORD c, SQWORD v) {
+        SQWORD sqIdx = getIdx(r, c);
+        vecsqVal[sqIdx] = v;
+    };
+    SQWORD getValue(SQWORD r, SQWORD c) {
+        SQWORD sqIdx = getIdx(r, c);
+        return vecsqVal[sqIdx];
+    }
+    SQWORD getRowNum(void) {return nRows;};
+    SQWORD getColNum(void) {return nCols;};
+    void swapRows(SQWORD r1, SQWORD r2) {
+        for (SQWORD sqColIdx = 0; sqColIdx < nCols; sqColIdx++) {
+            SQWORD sqIdx1 = getIdx(r1, sqColIdx);
+            SQWORD sqIdx2 = getIdx(r2, sqColIdx);
+            swap(vecsqVal[sqIdx1], vecsqVal[sqIdx2]);
         }
     }
-
-    void AddEdge(SQWORD sqV1, SQWORD sqV2, SQWORD sqCost) {
-        vecEdge.emplace_back(sqV1, sqV2, sqCost);
+    void diffRows(SQWORD r1, SQWORD r2) {
+        for (SQWORD sqColIdx = 0; sqColIdx < nCols; sqColIdx++) {
+            SQWORD sqIdx1 = getIdx(r1, sqColIdx);
+            SQWORD sqIdx2 = getIdx(r2, sqColIdx);
+            vecsqVal[sqIdx1] = op_sub(vecsqVal[sqIdx1], vecsqVal[sqIdx2]);
+        }
+    }
+    void print(void) 
+    {  
+        printf("---!\n");
+        for (SQWORD sqRowIdx = 0; sqRowIdx < nRows; sqRowIdx++) {
+            for (SQWORD sqColIdx = 0; sqColIdx < nCols; sqColIdx++) {
+                SQWORD sqIdx = getIdx(sqRowIdx, sqColIdx);
+                printf("%d ", vecsqVal[sqIdx]);
+            }
+            printf("\n");
+        }
+        printf("---!\n");
     }
 
-    SQWORD solve(void)
-    {
-        ST_UNION_FIND Uf;
-        Uf.initUnionFind(sqIdxMaxV + 1);
-
-        sort(vecEdge.begin(), vecEdge.end(), comp);
-
-        SQWORD sqCost = 0;
-
-        for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqNumEdge; sqEdgeIdx++) {
-            EDGE_ST e = vecEdge[sqEdgeIdx];
-            if (!Uf.ufIsSame(e.sqV1, e.sqV2)) {
-                Uf.ufUnite(e.sqV1, e.sqV2);
-//                printf("%lld %lld\n", e.sqV1, e.sqV2);
-                sqCost += e.sqCost;
+    bool solve1DEquation(SQWORD& sqRank) {
+        sqRank = 0;
+        for (SQWORD sqColIdx = 0; sqColIdx < nCols - 1; sqColIdx++) {
+            bool bPivot = true;
+            if (0 == getValue(sqRank, sqColIdx)) {
+                /* search non zero pivot  ->  swap rows */
+                SQWORD sqSearchRow = sqRank + 1;
+                for (; sqSearchRow < nRows; sqSearchRow++) {
+                    if (0 != getValue(sqSearchRow, sqColIdx)) {
+                        break;
+                    }
+                }
+                if (sqSearchRow == nRows) {
+                    /* All Zero */
+                    bPivot = false;
+                } else {
+                    swapRows(sqRank, sqSearchRow);
+                }
+            }
+            /* pivot */
+            if (bPivot) {
+                for (SQWORD sqTargetRow = 0; sqTargetRow < nRows; sqTargetRow++) {
+                    if (sqTargetRow != sqRank) {
+                        if (1 == getValue(sqTargetRow, sqColIdx)) {
+                            diffRows(sqTargetRow, sqRank);
+                        }
+                    }
+                }
+                sqRank++;
             }
         }
-        return sqCost;
+        return true;
     }
 };
 
+#define     N_MAX_ROW   (25)
+#define     N_MAX_COL   (25)
+#define     N_MAX_DIM   (N_MAX_ROW * N_MAX_COL)
+#define     N_MAX_EQ_ROWS   (N_MAX_DIM)
+#define     N_MAX_EQ_COLS   (N_MAX_DIM + 1)
+
+static SQWORD getEqCoeffIdx(
+    SQWORD sqRowIdx,
+    SQWORD sqColIdx,
+    SQWORD sqNrows,
+    SQWORD sqNcols)
+{
+    return sqRowIdx * sqNcols + sqColIdx;
+}
+
+static bool isInrange(
+    SQWORD sqRowIdx,
+    SQWORD sqColIdx,
+    SQWORD sqNrows,
+    SQWORD sqNcols)
+{
+    return (((0 <= sqRowIdx) && (sqRowIdx < sqNrows))
+            && ((0 <= sqColIdx) && (sqColIdx < sqNcols)));
+}
+
+static void configureCoeffs(
+    Matrix &Ary,
+    SQWORD sqNrows,
+    SQWORD sqNcols,
+    SQWORD sqDist) 
+{
+    for (SQWORD sqRowIdx = 0; sqRowIdx < sqNrows; sqRowIdx++) {
+        for (SQWORD sqColIdx = 0; sqColIdx < sqNcols; sqColIdx++) {
+            SQWORD sqEqIdx = getEqCoeffIdx(sqRowIdx, sqColIdx, sqNrows, sqNcols);
+            for (SQWORD sqFlipRowIdx = sqRowIdx - sqDist; sqFlipRowIdx <= sqRowIdx + sqDist; sqFlipRowIdx++) {
+                SQWORD sqFlipCol1Idx = sqColIdx + (sqDist - abs(sqRowIdx - sqFlipRowIdx));
+                SQWORD sqFlipCol2Idx = sqColIdx - (sqDist - abs(sqRowIdx - sqFlipRowIdx));
+
+                if (isInrange(sqFlipRowIdx, sqFlipCol1Idx, sqNrows, sqNcols)) {
+                    SQWORD sqCoeffIdx = getEqCoeffIdx(sqFlipRowIdx, sqFlipCol1Idx, sqNrows, sqNcols);
+                    Ary.setValue(sqEqIdx, sqCoeffIdx, 1);
+                }
+                if (isInrange(sqFlipRowIdx, sqFlipCol2Idx, sqNrows, sqNcols)) {
+                    SQWORD sqCoeffIdx = getEqCoeffIdx(sqFlipRowIdx, sqFlipCol2Idx, sqNrows, sqNcols);
+                    Ary.setValue(sqEqIdx, sqCoeffIdx, 1);
+                }
+            }
+            /* 対角成分 */
+            Ary.setValue(sqEqIdx, sqEqIdx, 1);
+        }
+    }
+}
+
+bool solve(void)
+{
+    SQWORD sqInput_M = inputSQWORD();
+    SQWORD sqInput_N = inputSQWORD();
+
+    SQWORD sqDim = sqInput_M * sqInput_N;
+
+    SQWORD sqInput_D = inputSQWORD();
+
+    if ((0 == sqInput_M) && (0 == sqInput_M) && (0 == sqInput_D)) {
+        return false;
+    }
+
+    /* Coeff & ans */
+    Matrix matEq(sqDim, sqDim+1);
+
+    /* Configure A */
+    configureCoeffs(matEq, sqInput_N, sqInput_M, sqInput_D);
+
+    /* input b */
+    for (SQWORD sqRowIdx = 0; sqRowIdx < sqInput_N; sqRowIdx++) {
+        for (SQWORD sqColIdx = 0; sqColIdx < sqInput_M; sqColIdx++) {
+            SQWORD sqInput_S = inputSQWORD();
+            SQWORD sqEqIdx = getEqCoeffIdx(sqRowIdx, sqColIdx, sqInput_N, sqInput_M);
+            matEq.setValue(sqEqIdx, sqDim, sqInput_S);
+        }
+    }
+
+    /* solve */
+    SQWORD sqRank;
+    matEq.solve1DEquation(sqRank);
+
+    bool bAnsExist = true;
+    for (SQWORD sqIdx = sqRank; sqIdx < sqDim; sqIdx++) {
+        if (0 < matEq.getValue(sqIdx, sqDim)) {
+            bAnsExist = false;
+        }
+    }
+
+    if (bAnsExist) {
+        printf("1\n");
+    } else {
+        printf("0\n");
+    }
+    return true;
+}
 
 int main(void)
 {
-    SQWORD sqInput_V = inputSQWORD();
-    SQWORD sqInput_E = inputSQWORD();
-
-    Kruskal kruskal(sqInput_V, sqInput_E, true);
-
-    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqInput_E; sqEdgeIdx++) {
-        SQWORD sqInput_s = inputSQWORD();
-        SQWORD sqInput_t = inputSQWORD();
-        SQWORD sqInput_w = inputSQWORD();
-
-        kruskal.AddEdge(sqInput_s, sqInput_t, sqInput_w);
+    while(1) {
+        if (!solve()) {
+            break;
+        }
     }
 
-    /* prim method */
-    SQWORD sqMinCost = kruskal.solve();
-
-    printf("%lld\n", sqMinCost);
     return 0;
 }
