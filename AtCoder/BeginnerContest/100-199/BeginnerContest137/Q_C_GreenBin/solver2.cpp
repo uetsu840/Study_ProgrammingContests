@@ -219,8 +219,36 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
+#define STRING_LEN  (10)
+
+static unordered_map<string, SQWORD> s_mapCnt;
+
+void registString(string s)
+{
+    sort(s.begin(), s.end());
+
+    s_mapCnt[s]++;
+}
+
 int main(void)
 {
+    SQWORD sqN = inputSQWORD();
 
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        string s;
+        cin >> s;
+
+        registString(s);
+    }
+
+    SQWORD sqAns = 0;
+    for (auto str: s_mapCnt) {
+//        printf("%lld\n", str.second);
+        sqAns += ((SQWORD)str.second * (SQWORD)(str.second - 1)) / 2;
+    }
+
+    printf("%lld\n", sqAns);
+
+    
     return 0;
 }

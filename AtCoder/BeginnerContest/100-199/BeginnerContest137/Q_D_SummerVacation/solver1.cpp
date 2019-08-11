@@ -218,8 +218,40 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
+#define MAX_DAYS    (100000)
 int main(void)
 {
+    SQWORD sqN = inputSQWORD();
+    SQWORD sqM = inputSQWORD();
 
+    static vector<SQWORD> s_vecAlb[MAX_DAYS + 1];
+
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqA = inputSQWORD();
+        SQWORD sqB = inputSQWORD();
+
+        s_vecAlb[sqA].emplace_back(sqB);
+    }
+
+    for (SDWORD lDays = 0; lDays <= MAX_DAYS; lDays++) {
+        sort(s_vecAlb[lDays].begin(), s_vecAlb[lDays].end(), greater<SQWORD>());
+    }
+
+    /* 実行可能なアルバイトをキューに詰めながら先頭から取り出す */
+    priority_queue<SQWORD> pq;
+    SQWORD sqAns = 0;
+    for (SDWORD lDays = 1; lDays <= sqM; lDays++) {
+        for (auto sqPay: s_vecAlb[lDays]) {
+            pq.push(sqPay);
+        }
+        if (!(pq.empty())) {
+            SQWORD sqPay = pq.top();
+            pq.pop();
+
+            sqAns += sqPay;
+        }
+    }
+    printf("%lld\n", sqAns);
+    
     return 0;
 }

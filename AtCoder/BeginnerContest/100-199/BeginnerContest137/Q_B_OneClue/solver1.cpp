@@ -218,7 +218,22 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
+#define POS_MIN ()
+
 int main(void)
 {
+    const SQWORD sqPosMin = (SQWORD)(-1000000);
+    const SQWORD sqPosMax = (SQWORD)(1000000);
+    SQWORD sqK = inputSQWORD();
+    SQWORD sqX = inputSQWORD();
+
+    SQWORD sqMin = max(sqPosMin, (sqX - sqK + 1));
+    SQWORD sqMax = min(sqPosMax, (sqX + sqK - 1));
+
+    for (SQWORD sqIdx = sqMin; sqIdx <=sqMax; sqIdx++) {
+        printf("%lld ", sqIdx);
+    }
+    printf("\n");
+
     return 0;
 }

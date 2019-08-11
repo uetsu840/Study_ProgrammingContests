@@ -47,25 +47,13 @@ using FLOAT  = float;
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
 static inline DOUBLE MAX(DOUBLE a, DOUBLE b) { return a > b ? a : b; }
-static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
-
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
-static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
-
-static inline SQWORD MAX(SQWORD a, SQWORD b) { return a > b ? a : b; }
-static inline SQWORD MIN(SQWORD a, SQWORD b) { return a < b ? a : b; }
-
 static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
-static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
-
 static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
+static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
+static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
+static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
-
-static inline DOUBLE ABS(DOUBLE a) { return 0 < a ? a : -a; }
-static inline bool DoubleIsZero(const DOUBLE &a)
-{
-    return ABS(a) < DOUBLE_EPS;
-}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -231,8 +219,165 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
+/**
+*   ベルマンフォード法
+*/
+struct Edge {
+    SQWORD to;   // 辺の接続先頂点,
+    SQWORD cost;   //辺の重み
+    Edge(SQWORD to, SQWORD cost) : to(to), cost(cost) {}  // コンストラクタ
+};
+
+typedef vector<vector<Edge> > AdjList;  // 隣接リストの型
+
+class BellmanFordGraph {
+    const SQWORD UNDEF = (SQWORD)(-100100100100100100);
+    const SQWORD INF = (SQWORD)(100100100100100100);
+
+    SQWORD sqNodeNum;
+    AdjList graph;                  /* グラフの辺を格納した構造体
+                                      graph[v][i]は頂点vから出るi番目の辺Edge */ 
+    vector<SQWORD> score;
+    vector<vector<SQWORD>> vvsqAdjFwd;
+    vector<vector<SQWORD>> vvsqAdjRev;
+    vector<bool> vecbPassFwd;
+    vector<bool> vecbPassRev;
+    vector<bool> vecbOnPath;
+
+private:
+    inline void dfs_exec(
+        SQWORD sqNode, 
+        vector<bool> &vPass, 
+        const vector<vector<SQWORD>> sqAdj,
+        void (BellmanFordGraph::*pFunc)(SQWORD))
+    {
+        if (vPass[sqNode]) {
+            return;
+        }
+        vPass[sqNode] = true;
+        for (auto next: sqAdj[sqNode]) {
+            (this->*pFunc)(next);
+        }
+    }
+
+    void dfs(SQWORD sqNode)
+    {
+        dfs_exec(sqNode, vecbPassFwd, vvsqAdjFwd, &BellmanFordGraph::dfs);
+    }
+
+    void rdfs(SQWORD sqNode)
+    {
+        dfs_exec(sqNode, vecbPassRev, vvsqAdjRev, &BellmanFordGraph::rdfs);
+    }
+
+public:
+    BellmanFordGraph(SQWORD sqN) 
+    {
+        sqNodeNum = sqN;
+        graph.resize(sqN);
+        score.resize(sqN, UNDEF);
+        vvsqAdjFwd.resize(sqN);
+        vvsqAdjRev.resize(sqN);
+        vecbPassFwd.resize(sqN, false);
+        vecbPassRev.resize(sqN, false);
+        vecbOnPath.resize(sqN, true);
+    };
+
+    void AddEdge(SQWORD sqFrom, SQWORD sqTo, SQWORD sqCost) 
+    {
+        graph[sqFrom].push_back(Edge(sqTo, sqCost));
+        vvsqAdjFwd[sqFrom].push_back(sqTo);
+        vvsqAdjRev[sqTo].push_back(sqFrom);
+    };
+
+    /**
+    *   有向グラフで開始点-終了点の間で通過不可能なノードを探す
+    *       (呼ばなければ全ノードを探索パスとする)
+    */
+    void searchUnpassableNode(
+        SQWORD sqStart,             /* 開始頂点 */
+        SQWORD sqGoal)              /* 到達頂点(閉路検出で使う) */
+    {
+        /* スタート・ゴールからそれぞれ到達可能なノードを探す */
+        dfs(sqStart);
+        rdfs(sqGoal);
+
+        for (SQWORD sqNodeIdx = 0; sqNodeIdx < sqNodeNum; sqNodeIdx++) {
+            vecbOnPath[sqNodeIdx] = vecbPassFwd[sqNodeIdx] && vecbPassRev[sqNodeIdx];
+        }
+    };
+
+private:
+    void updateBellmanFord(SQWORD sqV, bool &bUpdate)
+    {
+        if (!vecbOnPath[sqV]) {
+            return;
+        }
+        for (auto e: graph[sqV]) {
+            if ((score[sqV] != UNDEF) 
+                && (score[e.to] < score[sqV] + e.cost)) {
+                score[e.to] = score[sqV] + e.cost;
+                bUpdate = true;
+            }
+        }
+    };
+
+public:
+
+    /**
+    *   ベルマンフォード法
+    *       ・辺に価値がある変形版
+    *       ・戻り値が false なら正の閉路を含む
+    */
+    bool bellman_ford(
+        SQWORD sqStart,             /* 開始頂点 */
+        SQWORD sqGoal)              /* 到達頂点(閉路検出で使う) */
+    { 
+        fill(score.begin(), score.end(), UNDEF);
+        score[sqStart] = 0;         /* 開始点のスコアは0 */
+
+        bool bErr;
+        for (SQWORD i = 0; i <= sqNodeNum; i++) {
+            bool bUpdate = false;
+            for (int v = 0; v < sqNodeNum; v++) {
+                updateBellmanFord(v, bUpdate);
+            }
+            if ((sqNodeNum - 1 < i) && bUpdate) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    SQWORD GetScore(SQWORD sqNode) 
+    {
+        return score.at(sqNode);
+    }
+};
+
+
 int main(void)
 {
+    SQWORD sqN = inputSQWORD();
+    SQWORD sqM = inputSQWORD();
+    SQWORD sqP = inputSQWORD();
+
+    BellmanFordGraph graph(sqN + 1);
+
+    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
+        SQWORD sqA = inputSQWORD();
+        SQWORD sqB = inputSQWORD();
+        SQWORD sqC = inputSQWORD();
+
+        graph.AddEdge(sqA, sqB, sqC - sqP);
+    }
+    
+    graph.searchUnpassableNode(1, sqN);
+    if (graph.bellman_ford(1, sqN)) {
+        printf("%lld\n", max((SQWORD)0, graph.GetScore(sqN)));
+    } else {
+        printf("-1\n");
+    }
 
     return 0;
 }

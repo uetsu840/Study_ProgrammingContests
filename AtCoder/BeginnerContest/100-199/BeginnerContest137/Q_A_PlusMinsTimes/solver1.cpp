@@ -47,13 +47,25 @@ using FLOAT  = float;
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
 static inline DOUBLE MAX(DOUBLE a, DOUBLE b) { return a > b ? a : b; }
-static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
-static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
-static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
 static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
+
+static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
+
+static inline SQWORD MAX(SQWORD a, SQWORD b) { return a > b ? a : b; }
+static inline SQWORD MIN(SQWORD a, SQWORD b) { return a < b ? a : b; }
+
+static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
+
+static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+
+static inline DOUBLE ABS(DOUBLE a) { return 0 < a ? a : -a; }
+static inline bool DoubleIsZero(const DOUBLE &a)
+{
+    return ABS(a) < DOUBLE_EPS;
+}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -221,5 +233,10 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 int main(void)
 {
+    SQWORD sqA = inputSQWORD();
+    SQWORD sqB = inputSQWORD();
+
+    printf("%lld\n", max(sqA + sqB, max(sqA - sqB, sqA * sqB)));
+
     return 0;
 }
