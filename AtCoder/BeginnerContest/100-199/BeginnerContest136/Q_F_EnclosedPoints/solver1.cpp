@@ -174,228 +174,282 @@ static inline DOUBLE inputFP(void)
 /**
  *  mod による操作ライブラリ
  */
-
-#define ANS_MOD (1000000007LL)
- 
-static SQWORD addMod(SQWORD x, SQWORD y)
-{ 
-    return (x + y) % ANS_MOD;
-}
- 
-static SQWORD subMod(SQWORD x, SQWORD y)
-{
-    return (x - y + ANS_MOD) % ANS_MOD;
-}
- 
-static SQWORD mulMod(SQWORD x, SQWORD y) 
-{
-    return (x * y) % ANS_MOD;
-}
- 
-static SQWORD powMod(SQWORD x, SQWORD e) {
-    SQWORD v = 1;
-    for (; e; x = mulMod(x, x), e >>= 1) {
-        if (e & 1) {
-            v = mulMod(v, x);
-        }
+#define ANS_MOD (998244353LL)
+const SQWORD mod = ANS_MOD;
+struct mint {
+    SQWORD x;
+    mint(SQWORD x=0) : x((x % mod + mod) % mod) {}
+    mint& operator+=(const mint a) {
+        if ((x += a.x) >= mod) x -= mod;
+        return *this;
     }
-    return v;
-}
- 
-static SQWORD divMod(SQWORD x, SQWORD y)
-{
-    return mulMod(x, powMod(y, ANS_MOD - 2));
-}
- 
- 
-static SQWORD combMod(SQWORD n, SQWORD k)
-{
-    SQWORD v=1;
-    for(SQWORD i=1; i<=k; i++) {
-        v = divMod(mulMod(v, n-i+1),i);
-    } 
-    return v;
-}
-
-/**
- * KMP法 
- */
-class KMP {
-public:
-    vector<SDWORD> makeTable(const string& s) {
-        SDWORD n = s.size();
-        vector<SDWORD> ret(n+1);
-        ret[0] = -1;
-        SDWORD j = -1;
-        for (SDWORD i = 0; i < n; i++) {
-            while ((0 <= j) && (s[i] != s[j])) {
-                j = ret[j];
-            } 
-            j++;
-            ret[i+1] = j;
+    mint& operator-= (const mint a) {
+        x += (mod - a.x);
+        if (x >= mod) {
+            x -= mod;
         }
-        return ret;
+        return *this;
+    }
+    mint& operator*= (const mint a) {
+        (x *= a.x);
+        x %= mod;
+        return *this;
+    }
+    mint operator+ (const mint a) const {
+        mint res(*this);
+        return (res+=a);
+    }
+    mint operator-(const mint a) const {
+        mint res(*this);
+        return (res-=a);
+    }
+    mint operator*(const mint a) const {
+        mint res(*this);
+        return (res*=a);
+    }
+    mint pow(SQWORD t) const {
+        if (0 == t) {
+            return 1;
+        }
+        mint a = pow(t>>1);
+        a *= a;
+        if (t & 1) {
+            a *= *this;
+        }
+        return a;
     }
 
-    /**
-     *  str の中に word とマッチする場所のリストを返す
-     * ret のそれぞれの要素 el は, 「str[el] からの文字列が word と一致する」ことを示す
-     */
-    vector<SDWORD> wordSearch(const string& str, const string& word) {
-        vector<SDWORD> table = makeTable(word), ret;
-
-        SDWORD m = 0;
-        SDWORD i = 0;
-        SDWORD n = str.size();
-        while (m + i < n) {
-            if (word[i] == str[m+i]) {
-                i++;
-                if (i == (SDWORD)(word.size())) {
-                    ret.push_back(m);
-                    m = m+i-table[i];
-                    i = table[i];
-                }
-            } else {
-                m = m + i - table[i];
-                if (i > 0) {
-                    i = table[i];
-                } 
-            }
-        }
-        return ret;
+    // for prime mod
+    mint inv() const {
+        return pow(mod-2);
+    }
+    mint& operator/=(const mint a) {
+        return (*this) *= a.inv();
+    }
+    mint operator/(const mint a) const {
+        mint res(*this);
+        return res/=a;
     }
 };
 
 /*----------------------------------------------*/
 
-typedef struct {
-    vector<DWORD>   vdwPar;
-    vector<DWORD>   vdwRank;
-    vector<DWORD>   vdwCnt;
-    DWORD   dwSize;
+/**
+ *  BIT
+ *      引数のインデックスは 0 ～ N-1、
+ *      内部のインデックスは 1 ～ N であることに注意する。
+ * 
+ */
+struct BinaryIndexedTree {
+    SDWORD lBitN;
+    vector<SQWORD> vecsqBitN; 
 
-    void initUnionFind(
-        DWORD dwSize)
+    BinaryIndexedTree(SDWORD lNum)
     {
-        dwSize = dwSize;
-        vdwPar.resize(dwSize);
-        vdwRank.resize(dwSize);
-        vdwCnt.resize(dwSize);
-    
-        for (DWORD dwIdx = 0; dwIdx < dwSize; dwIdx++) {
-            vdwPar[dwIdx]  = dwIdx;
-            vdwRank[dwIdx] = 0;
-            vdwCnt[dwIdx]  = 1;
+        lBitN = lNum + 1;
+        vecsqBitN.resize(lBitN + 1);
+        for (DWORD dwIdx = 0; dwIdx < vecsqBitN.size(); dwIdx++) {
+            vecsqBitN[dwIdx] = 0;
         }
     }
 
-    DWORD ufGetCnt(DWORD sqIdx) {
-        return vdwCnt[ufGetParent(sqIdx)];
+    SQWORD Sum(const SDWORD lIdx)
+    {
+        if (lIdx < 1) {
+            return 0;
+        }
+
+        SDWORD lCur = lIdx;
+        SQWORD sqSum = 0;
+        while (0 < lCur) {
+            sqSum += vecsqBitN[lCur];
+            lCur -= (lCur & (-lCur));     /* 最後の1ビット */
+        }
+        return sqSum;
     }
 
-
-    DWORD ufGetParent(DWORD dwIdx) const
+    void Add(SDWORD lIdx, SQWORD sqX)
     {
-        return vdwPar[dwIdx];
-    }
-
-    DWORD ufGetRank(DWORD dwIdx) const
-    {
-        return vdwRank[dwIdx];
-    }
-
-    void ufSetParent(DWORD dwIdx, DWORD dwParent)
-    {
-        vdwPar[dwIdx] = dwParent; 
-        if (ufGetRank(dwIdx) == ufGetRank(dwParent)) {
-            (vdwRank[dwParent])++;
+        while (lIdx <= lBitN) {
+            vecsqBitN[lIdx] += sqX;
+            lIdx += (lIdx & (-lIdx));
         }
     }
 
-    DWORD ufGetRoot(DWORD dwIdx) const
+    SDWORD binSearchExec(SQWORD sum, bool bIsUb) 
     {
-        if (ufGetParent(dwIdx) == dwIdx) {
-            return dwIdx;
-        } else {
-            DWORD dwParent = ufGetParent(dwIdx);
-            DWORD dwRoot = ufGetRoot(dwParent);
-            return dwRoot;
+        SQWORD sqLb = 0;
+        SQWORD sqUb = lBitN;
+
+        while (1LL < sqUb - sqLb) {
+            SQWORD sqMid = (sqUb + sqLb) / 2LL;
+            bool bJudge;
+            if (bIsUb) {
+                bJudge = (sum < Sum(sqMid));
+            } else {
+                bJudge = (sum <= Sum(sqMid));
+            }
+
+            if (bJudge) {
+                sqUb = sqMid;
+            } else {
+                sqLb = sqMid;
+            }
         }
+        return sqUb;
     }
 
-    bool ufUnite(DWORD dwX, DWORD dwY)
+
+    /**
+    *  累積和が指定した数より大きくなるインデックスを求める。 
+    *  (最小より小さい、最大より大きいとうまく動かないかも…)
+    */
+    SDWORD findSumUpperBound(SQWORD sum) 
     {
-        DWORD dwRootX = ufGetRoot(dwX);
-        DWORD dwRootY = ufGetRoot(dwY);
-
-        if (dwRootX == dwRootY) {
-            return false;
-        }
-
-        if (ufGetRank(dwRootX) < ufGetRank(dwRootY)) {
-            ufSetParent(dwRootX, dwRootY);
-            (vdwCnt[dwRootY]) += (vdwCnt[dwRootX]);
-        } else {
-            ufSetParent(dwRootY, dwRootX);
-            (vdwCnt[dwRootX]) += (vdwCnt[dwRootY]);
-        }
-
-        return true;
+        return binSearchExec(sum, true);
     }
 
-    bool ufIsSame(DWORD dwX, DWORD dwY) const
+    /**
+    *  累積和が指定した数以上になるインデックスを求める。 
+    *  (最小より小さい、最大より大きいとうまく動かないかも…)
+    */
+    SDWORD findSumLowerBound(SQWORD sum) 
     {
-        return (ufGetRoot(dwX)  == ufGetRoot(dwY));
+        return binSearchExec(sum, false);
     }
-} ST_UNION_FIND;
+
+    SDWORD End() {
+        return lBitN;
+    }
+};
 
 /*----------------------------------------------*/
 
+struct POINT {
+    SQWORD sqX;
+    SQWORD sqY;
+    SQWORD sqIdx;
+
+    POINT (SQWORD x, SQWORD y, SQWORD i) : sqX(x), sqY(y), sqIdx(i) {};
+};
+
+bool isLessPntX(const POINT a, const POINT b)
+{
+    return a.sqX < b.sqX;
+}
+
+bool isLessPntY(const POINT a, const POINT b)
+{
+    return a.sqY < b.sqY;
+}
+enum QUADRANT_TYPE {
+    QUAD_FIRST,
+    QUAD_SECOND,
+    QUAD_THIRD,
+    QUAD_FORTH,
+    QUAD_NUM
+};
+
+#define MAX_PNTS    (200000)
+static SQWORD s_aasqPntCnt[MAX_PNTS][QUAD_NUM];
+
+static SQWORD calcSinglePoint(
+    SQWORD sqFirst,
+    SQWORD sqSecond,
+    SQWORD sqThird,
+    SQWORD sqForth)
+{
+    mint ans1 = (mint(2).pow(sqFirst)  - 1);
+    mint ans2 = (mint(2).pow(sqSecond) - 1);
+    mint ans3 = (mint(2).pow(sqThird)  - 1);
+    mint ans4 = (mint(2).pow(sqForth)  - 1);
+    mint ans;
+
+    ans = mint(1)  
+            + ans1 
+            + ans2
+            + ans3
+            + ans4
+            + ans1 * ans2
+            + ans1 * ans3 * mint(2)
+            + ans1 * ans4
+            + ans2 * ans3
+            + ans2 * ans4 * mint(2)
+            + ans3 * ans4
+            + ans1 * ans2 * ans3 * mint(2)
+            + ans1 * ans2 * ans4 * mint(2)
+            + ans1 * ans3 * ans4 * mint(2)
+            + ans2 * ans3 * ans4 * mint(2)
+            + ans1 * ans2 * ans3 * ans4 * mint(2); 
+//    printf("%lld %lld %lld %lld:: %d\n", sqFirst, sqSecond, sqThird, sqForth, ans.x);
+
+    return (SQWORD)(ans.x);
+}
+
 int main(void)
 {
-    KMP stringSearch;
+    SQWORD sqInput_N = inputSQWORD();
+    vector<POINT> vPnts;
 
-    string str_s, str_t;
+    /* 入力 */
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD sqX = inputSQWORD();
+        SQWORD sqY = inputSQWORD();
 
-    cin >> str_s;
-    cin >> str_t;
-
-    SQWORD sqSLen = str_s.size();
-    SQWORD sqTLen = str_t.size();
-
-    string str_s_plus = str_s + str_s + str_s;  /* 最低3個は繰り返す */
-    while (str_s_plus.size() < str_t.size() * 2) {
-        str_s_plus += str_s;
+        vPnts.emplace_back(sqX, sqY, sqIdx);
+    }
+    /* 座標圧縮とソート */
+    sort(vPnts.begin(), vPnts.end(), isLessPntY);
+    for (SQWORD sqOrder = 1; sqOrder <= sqInput_N; sqOrder++) {
+        vPnts[sqOrder - 1].sqY = sqOrder;
+    }
+    sort(vPnts.begin(), vPnts.end(), isLessPntX);
+    for (SQWORD sqOrder = 1; sqOrder <= sqInput_N; sqOrder++) {
+        vPnts[sqOrder - 1].sqX = sqOrder;
     }
 
-    vector<SDWORD> vecMatchPos = stringSearch.wordSearch(str_s_plus, str_t);
+    /* X座標を昇順、Y座標をカウントしながら第2象限、第3象限を分ける */
+    {
+        BinaryIndexedTree bit_r(sqInput_N);
+        SQWORD sqPntCnt = 0;
+        for (auto it = vPnts.begin(); it != vPnts.end(); ++it) {
+            SQWORD sq3rdQuadCnt = bit_r.Sum(it->sqY);
+            SQWORD sq2ndQuadCnt = sqPntCnt - sq3rdQuadCnt;
 
-    ST_UNION_FIND Uf;
-    Uf.initUnionFind(sqSLen);
-    
-    bool bIsForever = false;
-    for (auto pos: vecMatchPos) {
-        if (pos < str_s.size()) {
-            bool bFound = std::binary_search(vecMatchPos.begin(), vecMatchPos.end(), (pos + sqTLen) % sqSLen);
-            if (bFound) {
-                if (!Uf.ufUnite(pos, (pos + sqTLen) % sqSLen)) {
-                    bIsForever = true;
-                    break;
-                }
-            }
+            s_aasqPntCnt[it->sqIdx][QUAD_SECOND] = sq2ndQuadCnt;
+            s_aasqPntCnt[it->sqIdx][QUAD_THIRD]  = sq3rdQuadCnt;
+
+            bit_r.Add(it->sqY, 1);
+            sqPntCnt++;
         }
     }
-    if (bIsForever) {
-        printf("-1\n");
-    } else {
-        SQWORD sqSizeMax = 0;
-        for (SDWORD lIdx = 0; lIdx < sqSLen; lIdx++) {
-            if (std::binary_search(vecMatchPos.begin(), vecMatchPos.end(), lIdx)) {
-                sqSizeMax = max(sqSizeMax, (SQWORD)Uf.ufGetCnt(lIdx));
-            }
+
+    /* X座標を降順、Y座標をカウントしながら第2象限、第3象限を分ける */
+    {
+        BinaryIndexedTree bit_l(sqInput_N);
+        SQWORD sqPntCnt = 0;
+        for (auto it = vPnts.rbegin(); it != vPnts.rend(); ++it) {
+            SQWORD sq4thQuadCnt = bit_l.Sum(it->sqY);
+            SQWORD sq1stQuadCnt = sqPntCnt - sq4thQuadCnt;
+
+            s_aasqPntCnt[it->sqIdx][QUAD_FIRST] = sq1stQuadCnt;
+            s_aasqPntCnt[it->sqIdx][QUAD_FORTH] = sq4thQuadCnt;
+
+            bit_l.Add(it->sqY, 1);
+            sqPntCnt++;
         }
-        printf("%lld\n", sqSizeMax);
     }
+
+    mint ans = 0;
+    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+        SQWORD *psqSingle = s_aasqPntCnt[sqIdx];
+        ans += mint(calcSinglePoint(psqSingle[QUAD_FIRST],
+                                     psqSingle[QUAD_SECOND],
+                                     psqSingle[QUAD_THIRD],
+                                     psqSingle[QUAD_FORTH]));
+    }
+
+    printf("%lld\n", ans.x);
 
     return 0;
 }

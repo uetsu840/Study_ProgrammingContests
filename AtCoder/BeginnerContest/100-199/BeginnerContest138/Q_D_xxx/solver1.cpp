@@ -218,138 +218,40 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
-
-static bool isDividable(
-    const vector<SQWORD>& vecsqNums, 
-    SQWORD sqDiffMax,
-    SQWORD sqTest) 
-{
-    SQWORD sqN = vecsqNums.size();
-
-    vector<SQWORD> vsqDiffs;
-    
-    for (auto testnum: vecsqNums) {
-        SQWORD sqDiffAbs = min((testnum % sqTest), sqTest - (testnum % sqTest));
-        vsqDiffs.emplace_back(testnum % sqTest);
-    }
-    sort(vsqDiffs.begin(), vsqDiffs.end());
-
-    SQWORD sqDiffSum = accumulate(vsqDiffs.begin(), vsqDiffs.end(), 0);
-
-    if (0 != (sqDiffSum % sqTest)) {
-        return false;
-    }
-
-    SQWORD sqModSum = 0;
-    SQWORD sqLowClipNum = sqN - (sqDiffSum / sqTest);
-
-//    printf("test %lld sum %lld low clip %d\n", sqTest, sqDiffSum, sqLowClipNum);
-
-    for (SQWORD sqIdx = 0; sqIdx < sqLowClipNum; sqIdx++) {
-        sqModSum += vsqDiffs[sqIdx];
-    }
-    for (SQWORD sqIdx = sqLowClipNum; sqIdx < sqN; sqIdx++) {
-        sqModSum += (sqTest - vsqDiffs[sqIdx]);
-    }
-
-//    printf("test %lld diff %lld max %lld\n", sqTest, sqModSum, sqDiffMax);
-
-    if (sqDiffMax < sqModSum) {
-        return false;
-    }
-    return true;
-}
-
-/**
-*   素因数分解
-*/
-static void calcPrimeFactorication(
-    SQWORD sqNum, vector<pair<SQWORD, SQWORD>> &vlPrimes)
-{
-    if (1 == sqNum) {
-        return;
-    }
-
-    SQWORD sqCur = sqNum;
-    SQWORD sqUpper = sqrt(sqNum) + 1;
-    for (SQWORD sqDiv = 2; sqDiv <= sqUpper; sqDiv++) {
-        SDWORD lPowerCnt = 0;
-        while(0 == sqCur % sqDiv) {
-            sqCur /= sqDiv;
-            lPowerCnt++;
-        }
-        if (0 < lPowerCnt) {
-            vlPrimes.emplace_back(make_pair(sqDiv, lPowerCnt));
-        }
-        if (1 == sqCur) {
-            break;
-        }
-    }
-    if (1 < sqCur) {
-        vlPrimes.emplace_back(make_pair(sqCur, 1));
-    }
-}
-
-
-/**
-*   約数をすべて挙げる
-*/
-static void listupDivisorsOne(
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes, 
-    vector<SQWORD> &sqDivisors,
-    SQWORD sqCur)
-{
-    if (vpairlPrimes.empty()) {
-        sqDivisors.emplace_back(sqCur);
-        return;
-    }
-
-    auto prime = vpairlPrimes.back();
-    vpairlPrimes.pop_back();
-    SQWORD sqDiv = sqCur;
-
-    for (SDWORD lPow = 0; lPow <= prime.second; lPow++) {
-        listupDivisorsOne(vpairlPrimes, sqDivisors, sqDiv);
-        sqDiv *= prime.first;
-    }
-}
-
-static void listupDivisors(SQWORD sqNum, vector<SQWORD> &vecsqDivisors)
-{
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes;
-
-    calcPrimeFactorication(sqNum, vpairlPrimes);   
-
-    listupDivisorsOne(vpairlPrimes, vecsqDivisors, 1);
-}
-
-
+#define MAX_DAYS    (100000)
 int main(void)
 {
-    SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_K = inputSQWORD();
+    SQWORD sqN = inputSQWORD();
+    SQWORD sqM = inputSQWORD();
 
-    vector<SQWORD> vecsqA;
+    static vector<SQWORD> s_vecAlb[MAX_DAYS + 1];
 
-    SQWORD sqSum = 0;
-    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
         SQWORD sqA = inputSQWORD();
-        vecsqA.emplace_back(sqA);
-        sqSum += sqA;
+        SQWORD sqB = inputSQWORD();
+
+        s_vecAlb[sqA].emplace_back(sqB);
     }
 
-    vector<SQWORD> vecsqDivisors;
-    listupDivisors(sqSum, vecsqDivisors);
+    for (SDWORD lDays = 0; lDays <= MAX_DAYS; lDays++) {
+        sort(s_vecAlb[lDays].begin(), s_vecAlb[lDays].end(), greater<SQWORD>());
+    }
 
+    /* 実行可能なアルバイトをキューに詰めながら先頭から取り出す */
+    priority_queue<SQWORD> pq;
     SQWORD sqAns = 0;
-    sort(vecsqDivisors.begin(), vecsqDivisors.end(), greater<SQWORD>());
-    for (auto divisor: vecsqDivisors) {
-        if (isDividable(vecsqA, sqInput_K * 2, divisor)) {
-            sqAns = divisor;
-            break;
+    for (SDWORD lDays = 1; lDays <= sqM; lDays++) {
+        for (auto sqPay: s_vecAlb[lDays]) {
+            pq.push(sqPay);
+        }
+        if (!(pq.empty())) {
+            SQWORD sqPay = pq.top();
+            pq.pop();
+
+            sqAns += sqPay;
         }
     }
-
     printf("%lld\n", sqAns);
+    
     return 0;
 }

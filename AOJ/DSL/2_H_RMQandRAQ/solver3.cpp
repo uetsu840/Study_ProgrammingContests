@@ -222,7 +222,7 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 #define SQWORD_INF  (100100100100100100)
 
 /**
- *  セグメント木
+ *  遅延評価セグメント木
  */
 struct SEGMENT_NODE_ST {
     SQWORD sqVal;     /* 値 (担当区間の最小値) */
@@ -250,12 +250,37 @@ private:
         }
     }
 
-    static inline void updateNode(
-        const SEGMENT_NODE_ST &stL,
-        const SEGMENT_NODE_ST &stR,
-        SEGMENT_NODE_ST &stRet)
+    static inline SQWORD evaluateFunc(
+        const SQWORD sqValL,
+        const SQWORD sqValR)
     {
-        stRet.sqVal = min(stR.sqVal, stL.sqVal);
+        return min(sqValL, sqValR);
+    }
+
+    static inline SQWORD getNodeVal(
+        const SEGMENT_NODE_ST &stN)
+    {
+        if (stN.bLazyFlag) {
+            return stN.sqVal + stN.sqLazy;
+        } else {
+            return stN.sqVal;          
+        }
+    }
+
+    static inline void refreshLazyVal(
+        SEGMENT_NODE_ST &stN)
+    {
+        stN.sqVal     += stN.sqLazy;
+        stN.bLazyFlag = false;
+        stN.sqLazy    = 0;
+    }
+
+    static inline void updateLazyVal(
+        SEGMENT_NODE_ST &stN,
+        SQWORD sqX)
+    {
+        stN.sqLazy += sqX;
+        stN.bLazyFlag = true;
     }
 
     void initSegmentTree(
@@ -276,26 +301,21 @@ private:
          *  最下段に値を入れたあとに、下の段から順番に値を入れる
          * 値を入れるには、自分の子の 2 値を参照すれば良い
          */
-        for(DWORD dwIdx = 0; dwIdx < vsqInitVal.size(); dwIdx++) {
-            vNode[dwIdx + (dwBaseSize - 1)].init(vsqInitVal[dwIdx]);
+        for(SDWORD lIdx = 0; lIdx < vsqInitVal.size(); lIdx++) {
+            vNode[lIdx + (dwBaseSize - 1)].init(vsqInitVal[lIdx]);
         }
-        for (DWORD dwIdx = 0; dwIdx < dwBaseSize - 1; dwIdx++) {
-            updateNode(vNode[dwIdx*2+1], vNode[dwIdx*2+2], vNode[dwIdx]);
+        for (SDWORD lIdx = dwBaseSize - 2; 0 <= lIdx; lIdx--) {
+            vNode[lIdx].sqVal = evaluateFunc(vNode[lIdx*2+1].sqVal, vNode[lIdx*2+2].sqVal);
         }
     }
 
     void lazyEvaluate(int lNodeIdx, int lLeft, int lRight) {
         if (vNode[lNodeIdx].bLazyFlag) {
-            vNode[lNodeIdx].sqVal += vNode[lNodeIdx].sqLazy;
             if (lRight - lLeft > 1) {
-                vNode[lNodeIdx*2+1].sqLazy += vNode[lNodeIdx].sqLazy;
-                vNode[lNodeIdx*2+1].bLazyFlag = true;
-
-                vNode[lNodeIdx*2+2].sqLazy += vNode[lNodeIdx].sqLazy;
-                vNode[lNodeIdx*2+2].bLazyFlag = true;
+                updateLazyVal(vNode[lNodeIdx*2+1], vNode[lNodeIdx].sqLazy);
+                updateLazyVal(vNode[lNodeIdx*2+2], vNode[lNodeIdx].sqLazy);
             }
-            vNode[lNodeIdx].bLazyFlag = false;
-            vNode[lNodeIdx].sqLazy    = 0;
+            refreshLazyVal(vNode[lNodeIdx]);
         }
     }
 
@@ -314,19 +334,19 @@ public:
         if ((lRight <= lA) || (lB <= lLeft)) {
             return;
         }
-        lazyEvaluate(lNodeIdx, lLeft, lRight);
 
         if ((lA <= lLeft) && (lRight <= lB)) {
-            vNode[lNodeIdx].sqLazy += lX;
-            vNode[lNodeIdx].bLazyFlag = true;
+            updateLazyVal(vNode[lNodeIdx], lX);
         } else {
+            lazyEvaluate(lNodeIdx, lLeft, lRight);
+
             SDWORD lCenter = (lLeft + lRight) / 2;
             SDWORD lNodeIdx_L = (lNodeIdx * 2) + 1; 
             SDWORD lNodeIdx_R = (lNodeIdx * 2) + 2;
             UpdateValue(lA, lB, lX, lNodeIdx_L, lLeft, lCenter);
             UpdateValue(lA, lB, lX, lNodeIdx_R, lCenter, lRight);
-            vNode[lNodeIdx].sqVal = min(vNode[lNodeIdx_L].sqVal + vNode[lNodeIdx_L].sqLazy, 
-                                        vNode[lNodeIdx_R].sqVal + vNode[lNodeIdx_R].sqLazy);
+            vNode[lNodeIdx].sqVal = evaluateFunc(getNodeVal(vNode[lNodeIdx_L]), 
+                                                 getNodeVal(vNode[lNodeIdx_R]));
         }
     };
 
@@ -338,21 +358,21 @@ public:
         if (lRight < 0) {
             lRight = dwBaseSize;
         }
-        lazyEvaluate(lNodeIdx, lLeft, lRight);
 
         if ((lRight <= lA) || (lB <= lLeft)) {
             return SQWORD_INF;
         }
 
         if ((lA <= lLeft) && (lRight <= lB)) {
-            return vNode[lNodeIdx].sqVal;
+            return getNodeVal(vNode[lNodeIdx]);
         } else {
+            lazyEvaluate(lNodeIdx, lLeft, lRight);
             SDWORD lCenter = (lLeft + lRight) / 2;
             SDWORD lNodeIdx_L = (lNodeIdx * 2) + 1; 
             SDWORD lNodeIdx_R = (lNodeIdx * 2) + 2;
             SQWORD sqValL = FindMin(lA, lB, lNodeIdx_L, lLeft, lCenter);
             SQWORD sqValR = FindMin(lA, lB, lNodeIdx_R, lCenter, lRight);
-            return min(sqValL, sqValR);
+            return evaluateFunc(sqValL, sqValR);
         }
     };
 
@@ -368,7 +388,7 @@ int main(void)
     SQWORD sqN = inputSQWORD();
     SQWORD sqQ = inputSQWORD();
 
-    vector<SQWORD> vsqInitVal(sqN);
+    vector<SQWORD> vsqInitVal(sqN, 0);
     LazySegmentTree tree(vsqInitVal);
 
     for (SQWORD sqQueryIdx = 0; sqQueryIdx < sqQ; sqQueryIdx++) {

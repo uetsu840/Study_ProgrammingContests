@@ -13,7 +13,6 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
-#include <list>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -40,17 +39,12 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
-#define MAX_DOUBLE      (1.0e+308)
-#define DOUBLE_EPS      (1.0e-12)
-#define MIN_DOUBLE_N    (-1.0e+308)
 
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
-static inline DOUBLE MAX(DOUBLE a, DOUBLE b) { return a > b ? a : b; }
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
 static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
 static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
-static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
@@ -60,19 +54,10 @@ static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 #define DWORD_BITS  (32)
 #define QWORD_BITS  (64)
 
-static inline void inputStringSpSeparated(char *pcStr)
-{
-    char *pcCur = pcStr;
-    for (;;) {
-        char c = getchar();
-        if (('\n' == c) || (EOF == c) || (' ' == c)) {
-            break;
-        }
-        *pcCur = c;
-        pcCur++;
-    }
-    *pcCur = '\0';
-}
+using M_BOOL = bool;
+#define M_TRUE (true)
+#define M_FALSE (false)
+#define DIVISOR (1000000007)
 
 static inline void inputString(char *pcStr)
 {
@@ -93,7 +78,7 @@ static inline SQWORD inputSQWORD(void)
 {
     SQWORD sqNumber = 0;
     SQWORD sqMultiplier = 1;
-    bool bRead = false;
+    M_BOOL bRead = M_FALSE;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -104,7 +89,7 @@ static inline SQWORD inputSQWORD(void)
         if (('0' <= c) && (c <= '9')) {
             sqNumber *= 10LL;
             sqNumber += (SQWORD)(c - '0');
-            bRead = true;
+            bRead = M_TRUE;
         } else {
             if (bRead) {
                 return sqNumber * sqMultiplier;
@@ -118,7 +103,7 @@ static inline SDWORD inputSDWORD(void)
 {
     SDWORD lNumber = 0;
     SDWORD lMultiplier = 1;
-    bool bRead = false;
+    M_BOOL bRead = M_FALSE;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -129,7 +114,7 @@ static inline SDWORD inputSDWORD(void)
         if (('0' <= c) && (c <= '9')) {
             lNumber *= 10;
             lNumber += (c - '0');
-            bRead = true;
+            bRead = M_TRUE;
         } else {
             if (bRead) {
                 return lNumber * lMultiplier;
@@ -145,7 +130,7 @@ static inline DOUBLE inputFP(void)
     DOUBLE dMultiplier = 1.0;
     DWORD dwFpCnt = 0;
     DOUBLE *pdCur = &dInt;
-    bool bRead = false;
+    M_BOOL bRead = M_FALSE;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -158,7 +143,7 @@ static inline DOUBLE inputFP(void)
         } else if (('0' <= c) && (c <= '9')) {
             (*pdCur) *= 10;
             (*pdCur) += (DOUBLE)(c - '0');
-            bRead = true;
+            bRead = M_TRUE;
             if (pdCur == &dFrac) {
                 dwFpCnt++;
             }
@@ -170,70 +155,123 @@ static inline DOUBLE inputFP(void)
     }
 }
 
+#define MAX_STUDENTS    (200000)
+
+bool bDebug = false;
 
 /**
- *  mod による操作ライブラリ
+ *  BIT
+ *      引数のインデックスは 0 ～ N-1、
+ *      内部のインデックスは 1 ～ N であることに注意する。
+ * 
  */
+struct BinaryIndexedTree {
+    SDWORD lBitN;
+    vector<SQWORD> vecsqBitN; 
 
-#define ANS_MOD (1000000007LL)
- 
-static SQWORD addMod(SQWORD x, SQWORD y)
-{ 
-    return (x + y) % ANS_MOD;
-}
- 
-static SQWORD subMod(SQWORD x, SQWORD y)
-{
-    return (x - y + ANS_MOD) % ANS_MOD;
-}
- 
-static SQWORD mulMod(SQWORD x, SQWORD y) 
-{
-    return (x * y) % ANS_MOD;
-}
- 
-static SQWORD powMod(SQWORD x, SQWORD e) {
-    SQWORD v = 1;
-    for (; e; x = mulMod(x, x), e >>= 1) {
-        if (e & 1) {
-            v = mulMod(v, x);
+    BinaryIndexedTree(SDWORD lNum)
+    {
+        lBitN = lNum + 1;
+        vecsqBitN.resize(lBitN + 1);
+        for (DWORD dwIdx = 0; dwIdx < vecsqBitN.size(); dwIdx++) {
+            vecsqBitN[dwIdx] = 0;
         }
     }
-    return v;
-}
- 
-static SQWORD divMod(SQWORD x, SQWORD y)
-{
-    return mulMod(x, powMod(y, ANS_MOD - 2));
-}
- 
- 
-static SQWORD combMod(SQWORD n, SQWORD k)
-{
-    SQWORD v=1;
-    for(SQWORD i=1; i<=k; i++) {
-        v = divMod(mulMod(v, n-i+1),i);
-    } 
-    return v;
-}
 
-/*----------------------------------------------*/
-#define POS_MIN ()
+    SQWORD Sum(const SDWORD lIdx)
+    {
+        if (lIdx < 1) {
+            return 0;
+        }
 
-int main(void)
-{
-    const SQWORD sqPosMin = (SQWORD)(-1000000);
-    const SQWORD sqPosMax = (SQWORD)(1000000);
-    SQWORD sqK = inputSQWORD();
-    SQWORD sqX = inputSQWORD();
-
-    SQWORD sqMin = max(sqPosMin, (sqX - sqK + 1));
-    SQWORD sqMax = min(sqPosMax, (sqX + sqK - 1));
-
-    for (SQWORD sqIdx = sqMin; sqIdx <=sqMax; sqIdx++) {
-        printf("%lld ", sqIdx);
+        SDWORD lCur = lIdx;
+        SQWORD sqSum = 0;
+        while (0 < lCur) {
+            sqSum += vecsqBitN[lCur];
+            lCur -= (lCur & (-lCur));     /* 最後の1ビット */
+        }
+        return sqSum;
     }
-    printf("\n");
+
+    void Add(SDWORD lIdx, SQWORD sqX)
+    {
+        while (lIdx <= lBitN) {
+            vecsqBitN[lIdx] += sqX;
+            lIdx += (lIdx & (-lIdx));
+        }
+    }
+
+    SDWORD binSearchExec(SQWORD sum, bool bIsUb) 
+    {
+        SQWORD sqLb = 0;
+        SQWORD sqUb = lBitN;
+
+        while (1LL < sqUb - sqLb) {
+            SQWORD sqMid = (sqUb + sqLb) / 2LL;
+            bool bJudge;
+            if (bIsUb) {
+                bJudge = (sum < Sum(sqMid));
+            } else {
+                bJudge = (sum <= Sum(sqMid));
+            }
+
+            if (bJudge) {
+                sqUb = sqMid;
+            } else {
+                sqLb = sqMid;
+            }
+        }
+        return sqUb;
+    }
+
+
+    /**
+    *  累積和が指定した数より大きくなるインデックスを求める。 
+    *  (最小より小さい、最大より大きいとうまく動かないかも…)
+    */
+    SDWORD findSumUpperBound(SQWORD sum) 
+    {
+        return binSearchExec(sum, true);
+    }
+
+    /**
+    *  累積和が指定した数以上になるインデックスを求める。 
+    *  (最小より小さい、最大より大きいとうまく動かないかも…)
+    */
+    SDWORD findSumLowerBound(SQWORD sum) 
+    {
+        return binSearchExec(sum, false);
+    }
+
+    SDWORD End() {
+        return lBitN;
+    }
+};
+
+#define MAX_VAL_X   (200000)
+
+int main()
+{
+    SQWORD sqInput_Q = inputSQWORD();
+
+    BinaryIndexedTree bit(MAX_VAL_X);
+
+    for (SQWORD sqQueryIdx = 0; sqQueryIdx < sqInput_Q; sqQueryIdx++) {
+        SQWORD sqType = inputSQWORD();
+        SQWORD sqX = inputSQWORD();
+
+        if (1 == sqType) {
+            bit.Add(sqX, 1);
+        } else if (2 == sqType) {
+            SQWORD sqIdx = bit.findSumLowerBound(sqX);
+            printf("%lld\n", sqIdx);
+            bit.Add(sqIdx, -1);
+        } else {
+            printf("Oops\n");
+            return -1;
+        }
+    }
+
 
     return 0;
 }

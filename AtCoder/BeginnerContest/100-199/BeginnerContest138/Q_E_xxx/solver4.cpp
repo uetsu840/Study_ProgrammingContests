@@ -219,137 +219,168 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-static bool isDividable(
-    const vector<SQWORD>& vecsqNums, 
-    SQWORD sqDiffMax,
-    SQWORD sqTest) 
-{
-    SQWORD sqN = vecsqNums.size();
-
-    vector<SQWORD> vsqDiffs;
-    
-    for (auto testnum: vecsqNums) {
-        SQWORD sqDiffAbs = min((testnum % sqTest), sqTest - (testnum % sqTest));
-        vsqDiffs.emplace_back(testnum % sqTest);
-    }
-    sort(vsqDiffs.begin(), vsqDiffs.end());
-
-    SQWORD sqDiffSum = accumulate(vsqDiffs.begin(), vsqDiffs.end(), 0);
-
-    if (0 != (sqDiffSum % sqTest)) {
-        return false;
-    }
-
-    SQWORD sqModSum = 0;
-    SQWORD sqLowClipNum = sqN - (sqDiffSum / sqTest);
-
-//    printf("test %lld sum %lld low clip %d\n", sqTest, sqDiffSum, sqLowClipNum);
-
-    for (SQWORD sqIdx = 0; sqIdx < sqLowClipNum; sqIdx++) {
-        sqModSum += vsqDiffs[sqIdx];
-    }
-    for (SQWORD sqIdx = sqLowClipNum; sqIdx < sqN; sqIdx++) {
-        sqModSum += (sqTest - vsqDiffs[sqIdx]);
-    }
-
-//    printf("test %lld diff %lld max %lld\n", sqTest, sqModSum, sqDiffMax);
-
-    if (sqDiffMax < sqModSum) {
-        return false;
-    }
-    return true;
-}
-
 /**
-*   素因数分解
+*   ベルマンフォード法
 */
-static void calcPrimeFactorication(
-    SQWORD sqNum, vector<pair<SQWORD, SQWORD>> &vlPrimes)
-{
-    if (1 == sqNum) {
-        return;
-    }
+struct Edge {
+    SQWORD to;   // 辺の接続先頂点,
+    SQWORD cost;   //辺の重み
+    Edge(SQWORD to, SQWORD cost) : to(to), cost(cost) {}  // コンストラクタ
+};
 
-    SQWORD sqCur = sqNum;
-    SQWORD sqUpper = sqrt(sqNum) + 1;
-    for (SQWORD sqDiv = 2; sqDiv <= sqUpper; sqDiv++) {
-        SDWORD lPowerCnt = 0;
-        while(0 == sqCur % sqDiv) {
-            sqCur /= sqDiv;
-            lPowerCnt++;
+typedef vector<vector<Edge> > AdjList;  // 隣接リストの型
+
+#define NODE_NUM    (2501)
+
+class BellmanFordGraph {
+    const SQWORD UNDEF = (SQWORD)(-100100100100100100);
+    const SQWORD INF = (SQWORD)(100100100100100100);
+
+    SQWORD sqNodeNum;
+    AdjList graph;                  /* グラフの辺を格納した構造体
+                                      graph[v][i]は頂点vから出るi番目の辺Edge */ 
+    SQWORD score[NODE_NUM];
+    vector<SQWORD> avAdjFwd[NODE_NUM];
+    vector<SQWORD> avAdjRev[NODE_NUM];
+    bool abPassFwd[NODE_NUM];
+    bool abPassRev[NODE_NUM];
+    bool abOnPath[NODE_NUM];
+
+private:
+    inline void dfs_exec(
+        SQWORD sqNode, 
+        bool *pbPass, 
+        const vector<SQWORD> *pvAdj,
+        void (BellmanFordGraph::*pFunc)(SQWORD))
+    {
+        if (pbPass[sqNode]) {
+            return;
         }
-        if (0 < lPowerCnt) {
-            vlPrimes.emplace_back(make_pair(sqDiv, lPowerCnt));
-        }
-        if (1 == sqCur) {
-            break;
+        pbPass[sqNode] = true;
+        for (auto next: pvAdj[sqNode]) {
+            (this->*pFunc)(next);
         }
     }
-    if (1 < sqCur) {
-        vlPrimes.emplace_back(make_pair(sqCur, 1));
-    }
-}
 
-
-/**
-*   約数をすべて挙げる
-*/
-static void listupDivisorsOne(
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes, 
-    vector<SQWORD> &sqDivisors,
-    SQWORD sqCur)
-{
-    if (vpairlPrimes.empty()) {
-        sqDivisors.emplace_back(sqCur);
-        return;
+    void dfs(SQWORD sqNode)
+    {
+        dfs_exec(sqNode, abPassFwd, avAdjFwd, &BellmanFordGraph::dfs);
     }
 
-    auto prime = vpairlPrimes.back();
-    vpairlPrimes.pop_back();
-    SQWORD sqDiv = sqCur;
-
-    for (SDWORD lPow = 0; lPow <= prime.second; lPow++) {
-        listupDivisorsOne(vpairlPrimes, sqDivisors, sqDiv);
-        sqDiv *= prime.first;
+    void rdfs(SQWORD sqNode)
+    {
+        dfs_exec(sqNode, abPassRev, avAdjRev, &BellmanFordGraph::rdfs);
     }
-}
 
-static void listupDivisors(SQWORD sqNum, vector<SQWORD> &vecsqDivisors)
-{
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes;
+public:
+    BellmanFordGraph(SQWORD sqN) 
+    {
+        sqNodeNum = sqN;
+        graph.resize(sqN);
+        for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+            abPassFwd[sqIdx] = false;
+            abPassRev[sqIdx] = false;
+            abOnPath[sqIdx]  = true; 
+        }
+    };
 
-    calcPrimeFactorication(sqNum, vpairlPrimes);   
+    void AddEdge(SQWORD sqFrom, SQWORD sqTo, SQWORD sqCost) 
+    {
+        graph[sqFrom].push_back(Edge(sqTo, sqCost));
+        avAdjFwd[sqFrom].push_back(sqTo);
+        avAdjRev[sqTo].push_back(sqFrom);
+    };
 
-    listupDivisorsOne(vpairlPrimes, vecsqDivisors, 1);
-}
+    /**
+    *   有向グラフで開始点-終了点の間で通過不可能なノードを探す
+    *       (呼ばなければ全ノードを探索パスとする)
+    */
+    void searchUnpassableNode(
+        SQWORD sqStart,             /* 開始頂点 */
+        SQWORD sqGoal)              /* 到達頂点(閉路検出で使う) */
+    {
+        /* スタート・ゴールからそれぞれ到達可能なノードを探す */
+        dfs(sqStart);
+        rdfs(sqGoal);
+
+        for (SQWORD sqNodeIdx = 0; sqNodeIdx < sqNodeNum; sqNodeIdx++) {
+            abOnPath[sqNodeIdx] = abPassFwd[sqNodeIdx] && abPassRev[sqNodeIdx];
+        }
+    };
+
+private:
+    void updateBellmanFord(SQWORD sqV, bool &bUpdate)
+    {
+        if (!abOnPath[sqV]) {
+            return;
+        }
+        for (auto e: graph[sqV]) {
+            if ((score[sqV] != UNDEF) 
+                && (score[e.to] < score[sqV] + e.cost)) {
+                score[e.to] = score[sqV] + e.cost;
+                bUpdate = true;
+            }
+        }
+    };
+
+public:
+
+    /**
+    *   ベルマンフォード法
+    *       ・辺に価値がある変形版
+    *       ・戻り値が false なら正の閉路を含む
+    */
+    bool bellman_ford(
+        SQWORD sqStart,             /* 開始頂点 */
+        SQWORD sqGoal)              /* 到達頂点(閉路検出で使う) */
+    { 
+        for (SQWORD sqIdx = 0; sqIdx < sqNodeNum; sqIdx++) {
+            score[sqIdx] = UNDEF;
+        }
+        score[sqStart] = 0;         /* 開始点のスコアは0 */
+
+        bool bErr;
+        for (SQWORD i = 0; i <= sqNodeNum; i++) {
+            bool bUpdate = false;
+            for (int v = 0; v < sqNodeNum; v++) {
+                updateBellmanFord(v, bUpdate);
+            }
+            if ((sqNodeNum - 1 < i) && bUpdate) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    SQWORD GetScore(SQWORD sqNode) 
+    {
+        return score[sqNode];
+    }
+};
 
 
 int main(void)
 {
-    SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_K = inputSQWORD();
+    SQWORD sqN = inputSQWORD();
+    SQWORD sqM = inputSQWORD();
+    SQWORD sqP = inputSQWORD();
 
-    vector<SQWORD> vecsqA;
+    BellmanFordGraph graph(sqN + 1);
 
-    SQWORD sqSum = 0;
-    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
+    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
         SQWORD sqA = inputSQWORD();
-        vecsqA.emplace_back(sqA);
-        sqSum += sqA;
+        SQWORD sqB = inputSQWORD();
+        SQWORD sqC = inputSQWORD();
+
+        graph.AddEdge(sqA, sqB, sqC - sqP);
+    }
+    
+    graph.searchUnpassableNode(1, sqN);
+    if (graph.bellman_ford(1, sqN)) {
+        printf("%lld\n", max((SQWORD)0, graph.GetScore(sqN)));
+    } else {
+        printf("-1\n");
     }
 
-    vector<SQWORD> vecsqDivisors;
-    listupDivisors(sqSum, vecsqDivisors);
-
-    SQWORD sqAns = 0;
-    sort(vecsqDivisors.begin(), vecsqDivisors.end(), greater<SQWORD>());
-    for (auto divisor: vecsqDivisors) {
-        if (isDividable(vecsqA, sqInput_K * 2, divisor)) {
-            sqAns = divisor;
-            break;
-        }
-    }
-
-    printf("%lld\n", sqAns);
     return 0;
 }

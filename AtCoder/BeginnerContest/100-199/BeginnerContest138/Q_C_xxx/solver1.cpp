@@ -219,137 +219,41 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-static bool isDividable(
-    const vector<SQWORD>& vecsqNums, 
-    SQWORD sqDiffMax,
-    SQWORD sqTest) 
+#define STRING_LEN  (10)
+
+static map<vector<SDWORD>, SDWORD> s_mapCnt;
+
+void registString(string s)
 {
-    SQWORD sqN = vecsqNums.size();
+    vector<SDWORD> vecVal(STRING_LEN);
 
-    vector<SQWORD> vsqDiffs;
-    
-    for (auto testnum: vecsqNums) {
-        SQWORD sqDiffAbs = min((testnum % sqTest), sqTest - (testnum % sqTest));
-        vsqDiffs.emplace_back(testnum % sqTest);
+    for (SDWORD lIdx = 0; lIdx < STRING_LEN; lIdx++) {
+        vecVal[lIdx] = s[lIdx] - 'a';
     }
-    sort(vsqDiffs.begin(), vsqDiffs.end());
+    sort(vecVal.begin(), vecVal.end());
 
-    SQWORD sqDiffSum = accumulate(vsqDiffs.begin(), vsqDiffs.end(), 0);
-
-    if (0 != (sqDiffSum % sqTest)) {
-        return false;
-    }
-
-    SQWORD sqModSum = 0;
-    SQWORD sqLowClipNum = sqN - (sqDiffSum / sqTest);
-
-//    printf("test %lld sum %lld low clip %d\n", sqTest, sqDiffSum, sqLowClipNum);
-
-    for (SQWORD sqIdx = 0; sqIdx < sqLowClipNum; sqIdx++) {
-        sqModSum += vsqDiffs[sqIdx];
-    }
-    for (SQWORD sqIdx = sqLowClipNum; sqIdx < sqN; sqIdx++) {
-        sqModSum += (sqTest - vsqDiffs[sqIdx]);
-    }
-
-//    printf("test %lld diff %lld max %lld\n", sqTest, sqModSum, sqDiffMax);
-
-    if (sqDiffMax < sqModSum) {
-        return false;
-    }
-    return true;
+    s_mapCnt[vecVal]++;
 }
-
-/**
-*   素因数分解
-*/
-static void calcPrimeFactorication(
-    SQWORD sqNum, vector<pair<SQWORD, SQWORD>> &vlPrimes)
-{
-    if (1 == sqNum) {
-        return;
-    }
-
-    SQWORD sqCur = sqNum;
-    SQWORD sqUpper = sqrt(sqNum) + 1;
-    for (SQWORD sqDiv = 2; sqDiv <= sqUpper; sqDiv++) {
-        SDWORD lPowerCnt = 0;
-        while(0 == sqCur % sqDiv) {
-            sqCur /= sqDiv;
-            lPowerCnt++;
-        }
-        if (0 < lPowerCnt) {
-            vlPrimes.emplace_back(make_pair(sqDiv, lPowerCnt));
-        }
-        if (1 == sqCur) {
-            break;
-        }
-    }
-    if (1 < sqCur) {
-        vlPrimes.emplace_back(make_pair(sqCur, 1));
-    }
-}
-
-
-/**
-*   約数をすべて挙げる
-*/
-static void listupDivisorsOne(
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes, 
-    vector<SQWORD> &sqDivisors,
-    SQWORD sqCur)
-{
-    if (vpairlPrimes.empty()) {
-        sqDivisors.emplace_back(sqCur);
-        return;
-    }
-
-    auto prime = vpairlPrimes.back();
-    vpairlPrimes.pop_back();
-    SQWORD sqDiv = sqCur;
-
-    for (SDWORD lPow = 0; lPow <= prime.second; lPow++) {
-        listupDivisorsOne(vpairlPrimes, sqDivisors, sqDiv);
-        sqDiv *= prime.first;
-    }
-}
-
-static void listupDivisors(SQWORD sqNum, vector<SQWORD> &vecsqDivisors)
-{
-    vector<pair<SQWORD, SQWORD>> vpairlPrimes;
-
-    calcPrimeFactorication(sqNum, vpairlPrimes);   
-
-    listupDivisorsOne(vpairlPrimes, vecsqDivisors, 1);
-}
-
 
 int main(void)
 {
-    SQWORD sqInput_N = inputSQWORD();
-    SQWORD sqInput_K = inputSQWORD();
+    SQWORD sqN = inputSQWORD();
 
-    vector<SQWORD> vecsqA;
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        string s;
+        cin >> s;
 
-    SQWORD sqSum = 0;
-    for (SQWORD sqIdx = 0; sqIdx < sqInput_N; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        vecsqA.emplace_back(sqA);
-        sqSum += sqA;
+        registString(s);
     }
 
-    vector<SQWORD> vecsqDivisors;
-    listupDivisors(sqSum, vecsqDivisors);
-
     SQWORD sqAns = 0;
-    sort(vecsqDivisors.begin(), vecsqDivisors.end(), greater<SQWORD>());
-    for (auto divisor: vecsqDivisors) {
-        if (isDividable(vecsqA, sqInput_K * 2, divisor)) {
-            sqAns = divisor;
-            break;
-        }
+    for (auto str: s_mapCnt) {
+//        printf("%lld\n", str.second);
+        sqAns += ((SQWORD)str.second * (SQWORD)(str.second - 1)) / 2;
     }
 
     printf("%lld\n", sqAns);
+
+    
     return 0;
 }
