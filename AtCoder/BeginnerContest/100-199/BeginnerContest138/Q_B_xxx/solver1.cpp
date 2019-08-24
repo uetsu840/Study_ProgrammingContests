@@ -222,18 +222,17 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 int main(void)
 {
-    const SQWORD sqPosMin = (SQWORD)(-1000000);
-    const SQWORD sqPosMax = (SQWORD)(1000000);
-    SQWORD sqK = inputSQWORD();
-    SQWORD sqX = inputSQWORD();
+    SDWORD lN = inputSDWORD();
+    
+    DOUBLE dDenomi = 0;
 
-    SQWORD sqMin = max(sqPosMin, (sqX - sqK + 1));
-    SQWORD sqMax = min(sqPosMax, (sqX + sqK - 1));
-
-    for (SQWORD sqIdx = sqMin; sqIdx <=sqMax; sqIdx++) {
-        printf("%lld ", sqIdx);
+    for (SDWORD lIdx = 0; lIdx < lN; lIdx++) {
+        SDWORD lR = inputSDWORD();
+        dDenomi += 1.0 / (DOUBLE)lR;
     }
-    printf("\n");
+    DOUBLE dAns = 1.0 / dDenomi;
+
+    printf("%0.10f\n", dAns);
 
     return 0;
 }

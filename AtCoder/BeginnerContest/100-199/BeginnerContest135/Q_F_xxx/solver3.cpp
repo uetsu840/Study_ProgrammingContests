@@ -218,37 +218,209 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 /*----------------------------------------------*/
+/**
+ *  rolling hash 
+ */
 
-#define STRING_LEN  (10)
+#define MS  (2)
+const long long mod[] = {999999937LL, 1000000007LL}, base = 9973;
+struct hash_val {
+    SQWORD asqHash[MS];
 
-static unordered_map<string, SQWORD> s_mapCnt;
+    const bool operator== (const hash_val &v) {
+        return 0 == memcmp(this, &v, sizeof(*this));
+    };
+};
 
-void registString(string s)
+struct rolling_hash {
+    int n;
+    vector<long long> hs[MS], pw[MS];
+    rolling_hash(){}
+    rolling_hash(const string &s) {
+        n = s.size();
+        for (int i = 0; i < MS; i++) {
+            hs[i].assign(n+1,0);
+            pw[i].assign(n+1,0);
+            hs[i][0] = 0;
+            pw[i][0] = 1;
+            for (int j = 0; j < n; j++) {
+                pw[i][j+1] = pw[i][j]*base%mod[i];
+                hs[i][j+1] = (hs[i][j]*base+s[j])%mod[i];
+            }
+        }
+    }
+    hash_val hash(int l, int r) { 
+        hash_val ret;
+        for (int i = 0; i < MS; i++) {
+            ret.asqHash[i] = ((hs[i][r]-hs[i][l]*pw[i][r-l])%mod[i]+mod[i])%mod[i]; 
+        }
+        return ret;
+    }
+
+    bool match(int l1, int r1, int l2, int r2) {
+        bool ret = false;
+        hash_val h1 = hash(l1,r1);
+        hash_val h2 = hash(l2,r2);
+
+        return (h1 == h2);
+    }
+
+    bool match(int l, int r, hash_val h) {
+        bool ret = 1;
+        return (h == hash(l,r));
+    }
+};
+
+/*----------------------------------------------*/
+
+typedef struct {
+    vector<DWORD>   vdwPar;
+    vector<DWORD>   vdwRank;
+    vector<DWORD>   vdwCnt;
+    DWORD   dwSize;
+
+    void initUnionFind(
+        DWORD dwSize)
+    {
+        dwSize = dwSize;
+        vdwPar.resize(dwSize);
+        vdwRank.resize(dwSize);
+        vdwCnt.resize(dwSize);
+    
+        for (DWORD dwIdx = 0; dwIdx < dwSize; dwIdx++) {
+            vdwPar[dwIdx]  = dwIdx;
+            vdwRank[dwIdx] = 0;
+            vdwCnt[dwIdx]  = 1;
+        }
+    }
+
+    DWORD ufGetCnt(DWORD sqIdx) {
+        return vdwCnt[ufGetParent(sqIdx)];
+    }
+
+
+    DWORD ufGetParent(DWORD dwIdx) const
+    {
+        return vdwPar[dwIdx];
+    }
+
+    DWORD ufGetRank(DWORD dwIdx) const
+    {
+        return vdwRank[dwIdx];
+    }
+
+    void ufSetParent(DWORD dwIdx, DWORD dwParent)
+    {
+        vdwPar[dwIdx] = dwParent; 
+        if (ufGetRank(dwIdx) == ufGetRank(dwParent)) {
+            (vdwRank[dwParent])++;
+        }
+    }
+
+    DWORD ufGetRoot(DWORD dwIdx) const
+    {
+        if (ufGetParent(dwIdx) == dwIdx) {
+            return dwIdx;
+        } else {
+            DWORD dwParent = ufGetParent(dwIdx);
+            DWORD dwRoot = ufGetRoot(dwParent);
+            return dwRoot;
+        }
+    }
+
+    bool ufUnite(DWORD dwX, DWORD dwY)
+    {
+        DWORD dwRootX = ufGetRoot(dwX);
+        DWORD dwRootY = ufGetRoot(dwY);
+
+        if (dwRootX == dwRootY) {
+            return false;
+        }
+
+        if (ufGetRank(dwRootX) < ufGetRank(dwRootY)) {
+            ufSetParent(dwRootX, dwRootY);
+            (vdwCnt[dwRootY]) += (vdwCnt[dwRootX]);
+        } else {
+            ufSetParent(dwRootY, dwRootX);
+            (vdwCnt[dwRootX]) += (vdwCnt[dwRootY]);
+        }
+
+        return true;
+    }
+
+    bool ufIsSame(DWORD dwX, DWORD dwY) const
+    {
+        return (ufGetRoot(dwX)  == ufGetRoot(dwY));
+    }
+} ST_UNION_FIND;
+
+/*----------------------------------------------*/
+
+static void getStrMatchPos(
+    string s, 
+    string pat, 
+    vector<SQWORD> &vsqRet)
 {
-    sort(s.begin(), s.end());
+    rolling_hash hash_str(s);
+    rolling_hash hash_pat(pat);
+    SQWORD size_str = s.size();
+    SQWORD size_pat = pat.size();
+    hash_val pattern_hash_val;
+    pattern_hash_val = hash_pat.hash(0, size_pat);
 
-    s_mapCnt[s]++;
+    for (SQWORD i = 0; i < size_str - size_pat; i++) {
+        if (hash_str.hash(i, i+size_pat) == pattern_hash_val) {
+            vsqRet.emplace_back(i);
+        } 
+    }
 }
+
 
 int main(void)
 {
-    SQWORD sqN = inputSQWORD();
 
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        string s;
-        cin >> s;
+    string str_s, str_t;
 
-        registString(s);
+    cin >> str_s;
+    cin >> str_t;
+
+    SQWORD sqSLen = str_s.size();
+    SQWORD sqTLen = str_t.size();
+
+    string str_s_plus = str_s + str_s + str_s;  /* 最低3個は繰り返す */
+    while (str_s_plus.size() < str_t.size() * 2) {
+        str_s_plus += str_s;
     }
 
-    SQWORD sqAns = 0;
-    for (auto str: s_mapCnt) {
-//        printf("%lld\n", str.second);
-        sqAns += ((SQWORD)str.second * (SQWORD)(str.second - 1)) / 2;
-    }
+    vector<SQWORD> vecMatchPos;
+    getStrMatchPos(str_s_plus, str_t, vecMatchPos);
 
-    printf("%lld\n", sqAns);
-
+    ST_UNION_FIND Uf;
+    Uf.initUnionFind(sqSLen);
     
+    bool bIsForever = false;
+    for (auto pos: vecMatchPos) {
+        if (pos < str_s.size()) {
+            bool bFound = std::binary_search(vecMatchPos.begin(), vecMatchPos.end(), (pos + sqTLen) % sqSLen);
+            if (bFound) {
+                if (!Uf.ufUnite(pos, (pos + sqTLen) % sqSLen)) {
+                    bIsForever = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (bIsForever) {
+        printf("-1\n");
+    } else {
+        SQWORD sqSizeMax = 0;
+        for (SDWORD lIdx = 0; lIdx < sqSLen; lIdx++) {
+            if (std::binary_search(vecMatchPos.begin(), vecMatchPos.end(), lIdx)) {
+                sqSizeMax = max(sqSizeMax, (SQWORD)Uf.ufGetCnt(lIdx));
+            }
+        }
+        printf("%lld\n", sqSizeMax);
+    }
+
     return 0;
 }

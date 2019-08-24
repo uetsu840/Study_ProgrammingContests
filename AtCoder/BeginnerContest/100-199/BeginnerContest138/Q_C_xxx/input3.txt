@@ -1,6 +1,2 @@
-5
-abaaaaaaaa
-oneplustwo
-aaaaaaaaba
-twoplusone
-aaaabaaaaa
+6
+138 138 138 138 138 138

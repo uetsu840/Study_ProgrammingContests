@@ -219,77 +219,46 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-/**
-*   ベルマンフォード法
-*/
-struct Edge {
-    SQWORD to;   // 辺の接続先頂点,
-    SQWORD cost;   //辺の重み
-    Edge(SQWORD to, SQWORD cost) : to(to), cost(cost) {}  // コンストラクタ
-};
-
-typedef vector<vector<Edge> > AdjList;  // 隣接リストの型
-
-/**
-*   ベルマンフォード法
-*       ・辺に価値がある変形版
-*       ・戻り値が false なら正の閉路を含む
-*/
-bool bellman_ford(
-    SQWORD n,                   /* 頂点数 */
-    SQWORD sqStart,             /* 開始頂点 */
-    SQWORD sqGoal,              /* 到達頂点(閉路検出で使う) */
-    const AdjList &graph,       /* グラフの辺を格納した構造体
-                                  graph[v][i]は頂点vから出るi番目の辺Edge */
-    vector<SQWORD> &vecScore)   /* 最大得点 */
-{ 
-    const SQWORD UNDEF = (SQWORD)(-100100100100100100);
-    const SQWORD INF = (SQWORD)(100100100100100100);
-
-    vecScore.resize(n, UNDEF);
-    vecScore[sqStart] = 0;      /* 開始点のスコアは0 */
-
-    bool bErr;
-    for (int i = 0; i < n * 2; i++) {
-        for (int v = 0; v < n; v++) {
-            for (int k = 0; k < graph[v].size(); k++) {
-                Edge e = graph[v][k];
-                if ((vecScore[v] != UNDEF) && (vecScore[e.to] < vecScore[v] + e.cost)) {
-                    vecScore[e.to] = vecScore[v] + e.cost;
-                    if ((e.to == sqGoal) && (n - 1 < i)) {
-                        /*
-                        *   N回目以降も指定した頂点のスコアが更新されるなら正の閉路がある。
-                        */
-                        return false; 
-                    } 
-                }
-            }
-        }
-    }
-    return true;
-}
+#define MAX_ALPHABETS   (26)
 
 int main(void)
 {
-    SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqP = inputSQWORD();
+    string strS, strT;
 
-    AdjList graph = AdjList(sqN + 1);
-    vector<SQWORD> score;
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        SQWORD sqB = inputSQWORD();
-        SQWORD sqC = inputSQWORD();
+    cin >> strS;
+    cin >> strT;
 
-        graph[sqA].push_back(Edge(sqB, sqC - sqP));
+    SQWORD sqLenS = strS.size();
+
+    strS += strS;
+
+    vector<SDWORD> s_avecPosAlphabets[MAX_ALPHABETS];
+
+    for (SDWORD lIdx = 0; lIdx < strS.size(); lIdx++) {
+        SDWORD lAlph = strS[lIdx] - 'a';
+        s_avecPosAlphabets[lAlph].emplace_back(lIdx);
     }
-    
-    if (bellman_ford(sqN + 1, 1, sqN, graph, score)) {
-        printf("%lld\n", max((SQWORD)0, score[sqN]));
-    } else {
-        printf("-1\n");
+
+    SDWORD lStrSCur = 0;
+    SDWORD lLoopCnt = 0;
+    for (SDWORD lIdxT = 0; lIdxT < strT.size(); lIdxT++) {
+        SDWORD lAlphT = strT[lIdxT] - 'a';
+        vector<SDWORD> &vAlph = s_avecPosAlphabets[lAlphT];
+
+        auto it_s = lower_bound(vAlph.begin(), vAlph.end(), lStrSCur);
+
+        if (vAlph.end() == it_s) {
+            printf("-1\n");
+            return 0;
+        }
+        if (sqLenS <= *it_s) {
+            lLoopCnt++;
+            lStrSCur = *it_s - sqLenS + 1;
+        } else {
+            lStrSCur = *it_s + 1;
+        }
     }
+    printf("%lld\n", lLoopCnt * sqLenS + lStrSCur);
 
     return 0;
 }

@@ -219,67 +219,44 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-/**
-*   ベルマンフォード法
-*/
-// 隣接リストで使う辺を表す型
-struct Edge {
-    SQWORD to;   // 辺の接続先頂点,
-    SQWORD cost;   //辺の重み
-    Edge(SQWORD to, SQWORD cost) : to(to), cost(cost) {}  // コンストラクタ
-};
-
-typedef vector<vector<Edge> > AdjList;  // 隣接リストの型
-AdjList graph;  // グラフの辺を格納した構造体
-                // graph[v][i]は頂点vから出るi番目の辺Edge
-
-const SQWORD UNDEF = (SQWORD)(-100100100100100100);
-const SQWORD INF = (SQWORD)(100100100100100100);
-
-vector<SQWORD> dist; // 最短距離
-
-// 戻り値がtrueなら負の閉路を含む
-bool bellman_ford(int n, int s, int d) { // nは頂点数、sは開始頂点
-    dist = vector<SQWORD>(n, UNDEF);
-    dist[s] = 0; // 開始点の距離は0
-
-    bool bErr;
-    for (int i = 0; i < n * 2; i++) {
-        for (int v = 0; v < n; v++) {
-            for (int k = 0; k < graph[v].size(); k++) {
-                Edge e = graph[v][k];
-                if ((dist[v] != UNDEF) && (dist[e.to] < dist[v] + e.cost)) {
-                    dist[e.to] = dist[v] + e.cost;
-                    if ((e.to == d) && (n - 1 < i)) {
-                        return true; // n回目にも更新があるなら負の閉路が存在
-                    } 
-                }
-            }
-        }
-    }
-    return false;
-}
+#define MAX_ALPHABETS   (26)
 
 int main(void)
 {
-    SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqP = inputSQWORD();
+    string strS, strT;
 
-    graph = AdjList(sqN + 1);
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        SQWORD sqB = inputSQWORD();
-        SQWORD sqC = inputSQWORD();
+    cin >> strS;
+    cin >> strT;
 
-        graph[sqA].push_back(Edge(sqB, sqC - sqP));
+    vector<SDWORD> s_avecPosAlphabets[MAX_ALPHABETS];
+
+    for (SDWORD lIdx = 0; lIdx < strS.size(); lIdx++) {
+        SDWORD lAlph = strS[lIdx] - 'a';
+        s_avecPosAlphabets[lAlph].emplace_back(lIdx);
     }
-    
-    if (!bellman_ford(sqN + 1, 1, sqN)) {
-        printf("%lld\n", max((SQWORD)0, dist[sqN]));
-    } else {
-        printf("-1\n");
+
+    SDWORD lStrSCur = 0;
+    SDWORD lLoopCnt = 0;
+    for (SDWORD lIdxT = 0; lIdxT < strT.size(); lIdxT++) {
+        SDWORD lAlphT = strT[lIdxT] - 'a';
+        vector<SDWORD> &vAlph = s_avecPosAlphabets[lAlphT];
+
+        auto it_s = lower_bound(vAlph.begin(), vAlph.end(), lStrSCur);
+
+        if (vAlph.end() == it_s) {
+            lLoopCnt++;
+            lStrSCur = 0;
+            auto it_restart_s = lower_bound(vAlph.begin(), vAlph.end(), lStrSCur);
+            if (vAlph.end() == it_restart_s) {
+                printf("-1\n");
+                return 0;
+            }
+            lStrSCur = *it_restart_s + 1;
+        } else {
+            lStrSCur = *it_s + 1;
+        }
     }
+    printf("%lld\n", lLoopCnt * strS.size() + lStrSCur);
 
     return 0;
 }

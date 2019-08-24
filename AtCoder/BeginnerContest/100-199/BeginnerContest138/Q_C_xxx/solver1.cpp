@@ -219,41 +219,39 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-#define STRING_LEN  (10)
-
-static map<vector<SDWORD>, SDWORD> s_mapCnt;
-
-void registString(string s)
-{
-    vector<SDWORD> vecVal(STRING_LEN);
-
-    for (SDWORD lIdx = 0; lIdx < STRING_LEN; lIdx++) {
-        vecVal[lIdx] = s[lIdx] - 'a';
-    }
-    sort(vecVal.begin(), vecVal.end());
-
-    s_mapCnt[vecVal]++;
-}
-
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
 
+    vector<SQWORD> vecsqV;
     for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        string s;
-        cin >> s;
-
-        registString(s);
+        vecsqV.emplace_back(inputSQWORD());
     }
+    sort(vecsqV.begin(), vecsqV.end());
 
-    SQWORD sqAns = 0;
-    for (auto str: s_mapCnt) {
-//        printf("%lld\n", str.second);
-        sqAns += ((SQWORD)str.second * (SQWORD)(str.second - 1)) / 2;
+    DOUBLE dCurSum = ((DOUBLE)vecsqV[0] + (DOUBLE)vecsqV[1]) / 2.0;
+    SQWORD sqCurIdx = 2;
+    for (;;) {
+        if (sqN <= sqCurIdx) {
+            break;
+        }
+        bool bDouble = false;
+        if (sqCurIdx != sqN - 1) {
+            if (dCurSum < vecsqV[sqCurIdx + 1]) {
+                bDouble = true;
+            }
+        }
+        if (bDouble) {
+            /* 1個足す */
+            dCurSum = (dCurSum + (DOUBLE)vecsqV[sqCurIdx]) / 2;
+            sqCurIdx++;
+        } else {
+            /* 2個足す */
+            dCurSum = (dCurSum + ((DOUBLE)vecsqV[sqCurIdx] + (DOUBLE)vecsqV[sqCurIdx]) / 2.0) / 2.0;
+            sqCurIdx += 2;
+        }
     }
+    printf("%0.10f\n", dCurSum);
 
-    printf("%lld\n", sqAns);
-
-    
     return 0;
 }

@@ -233,10 +233,16 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 int main(void)
 {
-    SQWORD sqA = inputSQWORD();
-    SQWORD sqB = inputSQWORD();
+    string str, num;
 
-    printf("%lld\n", max(sqA + sqB, max(sqA - sqB, sqA * sqB)));
+    cin >> num;
+    cin >> str;
 
+    SDWORD lNum = atoi(num.c_str());
+    if (3200 <= lNum) {
+        cout << str;
+    } else {
+        printf("red\n");
+    }
     return 0;
 }

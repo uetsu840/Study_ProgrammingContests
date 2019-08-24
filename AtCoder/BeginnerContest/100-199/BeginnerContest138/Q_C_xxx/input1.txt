@@ -1,4 +1,2 @@
-3
-acornistnt
-peanutbomb
-constraint
+2
+3 4

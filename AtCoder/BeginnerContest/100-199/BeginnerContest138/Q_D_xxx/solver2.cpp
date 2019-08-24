@@ -219,167 +219,59 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
-/**
-*   ベルマンフォード法
-*/
-struct Edge {
-    SQWORD to;   // 辺の接続先頂点,
-    SQWORD cost;   //辺の重み
-    Edge(SQWORD to, SQWORD cost) : to(to), cost(cost) {}  // コンストラクタ
-};
+#define MAX_NODE    (200000)
 
-typedef vector<vector<Edge> > AdjList;  // 隣接リストの型
+static SQWORD s_sqAns[MAX_NODE + 1];
 
-#define NODE_NUM    (2501)
+static void dfs(
+    SDWORD lFrom, 
+    SDWORD lCur, 
+    const vector<SQWORD> *pVecEdge, 
+    const vector<SQWORD> &vecsqNodeVal,
+    SQWORD &sqSum)
+{
+    sqSum += vecsqNodeVal[lCur];
 
-class BellmanFordGraph {
-    const SQWORD UNDEF = (SQWORD)(-100100100100100100);
-    const SQWORD INF = (SQWORD)(100100100100100100);
-
-    SQWORD sqNodeNum;
-    AdjList graph;                  /* グラフの辺を格納した構造体
-                                      graph[v][i]は頂点vから出るi番目の辺Edge */ 
-    SQWORD score[NODE_NUM];
-    vector<SQWORD> avAdjFwd[NODE_NUM];
-    vector<SQWORD> avAdjRev[NODE_NUM];
-    bool abPassFwd[NODE_NUM];
-    bool abPassRev[NODE_NUM];
-    bool abOnPath[NODE_NUM];
-
-private:
-    inline void dfs_exec(
-        SQWORD sqNode, 
-        bool *pbPass, 
-        const vector<SQWORD> *pvAdj,
-        void (BellmanFordGraph::*pFunc)(SQWORD))
-    {
-        if (pbPass[sqNode]) {
-            return;
-        }
-        pbPass[sqNode] = true;
-        for (auto next: pvAdj[sqNode]) {
-            (this->*pFunc)(next);
+    for (auto e: pVecEdge[lCur]) {
+        if (e != lFrom) {
+            dfs(lCur, e, pVecEdge, vecsqNodeVal, sqSum);
         }
     }
 
-    void dfs(SQWORD sqNode)
-    {
-        dfs_exec(sqNode, abPassFwd, avAdjFwd, &BellmanFordGraph::dfs);
-    }
+    s_sqAns[lCur] = sqSum;
 
-    void rdfs(SQWORD sqNode)
-    {
-        dfs_exec(sqNode, abPassRev, avAdjRev, &BellmanFordGraph::rdfs);
-    }
-
-public:
-    BellmanFordGraph(SQWORD sqN) 
-    {
-        sqNodeNum = sqN;
-        graph.resize(sqN);
-        for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-            abPassFwd[sqIdx] = false;
-            abPassRev[sqIdx] = false;
-            abOnPath[sqIdx]  = true; 
-        }
-    };
-
-    void AddEdge(SQWORD sqFrom, SQWORD sqTo, SQWORD sqCost) 
-    {
-        graph[sqFrom].push_back(Edge(sqTo, sqCost));
-        avAdjFwd[sqFrom].push_back(sqTo);
-        avAdjRev[sqTo].push_back(sqFrom);
-    };
-
-    /**
-    *   有向グラフで開始点-終了点の間で通過不可能なノードを探す
-    *       (呼ばなければ全ノードを探索パスとする)
-    */
-    void searchUnpassableNode(
-        SQWORD sqStart,             /* 開始頂点 */
-        SQWORD sqGoal)              /* 到達頂点(閉路検出で使う) */
-    {
-        /* スタート・ゴールからそれぞれ到達可能なノードを探す */
-        dfs(sqStart);
-        rdfs(sqGoal);
-
-        for (SQWORD sqNodeIdx = 0; sqNodeIdx < sqNodeNum; sqNodeIdx++) {
-            abOnPath[sqNodeIdx] = abPassFwd[sqNodeIdx] && abPassRev[sqNodeIdx];
-        }
-    };
-
-private:
-    void updateBellmanFord(SQWORD sqV, bool &bUpdate)
-    {
-        if (!abOnPath[sqV]) {
-            return;
-        }
-        for (auto e: graph[sqV]) {
-            if ((score[sqV] != UNDEF) 
-                && (score[e.to] < score[sqV] + e.cost)) {
-                score[e.to] = score[sqV] + e.cost;
-                bUpdate = true;
-            }
-        }
-    };
-
-public:
-
-    /**
-    *   ベルマンフォード法
-    *       ・辺に価値がある変形版
-    *       ・戻り値が false なら正の閉路を含む
-    */
-    bool bellman_ford(
-        SQWORD sqStart,             /* 開始頂点 */
-        SQWORD sqGoal)              /* 到達頂点(閉路検出で使う) */
-    { 
-        for (SQWORD sqIdx = 0; sqIdx < sqNodeNum; sqIdx++) {
-            score[sqIdx] = UNDEF;
-        }
-        score[sqStart] = 0;         /* 開始点のスコアは0 */
-
-        bool bErr;
-        for (SQWORD i = 0; i <= sqNodeNum; i++) {
-            bool bUpdate = false;
-            for (int v = 0; v < sqNodeNum; v++) {
-                updateBellmanFord(v, bUpdate);
-            }
-            if ((sqNodeNum - 1 < i) && bUpdate) {
-                return false;
-            }
-        }
-        return true;
-    };
-
-    SQWORD GetScore(SQWORD sqNode) 
-    {
-        return score[sqNode];
-    }
-};
-
+    sqSum -= vecsqNodeVal[lCur];
+}
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqP = inputSQWORD();
+    SQWORD sqQ = inputSQWORD();
 
-    BellmanFordGraph graph(sqN + 1);
+    static vector<SQWORD>   s_avecEdge[MAX_NODE + 1];
 
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
+    for (SQWORD sqIdx = 0; sqIdx < sqN - 1; sqIdx++) {
         SQWORD sqA = inputSQWORD();
         SQWORD sqB = inputSQWORD();
-        SQWORD sqC = inputSQWORD();
 
-        graph.AddEdge(sqA, sqB, sqC - sqP);
+        s_avecEdge[sqA].emplace_back(sqB);
+        s_avecEdge[sqB].emplace_back(sqA);
     }
-    
-    graph.searchUnpassableNode(1, sqN);
-    if (graph.bellman_ford(1, sqN)) {
-        printf("%lld\n", max((SQWORD)0, graph.GetScore(sqN)));
-    } else {
-        printf("-1\n");
+
+    vector<SQWORD> vNodeVal(sqN+1, 0);
+
+    for (SQWORD sqQueryIdx = 0; sqQueryIdx < sqQ; sqQueryIdx++) {
+        SQWORD sqP = inputSQWORD();
+        SQWORD sqX = inputSQWORD();
+
+        vNodeVal[sqP] += sqX;
+    }
+    /* dfsで順序を作る */
+    SQWORD sqSum = 0;
+    dfs(-1, 1, s_avecEdge, vNodeVal, sqSum);
+
+    for (SQWORD sqIdx = 1; sqIdx <= sqN; sqIdx++) {
+        printf("%lld\n", s_sqAns[sqIdx]);
     }
 
     return 0;

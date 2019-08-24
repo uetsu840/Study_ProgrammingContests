@@ -240,6 +240,10 @@ public:
     /**
      *  str の中に word とマッチする場所のリストを返す
      * ret のそれぞれの要素 el は, 「str[el] からの文字列が word と一致する」ことを示す
+     * 
+     *  ★★★注意! MP法だと動くがKMP法だと動かない(TLEになる)ので、どこかバグってるっぽい。
+     *          solver2.cpp だと動いた。
+     * 
      */
     vector<SDWORD> wordSearch(const string& str, const string& word) {
         vector<SDWORD> table = makeTable(word), ret;

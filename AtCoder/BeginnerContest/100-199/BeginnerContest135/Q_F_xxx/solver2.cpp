@@ -217,166 +217,187 @@ static SQWORD combMod(SQWORD n, SQWORD k)
     return v;
 }
 
+/**
+ * KMP法 
+ */
+class KMP {
+public:
+    vector<SDWORD> makeTable(const string& s) {
+        SDWORD n = s.size();
+        vector<SDWORD> ret(n+1);
+        ret[0] = -1;
+        SDWORD j = -1;
+        for (SDWORD i = 0; i < n; i++) {
+            while ((0 <= j) && (s[i] != s[j])) {
+                j = ret[j];
+            } 
+            j++;
+
+            /* KMP法にするコード */
+            if (s[i+1] == s[j]) {
+                ret[i+1] = ret[j];
+            } else {
+                ret[i+1] = j;
+            }
+        }
+        return ret;
+    }
+
+    /**
+     *  str の中に word とマッチする場所のリストを返す
+     * ret のそれぞれの要素 el は, 「str[el] からの文字列が word と一致する」ことを示す
+     */
+    vector<SDWORD> wordSearch(const string& str, const string& word) {
+        vector<SDWORD> table = makeTable(word), ret;
+
+        SDWORD m = word.size();
+        SDWORD i = 0;
+        SDWORD j = 0;
+        SDWORD n = str.size();
+        while (j < n) {
+            while ((-1 < i) && (word[i]) != str[j]) {
+                i = table[i];
+            }
+            i++;
+            j++;
+            if (m <= i) {
+                ret.push_back(j - i);
+                i = table[i];
+            }
+        }
+        return ret;
+    }
+};
+
 /*----------------------------------------------*/
 
-/**
-*   ベルマンフォード法
-*/
-struct Edge {
-    SQWORD to;   // 辺の接続先頂点,
-    SQWORD cost;   //辺の重み
-    Edge(SQWORD to, SQWORD cost) : to(to), cost(cost) {}  // コンストラクタ
-};
+typedef struct {
+    vector<DWORD>   vdwPar;
+    vector<DWORD>   vdwRank;
+    vector<DWORD>   vdwCnt;
+    DWORD   dwSize;
 
-typedef vector<vector<Edge> > AdjList;  // 隣接リストの型
-
-class BellmanFordGraph {
-    const SQWORD UNDEF = (SQWORD)(-100100100100100100);
-    const SQWORD INF = (SQWORD)(100100100100100100);
-
-    SQWORD sqNodeNum;
-    AdjList graph;                  /* グラフの辺を格納した構造体
-                                      graph[v][i]は頂点vから出るi番目の辺Edge */ 
-    vector<SQWORD> score;
-    vector<vector<SQWORD>> vvsqAdjFwd;
-    vector<vector<SQWORD>> vvsqAdjRev;
-    vector<bool> vecbPassFwd;
-    vector<bool> vecbPassRev;
-    vector<bool> vecbOnPath;
-
-private:
-    inline void dfs_exec(
-        SQWORD sqNode, 
-        vector<bool> &vPass, 
-        const vector<vector<SQWORD>> sqAdj,
-        void (BellmanFordGraph::*pFunc)(SQWORD))
+    void initUnionFind(
+        DWORD dwSize)
     {
-        if (vPass[sqNode]) {
-            return;
-        }
-        vPass[sqNode] = true;
-        for (auto next: sqAdj[sqNode]) {
-            (this->*pFunc)(next);
+        dwSize = dwSize;
+        vdwPar.resize(dwSize);
+        vdwRank.resize(dwSize);
+        vdwCnt.resize(dwSize);
+    
+        for (DWORD dwIdx = 0; dwIdx < dwSize; dwIdx++) {
+            vdwPar[dwIdx]  = dwIdx;
+            vdwRank[dwIdx] = 0;
+            vdwCnt[dwIdx]  = 1;
         }
     }
 
-    void dfs(SQWORD sqNode)
-    {
-        dfs_exec(sqNode, vecbPassFwd, vvsqAdjFwd, &BellmanFordGraph::dfs);
+    DWORD ufGetCnt(DWORD sqIdx) {
+        return vdwCnt[ufGetParent(sqIdx)];
     }
 
-    void rdfs(SQWORD sqNode)
+
+    DWORD ufGetParent(DWORD dwIdx) const
     {
-        dfs_exec(sqNode, vecbPassRev, vvsqAdjRev, &BellmanFordGraph::rdfs);
+        return vdwPar[dwIdx];
     }
 
-public:
-    BellmanFordGraph(SQWORD sqN) 
+    DWORD ufGetRank(DWORD dwIdx) const
     {
-        sqNodeNum = sqN;
-        graph.resize(sqN);
-        score.resize(sqN, UNDEF);
-        vvsqAdjFwd.resize(sqN);
-        vvsqAdjRev.resize(sqN);
-        vecbPassFwd.resize(sqN, false);
-        vecbPassRev.resize(sqN, false);
-        vecbOnPath.resize(sqN, true);
-    };
+        return vdwRank[dwIdx];
+    }
 
-    void AddEdge(SQWORD sqFrom, SQWORD sqTo, SQWORD sqCost) 
+    void ufSetParent(DWORD dwIdx, DWORD dwParent)
     {
-        graph[sqFrom].push_back(Edge(sqTo, sqCost));
-        vvsqAdjFwd[sqFrom].push_back(sqTo);
-        vvsqAdjRev[sqTo].push_back(sqFrom);
-    };
+        vdwPar[dwIdx] = dwParent; 
+        if (ufGetRank(dwIdx) == ufGetRank(dwParent)) {
+            (vdwRank[dwParent])++;
+        }
+    }
 
-    /**
-    *   有向グラフで開始点-終了点の間で通過不可能なノードを探す
-    *       (呼ばなければ全ノードを探索パスとする)
-    */
-    void searchUnpassableNode(
-        SQWORD sqStart,             /* 開始頂点 */
-        SQWORD sqGoal)              /* 到達頂点(閉路検出で使う) */
+    DWORD ufGetRoot(DWORD dwIdx) const
     {
-        /* スタート・ゴールからそれぞれ到達可能なノードを探す */
-        dfs(sqStart);
-        rdfs(sqGoal);
-
-        for (SQWORD sqNodeIdx = 0; sqNodeIdx < sqNodeNum; sqNodeIdx++) {
-            vecbOnPath[sqNodeIdx] = vecbPassFwd[sqNodeIdx] && vecbPassRev[sqNodeIdx];
+        if (ufGetParent(dwIdx) == dwIdx) {
+            return dwIdx;
+        } else {
+            DWORD dwParent = ufGetParent(dwIdx);
+            DWORD dwRoot = ufGetRoot(dwParent);
+            return dwRoot;
         }
-    };
+    }
 
-private:
-    void updateBellmanFord(SQWORD sqV, bool &bUpdate)
+    bool ufUnite(DWORD dwX, DWORD dwY)
     {
-        if (!vecbOnPath[sqV]) {
-            return;
-        }
-        for (auto e: graph[sqV]) {
-            if ((score[sqV] != UNDEF) 
-                && (score[e.to] < score[sqV] + e.cost)) {
-                score[e.to] = score[sqV] + e.cost;
-                bUpdate = true;
-            }
-        }
-    };
+        DWORD dwRootX = ufGetRoot(dwX);
+        DWORD dwRootY = ufGetRoot(dwY);
 
-public:
-
-    /**
-    *   ベルマンフォード法
-    *       ・辺に価値がある変形版
-    *       ・戻り値が false なら正の閉路を含む
-    */
-    bool bellman_ford(
-        SQWORD sqStart,             /* 開始頂点 */
-        SQWORD sqGoal)              /* 到達頂点(閉路検出で使う) */
-    { 
-        fill(score.begin(), score.end(), UNDEF);
-        score[sqStart] = 0;         /* 開始点のスコアは0 */
-
-        bool bErr;
-        for (SQWORD i = 0; i <= sqNodeNum; i++) {
-            bool bUpdate = false;
-            for (int v = 0; v < sqNodeNum; v++) {
-                updateBellmanFord(v, bUpdate);
-            }
-            if ((sqNodeNum - 1 < i) && bUpdate) {
-                return false;
-            }
+        if (dwRootX == dwRootY) {
+            return false;
         }
+
+        if (ufGetRank(dwRootX) < ufGetRank(dwRootY)) {
+            ufSetParent(dwRootX, dwRootY);
+            (vdwCnt[dwRootY]) += (vdwCnt[dwRootX]);
+        } else {
+            ufSetParent(dwRootY, dwRootX);
+            (vdwCnt[dwRootX]) += (vdwCnt[dwRootY]);
+        }
+
         return true;
-    };
-
-    SQWORD GetScore(SQWORD sqNode) 
-    {
-        return score.at(sqNode);
     }
-};
 
+    bool ufIsSame(DWORD dwX, DWORD dwY) const
+    {
+        return (ufGetRoot(dwX)  == ufGetRoot(dwY));
+    }
+} ST_UNION_FIND;
+
+/*----------------------------------------------*/
 
 int main(void)
 {
-    SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqP = inputSQWORD();
+    KMP stringSearch;
 
-    BellmanFordGraph graph(sqN + 1);
+    string str_s, str_t;
 
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        SQWORD sqB = inputSQWORD();
-        SQWORD sqC = inputSQWORD();
+    cin >> str_s;
+    cin >> str_t;
 
-        graph.AddEdge(sqA, sqB, sqC - sqP);
+    SQWORD sqSLen = str_s.size();
+    SQWORD sqTLen = str_t.size();
+
+    string str_s_plus = str_s + str_s + str_s;  /* 最低3個は繰り返す */
+    while (str_s_plus.size() < str_t.size() * 2) {
+        str_s_plus += str_s;
     }
+
+    vector<SDWORD> vecMatchPos = stringSearch.wordSearch(str_s_plus, str_t);
+
+    ST_UNION_FIND Uf;
+    Uf.initUnionFind(sqSLen);
     
-    graph.searchUnpassableNode(1, sqN);
-    if (graph.bellman_ford(1, sqN)) {
-        printf("%lld\n", max((SQWORD)0, graph.GetScore(sqN)));
-    } else {
+    bool bIsForever = false;
+    for (auto pos: vecMatchPos) {
+        if (pos < str_s.size()) {
+            bool bFound = std::binary_search(vecMatchPos.begin(), vecMatchPos.end(), (pos + sqTLen) % sqSLen);
+            if (bFound) {
+                if (!Uf.ufUnite(pos, (pos + sqTLen) % sqSLen)) {
+                    bIsForever = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (bIsForever) {
         printf("-1\n");
+    } else {
+        SQWORD sqSizeMax = 0;
+        for (SDWORD lIdx = 0; lIdx < sqSLen; lIdx++) {
+            if (std::binary_search(vecMatchPos.begin(), vecMatchPos.end(), lIdx)) {
+                sqSizeMax = max(sqSizeMax, (SQWORD)Uf.ufGetCnt(lIdx));
+            }
+        }
+        printf("%lld\n", sqSizeMax);
     }
 
     return 0;
