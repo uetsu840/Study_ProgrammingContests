@@ -47,13 +47,25 @@ using FLOAT  = float;
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
 static inline DOUBLE MAX(DOUBLE a, DOUBLE b) { return a > b ? a : b; }
-static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
-static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
-static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
 static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
+
+static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
+
+static inline SQWORD MAX(SQWORD a, SQWORD b) { return a > b ? a : b; }
+static inline SQWORD MIN(SQWORD a, SQWORD b) { return a < b ? a : b; }
+
+static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
+
+static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+
+static inline DOUBLE ABS(DOUBLE a) { return 0 < a ? a : -a; }
+static inline bool DoubleIsZero(const DOUBLE &a)
+{
+    return ABS(a) < DOUBLE_EPS;
+}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -216,9 +228,105 @@ static SQWORD combMod(SQWORD n, SQWORD k)
     } 
     return v;
 }
+
 /*----------------------------------------------*/
+//#define N_ROW   (3)
+//#define N_COL   (3)
+
+#define N_ROW   (5)
+#define N_COL   (5)
+#define MAX_NUM (N_ROW * N_COL)
+static SDWORD s_aalNumbers[N_ROW][N_COL];
+
+
+static inline bool checkBoard(SQWORD sqBitMap, SQWORD sqPos)
+{
+    SQWORD sqRowIdx = sqPos / N_COL;
+    SQWORD sqColIdx = sqPos % N_COL;
+
+    if ((0 < sqRowIdx) && (sqRowIdx < (N_ROW - 1))) {
+        bool bExistT = sqBitMap & (0x1 << (sqPos + N_COL));
+        bool bExistB = sqBitMap & (0x1 << (sqPos - N_COL));
+        if (bExistT && (!bExistB)) {
+            return false;
+        }
+        if ((!bExistT) && bExistB) {
+            return false;
+        }
+    }
+    if ((0 < sqColIdx) && (sqColIdx < (N_COL - 1))) {
+        bool bExistL = sqBitMap & (0x1 << (sqPos + 1));
+        bool bExistR = sqBitMap & (0x1 << (sqPos - 1));
+        if (bExistL && (!bExistR)) {
+            return false;
+        }
+        if ((!bExistL) && bExistR) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static SDWORD bitCount (SDWORD lVal) {
+    SDWORD lRet = 0;
+    while (0 < lVal) {
+        lRet += (lVal & 1);
+        lVal >>= 1;
+    }
+    return lRet;
+}
 
 int main(void)
 {
-    return 0;
+    SDWORD alFixedPos[MAX_NUM + 1];
+    bool abFixedNum[MAX_NUM + 1];
+    for (SQWORD sqIdx = 0; sqIdx < ArrayLength(alFixedPos); sqIdx++) {
+        alFixedPos[sqIdx] = -1;
+        abFixedNum[sqIdx] = false;
+    }
+
+    for (SDWORD lRow = 0; lRow < N_ROW; lRow++) {
+        for (SDWORD lCol = 0; lCol < N_COL; lCol++) {
+            SDWORD lX = inputSDWORD();
+            s_aalNumbers[lRow][lCol] = lX;
+            if (0 != lX) {
+                alFixedPos[lX] = lRow * N_COL + lCol;
+                abFixedNum[lRow * N_COL + lCol] = true;
+            }
+        }
+    }
+
+    /**
+     *  1から順に置いてゆく 
+     *      dp[i][j]    i番目までを置いたとき、盤面の状態がj (25bit) に対応する場合の数
+     */
+    #define DPTBL_SIZE  ((0x1 << MAX_NUM) - 1)
+    static vector<SDWORD> veclDp(DPTBL_SIZE);
+
+    veclDp[0] = 1;
+    for (SQWORD sqBitMap = 0; sqBitMap < veclDp.size(); sqBitMap++) {
+        if (0 < veclDp[sqBitMap]) {
+            SDWORD lNum = bitCount(sqBitMap) + 1;
+            if (-1 != alFixedPos[lNum]) {
+                /* 場所が固定 */
+                if (checkBoard(sqBitMap, alFixedPos[lNum])) {
+                    veclDp[sqBitMap | (0x1 << alFixedPos[lNum])] = addMod(veclDp[sqBitMap | (0x1 << alFixedPos[lNum])],
+                                                                        veclDp[sqBitMap]);
+                }
+            } else {
+                /* 置ける場所を探す */
+                for (SQWORD sqPos = 0; sqPos < MAX_NUM; sqPos++) {
+                    if ((!abFixedNum[sqPos]) && !(sqBitMap & (1 << sqPos))) {
+                        if (checkBoard(sqBitMap, sqPos)) {                            
+                            veclDp[sqBitMap | (0x1 << sqPos)] = addMod(veclDp[sqBitMap | (0x1 << sqPos)], 
+                                                                        veclDp[sqBitMap]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    printf("%lld\n", veclDp[(0x1 << MAX_NUM) - 1]);
 }
