@@ -216,9 +216,70 @@ static SQWORD combMod(SQWORD n, SQWORD k)
     } 
     return v;
 }
+
 /*----------------------------------------------*/
+
+#define MAX_PARTICIPANT (1000)
 
 int main(void)
 {
+    SDWORD lN = inputSDWORD();
+
+    static queue<SDWORD> apqOrder[MAX_PARTICIPANT + 1];
+
+    for (SDWORD lNo = 1; lNo <= lN; lNo++) {
+        for (SDWORD lC = 0; lC < lN - 1; lC++) {
+            SDWORD lA = inputSDWORD();
+            apqOrder[lNo].push(lA);
+        }        
+    }
+
+    /* initialize */
+    static set<SDWORD> s_asetEntry[MAX_PARTICIPANT + 1];
+    for (SDWORD lNo = 1; lNo <= lN; lNo++) {
+        SDWORD lC = apqOrder[lNo].front();
+        apqOrder[lNo].pop();
+        s_asetEntry[lC].insert(lNo);
+    }
+
+    SQWORD sqDayCnt = 0;
+    for (;;) {
+        vector<SDWORD> veclRemoveCnt;
+
+        for (SDWORD lNo = 1; lNo <= lN; lNo++) {
+            for (auto it = s_asetEntry[lNo].begin(); it != s_asetEntry[lNo].end(); ++it) {
+                if (s_asetEntry[*it].end() != s_asetEntry[*it].find(lNo)) {
+                    veclRemoveCnt.emplace_back(*it);
+                    veclRemoveCnt.emplace_back(lNo);
+                    it = s_asetEntry[lNo].erase(it);
+                    s_asetEntry[*it].erase(lNo);
+                    if (it == s_asetEntry[lNo].end()) {
+                        break;
+                    }
+                }
+            }
+        }
+        if (0 == veclRemoveCnt.size()) {
+            break;
+        }
+        for (auto r: veclRemoveCnt) {
+            if (!(apqOrder[r].empty())) {
+                SDWORD lC = apqOrder[r].front();
+                s_asetEntry[lC].insert(r);
+                apqOrder[r].pop();
+            }
+        }
+        sqDayCnt++;
+    }
+
+    for (SDWORD lNo = 1; lNo <= lN; lNo++) {
+        if (!apqOrder[lNo].empty()) {
+            printf("-1\n");
+            return 0;
+        }
+    }
+    printf("%lld\n", sqDayCnt);
+
+
     return 0;
 }
