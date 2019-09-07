@@ -55,8 +55,6 @@ static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 
-const DOUBLE PI = 3.14159265357989;
-
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
 #define DWORD_BITS  (32)
@@ -172,11 +170,12 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-
-
+/*----------------------------------------------*/
 /**
  *  mod による操作ライブラリ
  */
+#define ANS_MOD (1000000007)
+
 class MODINT {
     static SQWORD MOD;
     SQWORD m_x;
@@ -249,94 +248,50 @@ public:
 
     SQWORD getVal() { return m_x; };
 };
-#define ANS_MOD (1000000007)
 SQWORD MODINT::MOD = ANS_MOD;
 
-/*----------------------------------------------*/
-
-class Combination {
-    vector<MODINT> vecmsqComb;
-public:
-    Combination(SQWORD sqN) {
-        /* nCjを事前計算する */
-        vecmsqComb.resize(sqN + 1);
-
-        MODINT sqComb((SQWORD)1);
-        vecmsqComb[0] = sqComb;
-        for (SQWORD sqJ = 1; sqJ <= sqN; sqJ++) {
-            sqComb *= MODINT(sqN - sqJ + 1);
-            sqComb /= MODINT(sqJ);
-            vecmsqComb[sqJ] = sqComb;
-        }
-    }
-
-    MODINT GetVal(SQWORD sqJ) 
-    {
-        return vecmsqComb[sqJ];
-    }
-};
 
 /*----------------------------------------------*/
 
-struct ENGINE_ONE {
-    SQWORD sqX;
-    SQWORD sqY;
-    DOUBLE dAngle;
-
-    ENGINE_ONE(SQWORD x, SQWORD y) {
-        sqX = x;
-        sqY = y;
-        dAngle = atan2((DOUBLE)y, (DOUBLE)x);
-    };
-};
-
-bool operator< (const ENGINE_ONE &a, const ENGINE_ONE &b) {
-    return a.dAngle < b.dAngle;
-}
-
-static DOUBLE getDistance(
-    const vector<ENGINE_ONE> vecstEngine, 
-    SQWORD sqL,
-    SQWORD sqR)
-{
-    SQWORD sqX = 0;
-    SQWORD sqY = 0;
-    for (SQWORD sqIdx = sqL; sqIdx <= sqR; sqIdx++) {
-        sqX += vecstEngine[sqIdx].sqX;
-        sqY += vecstEngine[sqIdx].sqY;
-    }
-    
-    DOUBLE dDist = sqrt((DOUBLE)sqX * (DOUBLE)sqX + (DOUBLE)sqY * (DOUBLE)sqY);
-    return dDist;
-}
+#define MAX_PARTICIPANT (1000)
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
+    SQWORD sqK = inputSQWORD();
 
-    vector<ENGINE_ONE> vecstEngines;
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        SQWORD sqX = inputSQWORD();
-        SQWORD sqY = inputSQWORD();
+    string str;
+    cin >> str;
 
-        vecstEngines.emplace_back(sqX, sqY);
-    }
-    sort(vecstEngines.begin(), vecstEngines.end());
-    for (auto engine: vecstEngines) {
-        ENGINE_ONE stAdd = engine;
-        stAdd.dAngle += PI * 2;
-        vecstEngines.emplace_back(stAdd);
-    }
-
-    
-    DOUBLE dAns;
-    for (SQWORD sqIdx1 = 0; sqIdx1 < sqN; sqIdx1++) {
-        for (SQWORD sqIdx2 = sqIdx1; sqIdx2 < sqIdx1 + sqN; sqIdx2++) {
-            dAns = max(dAns, getDistance(vecstEngines, sqIdx1, sqIdx2));
+    SQWORD sqOrgHpCnt = 0;
+    SQWORD sqTurnCnt = 0;
+    for (SQWORD lIdx = 0; lIdx < sqN - 1; lIdx++) {
+        if (str[lIdx] == str[lIdx + 1]) {
+            sqOrgHpCnt++;
+        } else {
+            sqTurnCnt++;
         }
     }
 
-    printf("%0.12f\n", dAns);
+    SQWORD sqAns = sqOrgHpCnt;
+    if (0 < sqTurnCnt) {
+        if ((0 < sqTurnCnt % 2)) {
+            /* 奇数 */
+            SQWORD sqBlock = (sqTurnCnt + 1) / 2;
+            if (sqBlock <= sqK) {
+                sqAns += (2 * (sqBlock - 1) + 1);
+            } else {
+//                printf("---> %lld\n", sqBlock);
+                sqAns += 2 * sqK;
+            }
+        } else {
+            /* 偶数 */
+            sqAns += 2 * min(sqTurnCnt / 2, sqK); 
+        }
+    }
+
+    printf("%lld\n", sqAns);
+
 
     return 0;
 }

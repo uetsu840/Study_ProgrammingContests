@@ -55,8 +55,6 @@ static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 
-const DOUBLE PI = 3.14159265357989;
-
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
 #define DWORD_BITS  (32)
@@ -172,11 +170,12 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-
-
+/*----------------------------------------------*/
 /**
  *  mod による操作ライブラリ
  */
+#define ANS_MOD (1000000007)
+
 class MODINT {
     static SQWORD MOD;
     SQWORD m_x;
@@ -249,94 +248,104 @@ public:
 
     SQWORD getVal() { return m_x; };
 };
-#define ANS_MOD (1000000007)
 SQWORD MODINT::MOD = ANS_MOD;
 
-/*----------------------------------------------*/
-
-class Combination {
-    vector<MODINT> vecmsqComb;
-public:
-    Combination(SQWORD sqN) {
-        /* nCjを事前計算する */
-        vecmsqComb.resize(sqN + 1);
-
-        MODINT sqComb((SQWORD)1);
-        vecmsqComb[0] = sqComb;
-        for (SQWORD sqJ = 1; sqJ <= sqN; sqJ++) {
-            sqComb *= MODINT(sqN - sqJ + 1);
-            sqComb /= MODINT(sqJ);
-            vecmsqComb[sqJ] = sqComb;
-        }
-    }
-
-    MODINT GetVal(SQWORD sqJ) 
-    {
-        return vecmsqComb[sqJ];
-    }
-};
 
 /*----------------------------------------------*/
 
-struct ENGINE_ONE {
-    SQWORD sqX;
-    SQWORD sqY;
-    DOUBLE dAngle;
+struct NUMBER_ARY_MEM {
+    SQWORD sqIdx;
+    SQWORD sqNum;
 
-    ENGINE_ONE(SQWORD x, SQWORD y) {
-        sqX = x;
-        sqY = y;
-        dAngle = atan2((DOUBLE)y, (DOUBLE)x);
-    };
+    NUMBER_ARY_MEM(SQWORD i, SQWORD n) : sqIdx(i), sqNum(n) {};
 };
-
-bool operator< (const ENGINE_ONE &a, const ENGINE_ONE &b) {
-    return a.dAngle < b.dAngle;
+bool greaterNum (const NUMBER_ARY_MEM &a, const NUMBER_ARY_MEM &b) {
+    return a.sqNum > b.sqNum;
 }
 
-static DOUBLE getDistance(
-    const vector<ENGINE_ONE> vecstEngine, 
-    SQWORD sqL,
-    SQWORD sqR)
-{
-    SQWORD sqX = 0;
-    SQWORD sqY = 0;
-    for (SQWORD sqIdx = sqL; sqIdx <= sqR; sqIdx++) {
-        sqX += vecstEngine[sqIdx].sqX;
-        sqY += vecstEngine[sqIdx].sqY;
-    }
-    
-    DOUBLE dDist = sqrt((DOUBLE)sqX * (DOUBLE)sqX + (DOUBLE)sqY * (DOUBLE)sqY);
-    return dDist;
-}
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
 
-    vector<ENGINE_ONE> vecstEngines;
+    vector<NUMBER_ARY_MEM> vecNums;
+
     for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        SQWORD sqX = inputSQWORD();
-        SQWORD sqY = inputSQWORD();
-
-        vecstEngines.emplace_back(sqX, sqY);
+        SQWORD sqP = inputSQWORD();
+        vecNums.emplace_back(sqIdx, sqP);
     }
-    sort(vecstEngines.begin(), vecstEngines.end());
-    for (auto engine: vecstEngines) {
-        ENGINE_ONE stAdd = engine;
-        stAdd.dAngle += PI * 2;
-        vecstEngines.emplace_back(stAdd);
-    }
+    sort(vecNums.begin(), vecNums.end(), greaterNum);
 
-    
-    DOUBLE dAns;
-    for (SQWORD sqIdx1 = 0; sqIdx1 < sqN; sqIdx1++) {
-        for (SQWORD sqIdx2 = sqIdx1; sqIdx2 < sqIdx1 + sqN; sqIdx2++) {
-            dAns = max(dAns, getDistance(vecstEngines, sqIdx1, sqIdx2));
+    set<SQWORD> setNumPos;
+    setNumPos.insert(-1);
+    setNumPos.insert(-2);
+    setNumPos.insert(100000);
+    setNumPos.insert(100001);
+
+    SQWORD sqAns = 0;
+
+    for (auto num: vecNums) {
+//        printf("num : %lld %lld\n", num.sqNum, num.sqIdx);
+        setNumPos.insert(num.sqIdx);
+
+        auto it = setNumPos.find(num.sqIdx);
+        auto it_l = it;
+        auto it_r = it;
+        SDWORD lPos_l1 = *(--it_l);
+        SDWORD lPos_l2 = *(--it_l);
+        SDWORD lPos_r1 = *(++it_r);
+        SDWORD lPos_r2 = *(++it_r);
+
+//        printf("%d %d %d %d\n", lPos_l2, lPos_l1, lPos_r1, lPos_r2);
+        /* 左側に自分より大きな数がいる */
+        { 
+            SQWORD sqNumCntR;
+            if (100000 <= lPos_r1) {
+                sqNumCntR = sqN - num.sqIdx;
+            } else {
+                sqNumCntR = lPos_r1 - num.sqIdx;
+            }
+
+            SQWORD sqNumCntL;
+            if (lPos_l1 < 0) {
+                sqNumCntL = 0;
+            } else {
+                if (lPos_l2 < 0) {
+                    sqNumCntL = lPos_l1 + 1;
+                } else {
+                    sqNumCntL = lPos_l1 - lPos_l2;
+                }
+            } 
+//            printf("<LEFT>   L: %lld R: %lld\n", sqNumCntL, sqNumCntR);
+            sqAns += sqNumCntR * sqNumCntL * num.sqNum;
+        }
+        
+
+        /* 右側に自分より大きな数がいる */
+        { 
+            SQWORD sqNumCntL;
+            if (lPos_l1 < 0) {
+                sqNumCntL = num.sqIdx + 1;
+            } else {
+                sqNumCntL = num.sqIdx - lPos_l1;
+            }
+
+            SQWORD sqNumCntR;
+            if (100000 <= lPos_r1) {
+                sqNumCntR = 0;
+            } else {
+                if (100000 <= lPos_r2) {
+                    sqNumCntR = sqN - lPos_r1;
+                } else {
+                    sqNumCntR = lPos_r2 - lPos_r1;
+                }
+            } 
+//            printf("<RIGHT>   L: %lld R: %lld\n", sqNumCntL, sqNumCntR);
+            sqAns += sqNumCntR * sqNumCntL * num.sqNum;
         }
     }
+    printf("%lld\n", sqAns);
 
-    printf("%0.12f\n", dAns);
 
     return 0;
 }
