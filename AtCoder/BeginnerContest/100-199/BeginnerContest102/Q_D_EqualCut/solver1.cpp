@@ -253,55 +253,47 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 /*----------------------------------------------*/
 
-void debugPrint(multiset<SQWORD> &s)
-{
-    for (auto mem: s) {
-        printf("%lld ", mem);
-    } 
-    printf("\n");
-}
-
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
 
-    multiset<SQWORD> setSlimes;
+    vector<SQWORD> vecsqCumSum;
 
-    SQWORD sqMax = ((SQWORD)0x1 << sqN);
-    for (SQWORD sqIdx = 0; sqIdx < sqMax; sqIdx++) {
-        setSlimes.insert(inputSQWORD());    
+    vecsqCumSum.emplace_back(0);
+    SQWORD sqSum = 0;
+    for (SDWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqA = inputSQWORD();
+        sqSum += sqA;
+        vecsqCumSum.emplace_back(sqSum);
     }
 
-    multiset<SQWORD> setParentSlimes;
-    auto first_it = setSlimes.end();
-    first_it--;
-    setParentSlimes.insert(*first_it);
-    setSlimes.erase(first_it);
-    for (SQWORD sqTime = 0; sqTime < sqN; sqTime++) {
-        vector<SQWORD> vecsqAddSlimes;
-        /* 貪欲に子供を作る */
-        for (auto parent_slime: setParentSlimes) {
-            SQWORD sqChildSlime;
-            auto it = setSlimes.lower_bound(parent_slime);
-            if (it == setSlimes.begin()) {
-                if (*it == parent_slime) {
-                    printf("No\n");
-                    return 0;
-                }
-                sqChildSlime = *it;
-            } else {
-                it--;
-                sqChildSlime = *it;
+    SQWORD sqAns = MAX_SQWORD;    
+    for (SQWORD sqSepPos = 2; sqSepPos < sqN-1; sqSepPos++) {
+        SQWORD sqLowerSum = vecsqCumSum[sqSepPos];
+        SQWORD sqUpperSum = vecsqCumSum[sqN] - sqLowerSum;
+        auto it_lowersep = lower_bound(vecsqCumSum.begin(), vecsqCumSum.end(), sqLowerSum / 2);
+        auto it_uppersep = upper_bound(vecsqCumSum.begin(), vecsqCumSum.end(), sqLowerSum + sqUpperSum / 2);
+
+        SQWORD sqSepL = it_lowersep - vecsqCumSum.begin();
+        SQWORD sqSepR = it_uppersep - vecsqCumSum.begin();
+
+        for (SQWORD sqSep1 = max((SQWORD)1, sqSepL - 1); sqSep1 < min(sqSepL + 1, sqSepPos); sqSep1++) {
+            for (SQWORD sqSep2 = max(sqSepPos + 1, sqSepR - 1); sqSep2 < min(sqSepR + 1, sqN); sqSep2++) {
+                SQWORD sqLL = vecsqCumSum[sqSep1];
+                SQWORD sqLR = vecsqCumSum[sqSepPos] - vecsqCumSum[sqSep1];
+                SQWORD sqUL = vecsqCumSum[sqSep2]   - vecsqCumSum[sqSepPos];
+                SQWORD sqUR = vecsqCumSum[sqN]      - vecsqCumSum[sqSep2];
+                SQWORD sqMax = max(max(sqLL, sqLR), max(sqUL, sqUR));
+                SQWORD sqMin = min(min(sqLL, sqLR), min(sqUL, sqUR));
+//                printf("%lld %lld\n", sqMax, sqMin);
+
+                sqAns = min(sqAns, sqMax - sqMin);
             }
-            vecsqAddSlimes.emplace_back(sqChildSlime);
-            setSlimes.erase(it);
-        }
-        /* 子供を親の集合に足す */
-        for (auto child: vecsqAddSlimes) {
-            setParentSlimes.insert(child);
         }
     }
-    printf("Yes\n");
+
+
+    printf("%lld\n", sqAns);
 
     return 0;
 }

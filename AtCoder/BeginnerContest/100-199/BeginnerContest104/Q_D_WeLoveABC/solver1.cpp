@@ -253,55 +253,57 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 /*----------------------------------------------*/
 
-void debugPrint(multiset<SQWORD> &s)
-{
-    for (auto mem: s) {
-        printf("%lld ", mem);
-    } 
-    printf("\n");
-}
-
 int main(void)
 {
-    SQWORD sqN = inputSQWORD();
+    string s;
 
-    multiset<SQWORD> setSlimes;
+    cin >> s;
+    SQWORD sqN = s.size();
 
-    SQWORD sqMax = ((SQWORD)0x1 << sqN);
-    for (SQWORD sqIdx = 0; sqIdx < sqMax; sqIdx++) {
-        setSlimes.insert(inputSQWORD());    
-    }
-
-    multiset<SQWORD> setParentSlimes;
-    auto first_it = setSlimes.end();
-    first_it--;
-    setParentSlimes.insert(*first_it);
-    setSlimes.erase(first_it);
-    for (SQWORD sqTime = 0; sqTime < sqN; sqTime++) {
-        vector<SQWORD> vecsqAddSlimes;
-        /* 貪欲に子供を作る */
-        for (auto parent_slime: setParentSlimes) {
-            SQWORD sqChildSlime;
-            auto it = setSlimes.lower_bound(parent_slime);
-            if (it == setSlimes.begin()) {
-                if (*it == parent_slime) {
-                    printf("No\n");
-                    return 0;
+    /* */
+    static MODINT s_aasqDpTbl[3];
+    static MODINT s_sqDpBase = 1;
+    static MODINT s_asqDpSum[3];
+    for (SQWORD sqDpIdx = 0; sqDpIdx < sqN; sqDpIdx++) {
+        if ('?' != s[sqDpIdx]) {
+            switch (s[sqDpIdx]) {
+            case 'A':
+                {
+                    s_aasqDpTbl[0] = s_sqDpBase;
+                    s_aasqDpTbl[1] = 0;
+                    s_aasqDpTbl[2] = 0;
                 }
-                sqChildSlime = *it;
-            } else {
-                it--;
-                sqChildSlime = *it;
+                break;
+            case 'B':
+                {
+                    s_aasqDpTbl[0] = 0;
+                    s_aasqDpTbl[1] = s_asqDpSum[0];
+                    s_aasqDpTbl[2] = 0;
+                }
+                break;
+            case 'C':
+                {
+                    s_aasqDpTbl[0] = 0;
+                    s_aasqDpTbl[1] = 0;
+                    s_aasqDpTbl[2] = s_asqDpSum[1];
+                }
             }
-            vecsqAddSlimes.emplace_back(sqChildSlime);
-            setSlimes.erase(it);
+            s_asqDpSum[0] += s_aasqDpTbl[0];
+            s_asqDpSum[1] += s_aasqDpTbl[1];
+            s_asqDpSum[2] += s_aasqDpTbl[2];
+        } else {
+            s_aasqDpTbl[0] = s_sqDpBase;
+            s_aasqDpTbl[1] = s_asqDpSum[0];
+            s_aasqDpTbl[2] = s_asqDpSum[1];
+
+            s_sqDpBase *= 3;
+            s_asqDpSum[0] = s_asqDpSum[0] * 3 + s_aasqDpTbl[0];
+            s_asqDpSum[1] = s_asqDpSum[1] * 3 + s_aasqDpTbl[1];
+            s_asqDpSum[2] = s_asqDpSum[2] * 3 + s_aasqDpTbl[2];
         }
-        /* 子供を親の集合に足す */
-        for (auto child: vecsqAddSlimes) {
-            setParentSlimes.insert(child);
-        }
+//        printf("%lld %lld %lld\n", s_asqDpSum[0], s_asqDpSum[1], s_asqDpSum[2]);
     }
-    printf("Yes\n");
+    printf("%lld\n", s_asqDpSum[2]);
 
     return 0;
 }
