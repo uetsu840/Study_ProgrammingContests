@@ -3,10 +3,12 @@
 /**
  *  セグメント木
  */
-struct SEGMENT_NODE_ST {
+struct SEGMENT_NODE_MAX_ST {
     SQWORD sqVal;
 
 public:
+    SEGMENT_NODE_MAX_ST(SQWORD a) : sqVal(a) {};
+    SEGMENT_NODE_MAX_ST() : sqVal(0) {};
     static SQWORD getInvalidVal()
     {
         return 0;
@@ -23,10 +25,35 @@ public:
     }
 };
 
-struct SegmentTree {
+struct SEGMENT_NODE_MIN_ST {
+    SQWORD sqVal;
+
+public:
+    SEGMENT_NODE_MIN_ST(SQWORD a) : sqVal(a) {};
+    SEGMENT_NODE_MIN_ST() : sqVal(0) {};
+
+    static SQWORD getInvalidVal()
+    {
+        return MAX_SQWORD;
+    }
+    static SQWORD uniteVal(SQWORD sqValA, SQWORD sqValB)
+    {
+        return min(sqValA, sqValB);
+    }
+    void init() {
+        sqVal = getInvalidVal();
+    }
+    void debugPrint() {
+        printf("%lld ", sqVal);
+    }
+};
+
+
+template<typename T>
+class SegmentTree {
 private:
     DWORD dwBaseSize;
-    vector<SEGMENT_NODE_ST> vNode;
+    vector<T> vNode;
 
 private:
     void debugPrint(void)
@@ -39,17 +66,17 @@ private:
         }
     }
 
-    static inline SEGMENT_NODE_ST updateNode(
-        const SEGMENT_NODE_ST &stL,
-        const SEGMENT_NODE_ST &stR)
+    static inline T updateNode(
+        const T &stL,
+        const T &stR)
     {
-        SEGMENT_NODE_ST stRet;
+        T stRet;
         
-        stRet.sqVal = SEGMENT_NODE_ST::uniteVal(stR.sqVal, stL.sqVal);
+        stRet.sqVal = T::uniteVal(stR.sqVal, stL.sqVal);
         return stRet;
     }
 
-    void initSegmentTree(vector<SEGMENT_NODE_ST> &v) {
+    void initSegmentTree(vector<T> &v) {
         /**
          *  最下段のノード数は元配列のサイズ以上になる最小の 2 冪 -> これを n とおく
          * セグメント木全体で必要なノード数は 2n-1 個である
@@ -80,11 +107,11 @@ private:
 
 public:
     /* 元配列 v をセグメント木で表現する */
-    SegmentTree(vector<SEGMENT_NODE_ST> v) {
+    SegmentTree(vector<T> v) {
         initSegmentTree(v);
     }
 
-    void update(DWORD dwNodeIdx, const SEGMENT_NODE_ST &stNewVal) {
+    void update(DWORD dwNodeIdx, const T &stNewVal) {
 
         // 最下段のノードにアクセスする
         SDWORD lTreeIdx = dwNodeIdx + (dwBaseSize - 1);
@@ -97,14 +124,14 @@ public:
         }
     }
 
-    SQWORD GetMax(SDWORD lA, SDWORD lB, SDWORD lNodeIdx=0, SDWORD lLeft=0, SDWORD lRight=-1)
+    SQWORD GetValue(SDWORD lA, SDWORD lB, SDWORD lNodeIdx=0, SDWORD lLeft=0, SDWORD lRight=-1)
     {
         if (-1 == lRight) {
             lRight = dwBaseSize;
         }
 
         if ((lRight <= lA) || (lB <= lLeft)) {
-            return SEGMENT_NODE_ST::getInvalidVal();
+            return T::getInvalidVal();
         }
 
         if ((lA <= lLeft) && (lRight <= lB)) {
@@ -113,8 +140,8 @@ public:
 
         SQWORD sqResL, sqResR;
         SQWORD lCenter = (lLeft + lRight) / 2;
-        sqResL = GetMax(lA, lB, (lNodeIdx * 2) + 1, lLeft, lCenter);
-        sqResR = GetMax(lA, lB, (lNodeIdx * 2) + 2, lCenter, lRight);
-        return SEGMENT_NODE_ST::uniteVal(sqResL, sqResR);
+        sqResL = GetValue(lA, lB, (lNodeIdx * 2) + 1, lLeft, lCenter);
+        sqResR = GetValue(lA, lB, (lNodeIdx * 2) + 2, lCenter, lRight);
+        return T::uniteVal(sqResL, sqResR);
     }
 };
