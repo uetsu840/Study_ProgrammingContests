@@ -161,95 +161,15 @@ static inline DOUBLE inputFP(void)
 }
 
 /*----------------------------------------------*/
-/**
- *  mod による操作ライブラリ
- */
-#define ANS_MOD (1000000007)
-
-class MODINT {
-    static SQWORD MOD;
-    SQWORD m_x;
-
-public:
-    MODINT(SQWORD val) {
-        m_x = (val % MOD + MOD) % MOD;
-    };
-    MODINT() {
-        m_x = 0;
-    }
-    static void Init(SQWORD sqMod) {
-        MOD = sqMod;
-    }
-
-	MODINT& operator+= (const MODINT a)
-    {
-        m_x = (m_x + a.m_x) % MOD; 
-        return *this;
-    };
-	MODINT& operator-= (const MODINT a)
-    { 
-        m_x = (m_x - a.m_x + MOD) % MOD; 
-        return *this;
-    };
-	MODINT& operator*= (const MODINT a)
-    {
-        m_x = (m_x * a.m_x) % MOD;
-        return *this;
-    };
-    MODINT pow(SQWORD t) const {
-        if (!t) return 1;
-        MODINT a = pow(t>>1);
-        a *= a;
-        if (t&1) a *= *this;
-        return a;
-    }
-	MODINT operator+ (const MODINT a) const {
-		MODINT res(*this);
-		return (res += a);
-	}
-	MODINT operator- (const MODINT a) const {
-		MODINT res(*this);
-		return (res -= a);
-	}
-	MODINT operator* (const MODINT a) const {
-		MODINT res(*this);
-		return (res *= a);
-	}
-	MODINT operator/ (const MODINT a) const {
-		MODINT res(*this);
-		return (res /= a);
-	}
-
-    /* 逆元 */
-    MODINT inv() const {
-        return pow(MOD-2);
-    }
-
-    /* 除算 */
-    MODINT& operator/=(const MODINT a) {
-        return (*this) *= a.inv();
-    } 
-
-    /* 整数版 */
-	MODINT& operator+= (const SQWORD a) {*this += MODINT(a); return *this;};
-	MODINT& operator-= (const SQWORD a) {*this -= MODINT(a); return *this;};
-	MODINT& operator*= (const SQWORD a) {*this *= MODINT(a); return *this;};
-	MODINT& operator/= (const SQWORD a) {*this /= MODINT(a); return *this;};
-
-    SQWORD getVal() { return m_x; };
-};
-SQWORD MODINT::MOD = ANS_MOD;
 
 
 /*----------------------------------------------*/
 
-class VECTOR_2D {
+struct VECTOR_2D {
     DOUBLE dX;
     DOUBLE dY;
-
-public:
     VECTOR_2D(DOUBLE x, DOUBLE y) : dX(x), dY(y) {};
-    VECTOR_2D(const VECTOR_2D &v) : dX(v.dX), dY(v.dY) {};
+    VECTOR_2D() : dX(0), dY(0) {};
 
 	VECTOR_2D& operator-= (const VECTOR_2D a)
     { 
@@ -257,23 +177,26 @@ public:
         dY = dY - a.dY;
         return *this;
     };
-    VECTOR_2D& operator- (const VECTOR_2D a) const {
-		VECTOR_2D res(*this);
-		return (res -= a);
+    const VECTOR_2D operator- (const VECTOR_2D a) const {
+		return VECTOR_2D(dX - a.dX, dY - a.dY);
     };
 
-    DOUBLE norm(void) const {
+    DOUBLE norm(void)
+    {
         return (dX * dX + dY * dY);
     }
 
-    DOUBLE dist(void) const {
+    DOUBLE dist(void)
+    {
         return sqrt(norm());
     }
 
-    DOUBLE angle(void) const {
+    DOUBLE angle(void)
+    {
         return atan2(dY, dX);
     }
 };
+
 
 struct PROBLEM_ONE {
     SQWORD sqN;
@@ -321,19 +244,16 @@ static void solve(PROBLEM_ONE &stPro) {
     for (SDWORD sqBaseIdx = 0; sqBaseIdx < stPro.sqN; sqBaseIdx++) {
         VECTOR_2D stBase = stPro.vecCenter[sqBaseIdx];
         vector<INTERSECTION> vecstIntersection;
-        vecstIntersection.clear();
 
         for (SQWORD sqTgtIdx = 0; sqTgtIdx < stPro.sqN; sqTgtIdx++) {
             VECTOR_2D stTgt = stPro.vecCenter[sqTgtIdx];
             if (sqTgtIdx != sqBaseIdx) {
                 VECTOR_2D stRel = stTgt - stBase;
                 DOUBLE dDist = stRel.dist();
-//                printf("d: %llf \n", dDist);
 
                 if (dDist < 2.0) {
                     DOUBLE dCenterAngle = stRel.angle();
                     DOUBLE dRelAngle = acos(dDist / 2.0);
-//                    printf("angle :%llf rel: %llf\n", dCenterAngle, dRelAngle);
                     DOUBLE dAngle1 = normalizeAngle(dCenterAngle - dRelAngle);
                     DOUBLE dAngle2 = normalizeAngle(dCenterAngle + dRelAngle);
 
@@ -342,10 +262,8 @@ static void solve(PROBLEM_ONE &stPro) {
                 }
             }
         }
-//        printf("\n");
         sort(vecstIntersection.begin(), vecstIntersection.end());
         set<SQWORD> setsqCurCrossing;
-        setsqCurCrossing.clear();
         SQWORD sqCnt = 0;
         for (SDWORD lCircle = 0; lCircle < 2; lCircle++) {
             for (auto intsect: vecstIntersection) {

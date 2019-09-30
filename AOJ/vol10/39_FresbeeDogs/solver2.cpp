@@ -4,9 +4,6 @@ using namespace std;
 
 #include <bits/stdc++.h>
 
-
-using namespace std;
-
 using QWORD  = uint64_t;
 using SQWORD = int64_t;
 using DWORD  = uint32_t;
@@ -46,7 +43,7 @@ static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 
-static inline DOUBLE ABS(DOUBLE a) { return 0 < 0 ? (a) : -(a); }
+static inline DOUBLE ABS(DOUBLE a) { return 0.0 < (a) ? (a) : -(a); };
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -166,6 +163,85 @@ static inline DOUBLE inputFP(void)
 }
 
 /*----------------------------------------------*/
+/**
+ *  mod による操作ライブラリ
+ */
+#define ANS_MOD (1000000007)
+
+class MODINT {
+    static SQWORD MOD;
+    SQWORD m_x;
+
+public:
+    MODINT(SQWORD val) {
+        m_x = (val % MOD + MOD) % MOD;
+    };
+    MODINT() {
+        m_x = 0;
+    }
+    static void Init(SQWORD sqMod) {
+        MOD = sqMod;
+    }
+
+	MODINT& operator+= (const MODINT a)
+    {
+        m_x = (m_x + a.m_x) % MOD; 
+        return *this;
+    };
+	MODINT& operator-= (const MODINT a)
+    { 
+        m_x = (m_x - a.m_x + MOD) % MOD; 
+        return *this;
+    };
+	MODINT& operator*= (const MODINT a)
+    {
+        m_x = (m_x * a.m_x) % MOD;
+        return *this;
+    };
+    MODINT pow(SQWORD t) const {
+        if (!t) return 1;
+        MODINT a = pow(t>>1);
+        a *= a;
+        if (t&1) a *= *this;
+        return a;
+    }
+	MODINT operator+ (const MODINT a) const {
+		MODINT res(*this);
+		return (res += a);
+	}
+	MODINT operator- (const MODINT a) const {
+		MODINT res(*this);
+		return (res -= a);
+	}
+	MODINT operator* (const MODINT a) const {
+		MODINT res(*this);
+		return (res *= a);
+	}
+	MODINT operator/ (const MODINT a) const {
+		MODINT res(*this);
+		return (res /= a);
+	}
+
+    /* 逆元 */
+    MODINT inv() const {
+        return pow(MOD-2);
+    }
+
+    /* 除算 */
+    MODINT& operator/=(const MODINT a) {
+        return (*this) *= a.inv();
+    } 
+
+    /* 整数版 */
+	MODINT& operator+= (const SQWORD a) {*this += MODINT(a); return *this;};
+	MODINT& operator-= (const SQWORD a) {*this -= MODINT(a); return *this;};
+	MODINT& operator*= (const SQWORD a) {*this *= MODINT(a); return *this;};
+	MODINT& operator/= (const SQWORD a) {*this /= MODINT(a); return *this;};
+
+    SQWORD getVal() { return m_x; };
+};
+SQWORD MODINT::MOD = ANS_MOD;
+
 
 /*----------------------------------------------*/
 
@@ -235,9 +311,9 @@ struct FRESBEE_ST {
 static bool solve2DEquation(
     DOUBLE dA, DOUBLE dB, DOUBLE dC, DOUBLE &dAns1, DOUBLE &dAns2)
 {
-    if (ABS(dA) < DOUBLE_EPS) {
+    if (abs(dA) < DOUBLE_EPS) {
         /* 1d equation */
-        if (ABS(dB) < DOUBLE_EPS) {
+        if (abs(dB) < DOUBLE_EPS) {
             return false;
         } else {
             dAns1 = - dC / dB;
@@ -271,7 +347,7 @@ static DOUBLE getCatchTime(
     DOUBLE dB = -2.0 * dDist * cos(dTheta) * dVelFres;
     DOUBLE dC = dDist * dDist;
 
-    DOUBLE dAns1 = 0.0, dAns2 = 0.0;
+    DOUBLE dAns1, dAns2;
 
     if (!solve2DEquation(dA, dB, dC, dAns1, dAns2)) {
 //        printf("2d equation false1\n");
@@ -307,7 +383,7 @@ static bool getCatchTimeOneDog(
     stFtoD = stDogPos - stFresbee.stStrtPos;
     DOUBLE dAngleDog     = atan2(stFtoD.dY, stFtoD.dX);
     DOUBLE dAngleFresbee = atan2(stFresbee.stVel.dY, stFresbee.stVel.dX);
-    DOUBLE dTheta = min(ABS(dAngleDog - dAngleFresbee), (2.0 * d_PI - ABS(dAngleDog - dAngleFresbee)));
+    DOUBLE dTheta = min(abs(dAngleDog - dAngleFresbee), (2.0 * d_PI - abs(dAngleDog - dAngleFresbee)));
 
     DOUBLE dDist = stFtoD.dist();
     DOUBLE dVelFres = sqrt(stFresbee.stVel.norm());
@@ -350,11 +426,10 @@ static bool solve()
         vecstFresbee.emplace_back(VECTOR_2D(dFx, dFy), VECTOR_2D(dFvx, dFvy));
     }
 
-    vector<SQWORD> vecCatchCnt(sqN);
+    vector<SQWORD> vecCatchCnt(sqN, 0);
     for (SQWORD sqIter = 0; sqIter < sqM; sqIter++) {
         vector<DOUBLE> vecdCatchTime(sqN, MAX_DOUBLE);
         for (SQWORD sqDogIdx = 0; sqDogIdx < sqN; sqDogIdx++) {
-            DOUBLE dCurCatchTime;
             bool bCatchable = getCatchTimeOneDog(sqDogIdx, vecdVelDogs[sqDogIdx], vecPosDogs, 
                                                     vecstFresbee[sqIter], vecdCatchTime[sqDogIdx]);
 #if 0
@@ -378,7 +453,7 @@ static bool solve()
             if (dCatchTime != MAX_DOUBLE) {
                 VECTOR_2D stInitPos   = vecPosDogs[sqDogIdx];
                 VECTOR_2D stTargetPos = vecstFresbee[sqIter].stStrtPos + vecstFresbee[sqIter].stVel * dCatchTime;
-                VECTOR_2D stNextPos   = stInitPos + (stTargetPos - stInitPos) * (dMinCatchTime / dCatchTime);
+                VECTOR_2D stNextPos   = stInitPos + ((stTargetPos - stInitPos) * (dMinCatchTime / dCatchTime));
 //                printf("catch [%llf %llf] tgt[%llf %llf]\n", dCatchTime, dMinCatchTime, stTargetPos.dX, stTargetPos.dY);
 
                 vecPosDogs[sqDogIdx] = stNextPos;
@@ -405,6 +480,4 @@ int main(void)
             break;
         }
     }
-
-    return 0;
 }
