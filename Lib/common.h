@@ -54,6 +54,7 @@ static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+static inline DOUBLE ABS(DOUBLE a) { return 0 < a ? a : -a; };
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -61,3 +62,5 @@ static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 #define QWORD_BITS  (64)
 
 #define ANS_MOD (1000000007)
+
+static const DOUBLE d_PI = 3.14159265358979323846;
