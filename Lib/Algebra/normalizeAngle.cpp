@@ -1,4 +1,5 @@
 #include "common.h"
+
 /**
  *  角度の扱い 
  */
