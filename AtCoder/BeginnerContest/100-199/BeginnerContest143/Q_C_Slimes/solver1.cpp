@@ -13,6 +13,7 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
+#include <list>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -39,12 +40,17 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
+#define MAX_DOUBLE      (1.0e+308)
+#define DOUBLE_EPS      (1.0e-12)
+#define MIN_DOUBLE_N    (-1.0e+308)
 
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
+static inline DOUBLE MAX(DOUBLE a, DOUBLE b) { return a > b ? a : b; }
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
 static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
 static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
+static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
@@ -54,10 +60,19 @@ static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 #define DWORD_BITS  (32)
 #define QWORD_BITS  (64)
 
-using M_BOOL = bool;
-#define M_TRUE (true)
-#define M_FALSE (false)
-#define DIVISOR (1000000007)
+static inline void inputStringSpSeparated(char *pcStr)
+{
+    char *pcCur = pcStr;
+    for (;;) {
+        char c = getchar();
+        if (('\n' == c) || (EOF == c) || (' ' == c)) {
+            break;
+        }
+        *pcCur = c;
+        pcCur++;
+    }
+    *pcCur = '\0';
+}
 
 static inline void inputString(char *pcStr)
 {
@@ -78,7 +93,7 @@ static inline SQWORD inputSQWORD(void)
 {
     SQWORD sqNumber = 0;
     SQWORD sqMultiplier = 1;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -89,7 +104,7 @@ static inline SQWORD inputSQWORD(void)
         if (('0' <= c) && (c <= '9')) {
             sqNumber *= 10LL;
             sqNumber += (SQWORD)(c - '0');
-            bRead = M_TRUE;
+            bRead = true;
         } else {
             if (bRead) {
                 return sqNumber * sqMultiplier;
@@ -103,7 +118,7 @@ static inline SDWORD inputSDWORD(void)
 {
     SDWORD lNumber = 0;
     SDWORD lMultiplier = 1;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -114,7 +129,7 @@ static inline SDWORD inputSDWORD(void)
         if (('0' <= c) && (c <= '9')) {
             lNumber *= 10;
             lNumber += (c - '0');
-            bRead = M_TRUE;
+            bRead = true;
         } else {
             if (bRead) {
                 return lNumber * lMultiplier;
@@ -130,7 +145,7 @@ static inline DOUBLE inputFP(void)
     DOUBLE dMultiplier = 1.0;
     DWORD dwFpCnt = 0;
     DOUBLE *pdCur = &dInt;
-    M_BOOL bRead = M_FALSE;
+    bool bRead = false;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -143,7 +158,7 @@ static inline DOUBLE inputFP(void)
         } else if (('0' <= c) && (c <= '9')) {
             (*pdCur) *= 10;
             (*pdCur) += (DOUBLE)(c - '0');
-            bRead = M_TRUE;
+            bRead = true;
             if (pdCur == &dFrac) {
                 dwFpCnt++;
             }
@@ -155,64 +170,103 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-#define N_MAX_MATCH (10000)
+/*----------------------------------------------*/
+/**
+ *  mod による操作ライブラリ
+ */
+#define ANS_MOD (1000000007)
 
-/* s1 > s2 か */
-static bool isStringLarger(string &s1, string &s2) {
-    if (s1.size() == s2.size()) {
-        return (s2[0] < s1[0]); 
-    } else {
-        return (s2.size() < s1.size());
+class MODINT {
+    static SQWORD MOD;
+    SQWORD m_x;
+
+public:
+    MODINT(SQWORD val) {
+        m_x = (val % MOD + MOD) % MOD;
+    };
+    MODINT() {
+        m_x = 0;
     }
-}
+    static void Init(SQWORD sqMod) {
+        MOD = sqMod;
+    }
 
-static SQWORD s_asqNumMatches[] = {0, 2, 5, 5, 4, 5, 6, 3, 7, 6};
+	MODINT& operator+= (const MODINT a)
+    {
+        m_x = (m_x + a.m_x) % MOD; 
+        return *this;
+    };
+	MODINT& operator-= (const MODINT a)
+    { 
+        m_x = (m_x - a.m_x + MOD) % MOD; 
+        return *this;
+    };
+	MODINT& operator*= (const MODINT a)
+    {
+        m_x = (m_x * a.m_x) % MOD;
+        return *this;
+    };
+    MODINT pow(SQWORD t) const {
+        if (!t) return 1;
+        MODINT a = pow(t>>1);
+        a *= a;
+        if (t&1) a *= *this;
+        return a;
+    }
+	MODINT operator+ (const MODINT a) const {
+		MODINT res(*this);
+		return (res += a);
+	}
+	MODINT operator- (const MODINT a) const {
+		MODINT res(*this);
+		return (res -= a);
+	}
+	MODINT operator* (const MODINT a) const {
+		MODINT res(*this);
+		return (res *= a);
+	}
+	MODINT operator/ (const MODINT a) const {
+		MODINT res(*this);
+		return (res /= a);
+	}
 
-int main()
-{
-    SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
+    /* 逆元 */
+    MODINT inv() const {
+        return pow(MOD-2);
+    }
 
-    vector<SQWORD> vecDigits;
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        vecDigits.emplace_back(sqA);
+    /* 除算 */
+    MODINT& operator/=(const MODINT a) {
+        return (*this) *= a.inv();
     } 
 
-    /**
-     *  dp[i] i本のマッチを使って作れる最大の整数
-     * 
-     */
-    string  s_astrDp[N_MAX_MATCH + 1];
-    for (SQWORD sqIdx = 0; sqIdx < ArrayLength(s_astrDp); sqIdx++) {
-        s_astrDp[sqIdx] = string("");
-    }
+    /* 整数版 */
+	MODINT& operator+= (const SQWORD a) {*this += MODINT(a); return *this;};
+	MODINT& operator-= (const SQWORD a) {*this -= MODINT(a); return *this;};
+	MODINT& operator*= (const SQWORD a) {*this *= MODINT(a); return *this;};
+	MODINT& operator/= (const SQWORD a) {*this /= MODINT(a); return *this;};
 
-    for (SQWORD sqIdxMatch = 1; sqIdxMatch <= sqN; sqIdxMatch++) {
-        string strNextDp = "";
-        for (auto digit : vecDigits) {
-            SQWORD sqNumMatchOne = s_asqNumMatches[digit];
+    SQWORD getVal() { return m_x; };
+};
+SQWORD MODINT::MOD = ANS_MOD;
 
-            string strNewNumber = "";
-            if (sqNumMatchOne <= sqIdxMatch) {
-                SQWORD sqPrevDpIdx = sqIdxMatch - sqNumMatchOne;
-                if (s_astrDp[sqPrevDpIdx] == "") {
-                    if (sqIdxMatch == sqNumMatchOne) {
-                        strNewNumber = to_string(digit);
-                    }
-                } else {
-                    strNewNumber = to_string(digit) + s_astrDp[sqPrevDpIdx];
-                }
-            }
-            if (isStringLarger(strNewNumber, strNextDp)) {
-                strNextDp = strNewNumber;
-            }                    
+
+/*----------------------------------------------*/
+int main(void)
+{
+    string strS;
+
+    SQWORD sqL = inputSQWORD();
+    cin >> strS;
+
+    SQWORD sqDiffCnt = 0;
+    for (SQWORD sqIdx = 1; sqIdx < sqL; sqIdx++) {
+        if (strS[sqIdx] != strS[sqIdx - 1]) {
+            sqDiffCnt++;
         }
-//        printf("%lld %s\n", sqIdxMatch, strNextDp.c_str());
-        s_astrDp[sqIdxMatch] = strNextDp;
     }
-
-    printf("%s\n", s_astrDp[sqN].c_str());
+    printf("%lld\n", sqDiffCnt + 1);
+  
 
     return 0;
 }

@@ -155,64 +155,109 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-#define N_MAX_MATCH (10000)
+typedef struct {
+    SDWORD  lIdx;
+    SDWORD  lType;
+    SDWORD  lDel;
+} SUSHI_ONE_ST;
 
-/* s1 > s2 か */
-static bool isStringLarger(string &s1, string &s2) {
-    if (s1.size() == s2.size()) {
-        return (s2[0] < s1[0]); 
-    } else {
-        return (s2.size() < s1.size());
-    }
+#define MAX_SUSHI_NUM      (100000)
+
+bool operator< (const SUSHI_ONE_ST &a, const SUSHI_ONE_ST &b)
+{
+    return a.lDel < b.lDel;
 }
 
-static SQWORD s_asqNumMatches[] = {0, 2, 5, 5, 4, 5, 6, 3, 7, 6};
-
 int main()
-{
-    SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
+{   
+    SQWORD  sqN = inputSQWORD();
+    SQWORD  sqK = inputSQWORD();
 
-    vector<SQWORD> vecDigits;
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        vecDigits.emplace_back(sqA);
-    } 
+    vector<SUSHI_ONE_ST> vInput;
+    static priority_queue<SUSHI_ONE_ST> vTypeDels[MAX_SUSHI_NUM];
+    for (SDWORD lIdx = 0; lIdx < sqN; lIdx++) {
+        SUSHI_ONE_ST  stSushi;
+        stSushi.lIdx  = lIdx; 
+        stSushi.lType = inputSDWORD();
+        stSushi.lDel  = inputSDWORD();
+
+        vInput.emplace_back(stSushi); 
+        vTypeDels[stSushi.lType - 1].push(stSushi);
+    }
+
+    /* 種類別に先頭を取り出す */
+    vector<SUSHI_ONE_ST> vTypeTop;
+    for (DWORD dwIdx = 0; dwIdx < sqN; dwIdx++) {
+        if (0 < vTypeDels[dwIdx].size()) {
+            SUSHI_ONE_ST stSushi = vTypeDels[dwIdx].top();
+            vTypeDels[dwIdx].pop();
+            vTypeTop.emplace_back(stSushi);
+        }
+    }
+    sort(vTypeTop.begin(), vTypeTop.end());
+    reverse(vTypeTop.begin(), vTypeTop.end());
+
+    /* 先頭からK個取り出す */
+    vector<SUSHI_ONE_ST> vTypeTopSel;
+    for (DWORD dwIdx = 0; dwIdx < min(sqK, (SQWORD)(vTypeTop.size())); dwIdx++) {
+        SUSHI_ONE_ST s = vTypeTop[dwIdx];
+//        printf("idx [%d] type[%d] del[%d]\n", s.lIdx, s.lType, s.lDel);
+        vTypeTopSel.emplace_back(s);
+    }
+
+    /* 残りの寿司を vector に並べる */
+    vector<SUSHI_ONE_ST> vRestSushi;
+    for (DWORD dwIdx = 0; dwIdx < ArrayLength(vTypeDels); dwIdx++) {
+        while(0 < vTypeDels[dwIdx].size()) {
+            SUSHI_ONE_ST stSushi = vTypeDels[dwIdx].top();
+            vTypeDels[dwIdx].pop();
+
+            vRestSushi.emplace_back(stSushi);
+        }
+    }
+    sort(vRestSushi.begin(), vRestSushi.end());
+    reverse(vRestSushi.begin(), vRestSushi.end());
+
+    /* K個に足りない寿司を選ぶ */
+    SQWORD sqRestSelIdx = 0;
+    vector<SUSHI_ONE_ST> vDupSelSushi;
+    for (SQWORD sqRestIdx = vTypeTopSel.size(); sqRestIdx < sqK; sqRestIdx++)
+    {
+        vDupSelSushi.emplace_back(vRestSushi[sqRestSelIdx]);
+        sqRestSelIdx++;
+    }
+
 
     /**
-     *  dp[i] i本のマッチを使って作れる最大の整数
-     * 
+     * 入れ替え
+     *      [d_i - d_j] - (2x - 1) > 0 なら種類を減らして入れ替える
      */
-    string  s_astrDp[N_MAX_MATCH + 1];
-    for (SQWORD sqIdx = 0; sqIdx < ArrayLength(s_astrDp); sqIdx++) {
-        s_astrDp[sqIdx] = string("");
-    }
-
-    for (SQWORD sqIdxMatch = 1; sqIdxMatch <= sqN; sqIdxMatch++) {
-        string strNextDp = "";
-        for (auto digit : vecDigits) {
-            SQWORD sqNumMatchOne = s_asqNumMatches[digit];
-
-            string strNewNumber = "";
-            if (sqNumMatchOne <= sqIdxMatch) {
-                SQWORD sqPrevDpIdx = sqIdxMatch - sqNumMatchOne;
-                if (s_astrDp[sqPrevDpIdx] == "") {
-                    if (sqIdxMatch == sqNumMatchOne) {
-                        strNewNumber = to_string(digit);
-                    }
-                } else {
-                    strNewNumber = to_string(digit) + s_astrDp[sqPrevDpIdx];
-                }
-            }
-            if (isStringLarger(strNewNumber, strNextDp)) {
-                strNextDp = strNewNumber;
-            }                    
+    SQWORD sqTypeTopIdx = vTypeTopSel.size() - 1;
+    while (sqRestSelIdx < vRestSushi.size()) {
+        SQWORD sqScore = (vRestSushi[sqRestSelIdx].lDel - vTypeTopSel[sqTypeTopIdx].lDel)
+                        - (2 * (vTypeTopSel.size()) - 1);
+//        printf("chg : %lld %lld\n", sqRestSelIdx, sqScore);
+        if (0 < sqScore) {
+            SUSHI_ONE_ST stNewSushi = vRestSushi[sqRestSelIdx];
+            vTypeTopSel.erase(vTypeTopSel.begin() + sqTypeTopIdx);
+            vDupSelSushi.emplace_back(stNewSushi);
+            sqTypeTopIdx--;
+            sqRestSelIdx++;
+        } else {
+            break;
         }
-//        printf("%lld %s\n", sqIdxMatch, strNextDp.c_str());
-        s_astrDp[sqIdxMatch] = strNextDp;
     }
 
-    printf("%s\n", s_astrDp[sqN].c_str());
+    /* 合計の計算 */
+    SQWORD sqBonus = vTypeTopSel.size() * vTypeTopSel.size();
 
-    return 0;
+    SQWORD sqDel = 0;
+    for (auto s: vTypeTopSel) {
+        sqDel += s.lDel;
+    }
+    for (auto s: vDupSelSushi) {
+        sqDel += s.lDel;
+    }
+
+    printf("%lld\n", sqBonus + sqDel);
 }

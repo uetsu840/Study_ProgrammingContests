@@ -155,64 +155,69 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-#define N_MAX_MATCH (10000)
-
-/* s1 > s2 か */
-static bool isStringLarger(string &s1, string &s2) {
-    if (s1.size() == s2.size()) {
-        return (s2[0] < s1[0]); 
-    } else {
-        return (s2.size() < s1.size());
-    }
-}
-
-static SQWORD s_asqNumMatches[] = {0, 2, 5, 5, 4, 5, 6, 3, 7, 6};
 
 int main()
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
 
-    vector<SQWORD> vecDigits;
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
+    vector<SQWORD> vecsqA;
+    vector<SQWORD> vecsqC;
+
+    vecsqA.emplace_back(0);
+    vecsqC.emplace_back(0);
+
+    for (SQWORD sqIdx = 1; sqIdx < sqN; sqIdx++) {
+        SQWORD sqC = inputSQWORD();
         SQWORD sqA = inputSQWORD();
-        vecDigits.emplace_back(sqA);
-    } 
-
-    /**
-     *  dp[i] i本のマッチを使って作れる最大の整数
-     * 
-     */
-    string  s_astrDp[N_MAX_MATCH + 1];
-    for (SQWORD sqIdx = 0; sqIdx < ArrayLength(s_astrDp); sqIdx++) {
-        s_astrDp[sqIdx] = string("");
+        vecsqC.emplace_back(sqC);
+        vecsqA.emplace_back(sqA);
     }
 
-    for (SQWORD sqIdxMatch = 1; sqIdxMatch <= sqN; sqIdxMatch++) {
-        string strNextDp = "";
-        for (auto digit : vecDigits) {
-            SQWORD sqNumMatchOne = s_asqNumMatches[digit];
+    vector<SQWORD> vecsqIsEven;
+    vector<SQWORD> vecsqCumSum;
+    vecsqIsEven.emplace_back(1);
+    vecsqCumSum.emplace_back(0);
+    vecsqCumSum.emplace_back(vecsqIsEven[0]);
 
-            string strNewNumber = "";
-            if (sqNumMatchOne <= sqIdxMatch) {
-                SQWORD sqPrevDpIdx = sqIdxMatch - sqNumMatchOne;
-                if (s_astrDp[sqPrevDpIdx] == "") {
-                    if (sqIdxMatch == sqNumMatchOne) {
-                        strNewNumber = to_string(digit);
-                    }
-                } else {
-                    strNewNumber = to_string(digit) + s_astrDp[sqPrevDpIdx];
-                }
-            }
-            if (isStringLarger(strNewNumber, strNextDp)) {
-                strNextDp = strNewNumber;
-            }                    
+    for (SQWORD sqPos = 1; sqPos < sqN; sqPos++) {
+        SQWORD sqMin = max(sqPos - vecsqC[sqPos], (SQWORD)0);
+        SQWORD sqDiff = vecsqCumSum[sqPos] - vecsqCumSum[sqMin];
+
+//        printf("[%lld %lld]\n", sqMin, sqPos);
+
+        if (0 == sqDiff) {
+            vecsqIsEven.emplace_back(1);
+        } else {
+            vecsqIsEven.emplace_back(0);
         }
-//        printf("%lld %s\n", sqIdxMatch, strNextDp.c_str());
-        s_astrDp[sqIdxMatch] = strNextDp;
+        vecsqCumSum.emplace_back(vecsqCumSum[sqPos] + vecsqIsEven[sqPos]);
+    }
+#if 0
+    for (auto e: vecsqIsEven) {
+        printf("%lld ", e);
+    }
+    printf("\n");
+
+    for (auto s: vecsqCumSum) {
+        printf("%lld ", s);
+    }
+    printf("\n");
+#endif
+ 
+    SQWORD sqOddCnt = 0;
+    for (SQWORD sqPos = 1; sqPos < sqN; sqPos++) {
+        if (vecsqIsEven[sqPos] != 0) {
+            if (1 == (vecsqA[sqPos] % 2)) {
+                sqOddCnt++;
+            }
+        }
     }
 
-    printf("%s\n", s_astrDp[sqN].c_str());
+    if (0 == (sqOddCnt % 2)) {
+        printf("First\n");
+    } else {
+        printf("Second\n");
+    }
 
     return 0;
 }

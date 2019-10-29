@@ -10,9 +10,7 @@
 #include <set>
 #include <unordered_set>
 #include <queue>
-#include <set>
 #include <algorithm>
-#include <numeric>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -155,64 +153,61 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-#define N_MAX_MATCH (10000)
 
-/* s1 > s2 か */
-static bool isStringLarger(string &s1, string &s2) {
-    if (s1.size() == s2.size()) {
-        return (s2[0] < s1[0]); 
-    } else {
-        return (s2.size() < s1.size());
-    }
-}
-
-static SQWORD s_asqNumMatches[] = {0, 2, 5, 5, 4, 5, 6, 3, 7, 6};
-
-int main()
+static SQWORD procOneCube()
 {
-    SQWORD sqN = inputSQWORD();
+    SQWORD sqX = inputSQWORD();
+    SQWORD sqY = inputSQWORD();
+    SQWORD sqZ = inputSQWORD();
     SQWORD sqM = inputSQWORD();
 
-    vector<SQWORD> vecDigits;
+    SQWORD sqXMin = MAX_SQWORD, sqXMax = 0;
+    SQWORD sqYMin = MAX_SQWORD, sqYMax = 0;
+    SQWORD sqZMin = MAX_SQWORD, sqZMax = 0;
+
+
     for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        vecDigits.emplace_back(sqA);
-    } 
+        SQWORD sqSx = inputSQWORD();
+        SQWORD sqSy = inputSQWORD();
+        SQWORD sqSz = inputSQWORD();
 
-    /**
-     *  dp[i] i本のマッチを使って作れる最大の整数
-     * 
-     */
-    string  s_astrDp[N_MAX_MATCH + 1];
-    for (SQWORD sqIdx = 0; sqIdx < ArrayLength(s_astrDp); sqIdx++) {
-        s_astrDp[sqIdx] = string("");
+        sqXMax = max(sqSx, sqXMax);
+        sqXMin = min(sqSx, sqXMin);
+
+        sqYMax = max(sqSy, sqYMax);
+        sqYMin = min(sqSy, sqYMin);
+
+        sqZMax = max(sqSz, sqZMax);
+        sqZMin = min(sqSz, sqZMin);
     }
 
-    for (SQWORD sqIdxMatch = 1; sqIdxMatch <= sqN; sqIdxMatch++) {
-        string strNextDp = "";
-        for (auto digit : vecDigits) {
-            SQWORD sqNumMatchOne = s_asqNumMatches[digit];
+    SQWORD sqGrundy = 0;
+    sqGrundy ^= sqXMin;
+    sqGrundy ^= sqYMin;
+    sqGrundy ^= sqZMin;
 
-            string strNewNumber = "";
-            if (sqNumMatchOne <= sqIdxMatch) {
-                SQWORD sqPrevDpIdx = sqIdxMatch - sqNumMatchOne;
-                if (s_astrDp[sqPrevDpIdx] == "") {
-                    if (sqIdxMatch == sqNumMatchOne) {
-                        strNewNumber = to_string(digit);
-                    }
-                } else {
-                    strNewNumber = to_string(digit) + s_astrDp[sqPrevDpIdx];
-                }
-            }
-            if (isStringLarger(strNewNumber, strNextDp)) {
-                strNextDp = strNewNumber;
-            }                    
-        }
-//        printf("%lld %s\n", sqIdxMatch, strNextDp.c_str());
-        s_astrDp[sqIdxMatch] = strNextDp;
+    sqGrundy ^= (sqX - sqXMax - 1);
+    sqGrundy ^= (sqY - sqYMax - 1);
+    sqGrundy ^= (sqZ - sqZMax - 1);
+
+    return sqGrundy;
+}
+
+
+int main(void)
+{
+    SQWORD sqN = inputSQWORD();
+
+    SQWORD sqGrundy = 0;
+    for (SQWORD sqCube = 0; sqCube < sqN; sqCube++) {
+        sqGrundy ^= procOneCube();
     }
-
-    printf("%s\n", s_astrDp[sqN].c_str());
+    
+    if (0 == sqGrundy) {
+        printf("LOSE\n");
+    } else {
+        printf("WIN\n");
+    }
 
     return 0;
 }
