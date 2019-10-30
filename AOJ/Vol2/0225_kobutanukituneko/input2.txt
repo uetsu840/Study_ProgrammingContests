@@ -18,4 +18,7 @@ cd
 da
 ab
 xx
+2
+aaab
+bbbc
 0

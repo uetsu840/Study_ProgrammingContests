@@ -250,22 +250,6 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
-struct UnionFind {
-    vector<int> data;
-    int __size;
-    UnionFind(int size) : data(size, -1), __size(size) { }
-    bool unionSet(int x, int y) {
-        if ((x = root(x)) != (y = root(y))) {
-            if (data[y] < data[x]) swap(x, y);
-            data[x] += data[y]; data[y] = x; __size--;
-        }
-        return x != y;
-    }
-    bool findSet(int x, int y) { return root(x) == root(y); }
-    int root(int x) { return data[x] < 0 ? x : data[x] = root(data[x]); }
-    int size(int x) { return -data[root(x)]; }
-    int size() { return __size; }
-};
 
 /*----------------------------------------------*/
 #define MAX_ALPHABETS   (30)
@@ -277,7 +261,6 @@ bool solve(void)
     if (0 == sqN) {
         return false;
     }
-    UnionFind uf(26);
 
     vector<multiset<string>> vecsetStr(MAX_ALPHABETS);
     for (auto it = vecsetStr.begin(); it != vecsetStr.end(); ++it) {
@@ -290,8 +273,6 @@ bool solve(void)
         cin >> strS;
 
         SQWORD sqFront = strS.front() - 'a';
-        SQWORD sqTail  = strS.back() - 'a';
-        uf.unionSet(sqFront, sqTail);
         if (0 == sqIdx) {
             sqFrontIdx = sqFront;
         }
@@ -309,6 +290,11 @@ bool solve(void)
 //        printf("--%s\n", s.c_str());
         vecsetStr[sqCur].erase(it);
         sqCur = s.back() - 'a'; 
+    }
+
+    if (sqCur != sqFrontIdx) {
+        printf("NG\n");
+        return true;
     }
 
     for (auto set: vecsetStr) {
