@@ -252,69 +252,196 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 
 /*----------------------------------------------*/
-#define MAX_ALPHABETS   (30)
+struct POSITION {
+    MODINT sqRow;
+    MODINT sqCol;
+};
 
-bool solve(void)
+enum DIRECTION {
+    DIR_U,
+    DIR_D,
+    DIR_L,
+    DIR_R,
+    DIR_NONE
+};
+
+struct ROBOT {
+    POSITION pos;
+    DIRECTION dir;
+};
+
+static DIRECTION getDirection(char c)
 {
-    SQWORD sqN = inputSQWORD();
-
-    if (0 == sqN) {
-        return false;
+    DIRECTION dir;
+    switch (c) {
+    case 'U':
+        dir = DIR_U;
+        break;
+    case 'D':
+        dir = DIR_D;
+        break;
+    case 'L':
+        dir = DIR_L;
+        break;
+    case 'R':
+        dir = DIR_R;
+        break;
     }
+    return dir;
+}
 
-    vector<multiset<string>> vecsetStr(MAX_ALPHABETS);
-    for (auto it = vecsetStr.begin(); it != vecsetStr.end(); ++it) {
-        it->clear();
+static DIRECTION invertDirection(DIRECTION d)
+{
+    DIRECTION dir;
+    switch (d) {
+    case DIR_U:
+        dir = DIR_D;
+        break;
+    case DIR_D:
+        dir = DIR_U;
+        break;
+    case DIR_L:
+        dir = DIR_R;
+        break;
+    case DIR_R:
+        dir = DIR_L;
+        break;
     }
-   
-    SQWORD sqBeginIdx = 0;
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        string strS;
-        cin >> strS;
+    return dir;
+}
 
-        SQWORD sqFront = strS.front() - 'a';
-        if (0 == sqIdx) {
-            sqBeginIdx = sqFront;
-        }
-
-        vecsetStr[sqFront].insert(strS);
+static void turnDirection(DIRECTION d, DIRECTION &d1, DIRECTION &d2)
+{
+    switch (d) {
+    case DIR_U:
+    case DIR_D:
+        d1 = DIR_R;
+        d2 = DIR_L;
+        break;
+    case DIR_L:
+    case DIR_R:
+        d1 = DIR_U;
+        d2 = DIR_D;
+        break;
     }
+}
 
-    SQWORD sqCur = sqBeginIdx;
-    while(1) {
-        if (0 == vecsetStr[sqCur].size()) {
-            break;
-        }
-        auto it = vecsetStr[sqCur].begin();
-        string s = *it;
-        printf("--%s\n", s.c_str());
-        vecsetStr[sqCur].erase(it);
-        sqCur = s.back() - 'a'; 
+static void getInput(
+    SQWORD              sqM,
+    SQWORD              sqB,
+    vector<ROBOT>       &vecRobot,
+    vector<POSITION>    &vecBlock) 
+{
+    for (SQWORD sqRobotIdx = 0; sqRobotIdx < sqM; sqRobotIdx++) {
+        SQWORD sqRow = inputSQWORD();
+        SQWORD sqCol = inputSQWORD();
+        char c;
+        cin >> c;
+        DIRECTION dir = getDirection(c);
+        vecRobot.push_back(ROBOT{sqRow, sqCol, dir});
     }
+    for (SQWORD sqBlockIdx = 0; sqBlockIdx < sqB; sqBlockIdx++) {
+        SQWORD sqX = inputSQWORD();
+        SQWORD sqY = inputSQWORD();
+        vecBlock.push_back(POSITION{sqX, sqY});
+    }
+}
 
-    if (sqCur != sqBeginIdx) {
-        printf("NG\n");
-        return true;
-    }
+#define MAX_N   (40)
 
-    for (auto set: vecsetStr) {
-        if (0 < set.size()) {
-            printf("NG\n");
-            return true;
-        }
+static POSITION GetNextPos(
+    POSITION      pos, 
+    DIRECTION     eDir)
+{
+                        /*  U       D       L       R*/
+    POSITION posDir[] = {{1, 0}, {-1, 0}, {0, -1}, {0, 1}};
+
+    POSITION diff = posDir[eDir];
+    printf(">>> %lld %lld\n", diff.sqRow, diff.sqCol);
+
+    MODINT sqNextRow = pos.sqRow + diff.sqRow;
+    MODINT sqNextCol = pos.sqCol + diff.sqCol;
+
+    POSITION ret = POSITION{sqNextRow, sqNextCol};
+    return ret;
+}
+
+static vector<vector<DIRECTION>> s_aaeDir(MAX_N, vector<DIRECTION>(MAX_N));
+static vector<vector<bool>>      s_aabIsBlock(MAX_N, vector<bool>(MAX_N));
+
+vector<ROBOT>       s_vecRobot;
+vector<POSITION>    s_vecBlock; 
+
+static void dfs(
+    POSITION  posCur,
+    DIRECTION eDir)
+{
+    SQWORD sqCurRow = posCur.sqRow.getVal();
+    SQWORD sqCurCol = posCur.sqCol.getVal();
+
+    if (s_aabIsBlock[sqCurRow][sqCurCol]) {
+        return;
     }
-    printf("OK\n");
-    return true;
+    if (DIR_NONE != s_aaeDir[sqCurRow][sqCurCol]) {
+        /* すでに来ている */
+        return;
+    }
+    DIRECTION d1, d2;
+    turnDirection(eDir, d1, d2);
+
+    POSITION p1 = GetNextPos(posCur, d1);
+    POSITION p2 = GetNextPos(posCur, d2);
+    printf("%d %d\n", d1, d2);
+    printf("find %lld %lld [%lld %lld][%lld %lld]\n", sqCurRow, sqCurCol, p1.sqRow, p1.sqCol, p2.sqRow, p2.sqCol);
+
+    s_aaeDir[sqCurRow][sqCurCol] = invertDirection(eDir);
+    dfs(GetNextPos(posCur, eDir), eDir);
+    dfs(GetNextPos(posCur, d1), d1);
+    dfs(GetNextPos(posCur, d2), d2);
 }
 
 
 int main(void)
 {
-    while(1) {
-        bool bRet = solve();
-        if (!bRet) {
-            break;
+    SQWORD sqN = inputSQWORD();
+    SQWORD sqM = inputSQWORD();
+    SQWORD sqB = inputSQWORD();
+
+    SQWORD sqGx = inputSQWORD();
+    SQWORD sqGy = inputSQWORD();
+
+    MODINT::Init(sqN);
+    
+    POSITION posGoal = {sqGx, sqGy};
+    getInput(sqM, sqB, s_vecRobot, s_vecBlock);
+
+#if 0
+    for (auto r: s_vecRobot) {
+        printf("%lld %lld %lld\n", r.pos.sqX, r.pos.sqY, r.dir);
+    }
+#endif
+
+    for (SQWORD sqI = 0; sqI < sqN; sqI++) {
+        for (SQWORD sqJ = 0; sqJ < sqN; sqJ++) {
+            s_aaeDir[sqI][sqJ] = DIR_NONE;
         }
     }
+    for (auto b: s_vecBlock) {
+        s_aabIsBlock[b.sqRow.getVal()][b.sqCol.getVal()] = true;
+    }
+
+    /* ゴールから反対方向に探索 */
+    dfs(GetNextPos(posGoal, DIR_U), DIR_U);
+    dfs(GetNextPos(posGoal, DIR_D), DIR_D);
+    dfs(GetNextPos(posGoal, DIR_L), DIR_L);
+    dfs(GetNextPos(posGoal, DIR_R), DIR_R);
+
+    for (SQWORD sqI = 0; sqI < sqN; sqI++) {
+        for (SQWORD sqJ = 0; sqJ < sqN; sqJ++) {
+            printf("%d ", s_aaeDir[sqI][sqJ]);
+        }
+        printf("\n");
+    }
+
     return 0;
 }

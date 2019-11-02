@@ -21,4 +21,11 @@ xx
 2
 aaab
 bbbc
+6
+ab
+ab
+bb
+ba
+ba
+aa
 0
