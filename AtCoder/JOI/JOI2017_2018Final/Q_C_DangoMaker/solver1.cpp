@@ -343,104 +343,67 @@ public:
 
 
 /*----------------------------------------------*/
-#define N_MAX_NODE    (600)
+#define N_MAX_ROWS  (3000)
+#define N_MAX_COLS  (3000)
+
+enum class D_COLOR {
+    RED,
+    GREEN,
+    WHITE,
+    NUM
+};
+
+enum class R_STATE {
+    NONE,
+    VAR,
+    HOR,
+    NUM
+
+};
+
+static D_COLOR charToDColor(char c)
+{
+    D_COLOR ret;
+    switch (c) {
+    case 'R':
+        ret = D_COLOR::RED;
+        break;
+    case 'G':
+        ret = D_COLOR::GREEN;
+        break;
+    case 'B':
+        ret = D_COLOR::WHITE;
+        break;
+    }
+    return ret;
+}
+
+static D_COLOR s_DangoMap[N_MAX_ROWS][N_MAX_COLS];
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
     SQWORD sqM = inputSQWORD();
 
-    vector<SQWORD> s_avecsqOutEdge[N_MAX_NODE + 1];
-    vector<SQWORD> s_avecsqInEdge[N_MAX_NODE + 1];
-    
-    for (SQWORD sqIdxE = 0; sqIdxE < sqM; sqIdxE++) {
-        SQWORD sqS = inputSQWORD();
-        SQWORD sqT = inputSQWORD();
-
-        s_avecsqOutEdge[sqS].emplace_back(sqT);
-        s_avecsqInEdge[sqT].emplace_back(sqS);
-    }
-
-    /* 頂点番号の若い順に、入ってくる辺を合計して頂点の通過確率を計算する。 */
-    static DOUBLE s_adProba[N_MAX_NODE+1];
-    s_adProba[1] = 1.0;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        DOUBLE dProbCur = s_adProba[sqNode];
-        SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            s_adProba[next] += dProbCur / (DOUBLE)sqOutEdgeNum;
+    for (SQWORD sqRowIdx = 0; sqRowIdx < sqN; sqRowIdx++) {
+        string strD;
+        cin >> strD;
+        for (SQWORD sqColIdx = 0; sqColIdx < sqN; sqColIdx++) {
+            s_DangoMap[sqRowIdx][sqColIdx] = charToDColor(strD[sqColIdx]);        
         }
     }
 
-    /* 先頭から各頂点までの距離の期待値を求める */
-    static DOUBLE s_adDistExValF[N_MAX_NODE+1];
-    s_adDistExValF[1] = 0.0;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        DOUBLE dExValFCur = s_adDistExValF[sqNode];
-        SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            DOUBLE dEdgeExVal = s_adProba[sqNode] / (DOUBLE)sqOutEdgeNum;
-            s_adDistExValF[next] += dExValFCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal;
-        }
+    /**
+     *  dp[i][j][k]
+     *      i行j列の団子Rから、k方向にくしを刺したときの団子の最大数
+     */
+    static SQWORD s_aaasqDp[N_MAX_ROWS][N_MAX_COLS][static_cast<int>(R_STATE::NUM)];
+#if 0
+    for (SQWORD sqIdx = 0; sqIdx <= (sqN - 1) + (sqM - 1); sqIdx++) {
+        SQWORD sqStartRow = max(sqIdx, sqN - 1));
+        SQWORD sqEndCol = min(0)
     }
-
-    /* 各頂点から出口までの期待値を求める */
-    static DOUBLE s_adDistExValR[N_MAX_NODE+1];
-    for (SQWORD sqStart = 1; sqStart <= sqN; sqStart++) {
-        vector<DOUBLE> vecdProbaPartial(N_MAX_NODE+1, 0);
-        vecdProbaPartial[sqStart] = 1.0;
-        for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-            DOUBLE dProbCur = vecdProbaPartial[sqNode];
-            SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-
-            for (auto next: s_avecsqOutEdge[sqNode]) {
-                vecdProbaPartial[next] += dProbCur / (DOUBLE)sqOutEdgeNum;
-            }
-        }
-
-        printf("edge ex %d\n", sqStart);
-        vector<DOUBLE> vecdDistExVal(N_MAX_NODE+1 ,0.0);
-        vecdDistExVal[sqStart] = 0.0;
-        for (SQWORD sqNode = sqStart; sqNode <= sqN; sqNode++) {
-            DOUBLE dExValCur = vecdDistExVal[sqNode];
-            SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-            for (auto next: s_avecsqOutEdge[sqNode]) {
-                DOUBLE dEdgeExVal = vecdProbaPartial[sqNode] / (DOUBLE)sqOutEdgeNum;
-                vecdDistExVal[next] += dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal;
-                printf("next %d add %f\n", next, dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal);
-            }
-        }
-        s_adDistExValR[sqStart] = vecdDistExVal[sqN];
-    }
-
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        printf("prob:%lf ex-f:%lf ex-r:%lf\n", 
-            s_adProba[sqNode], s_adDistExValF[sqNode], s_adDistExValR[sqNode]);
-    }
-
-    /* 期待値が最も大きな辺を探す */
-    DOUBLE dExValInit = s_adDistExValF[sqN];
-    pair<SQWORD, SQWORD> pairsqLargestEdge = make_pair(0, 0);
-    DOUBLE dScoreMin = dExValInit;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            SQWORD sqEdgeNumCur  = s_avecsqOutEdge[sqNode].size(); 
-            SQWORD sqEdgeNumNext = s_avecsqInEdge[next].size();
-            DOUBLE dProba = s_adProba[sqNode] / sqEdgeNumCur;
-            DOUBLE dExValTtl = (s_adDistExValF[sqNode]
-                                + s_adDistExValR[next] * dProba
-                                + dProba);
-
-            DOUBLE dCurScore = (1.0 / (1.0 - dProba)) * (dExValInit - dExValTtl);
-            if (dCurScore <= dScoreMin) {
-                printf("%lld %lld %lf \n", sqNode, next, dExValTtl);
-                dScoreMin = dCurScore;
-            }                              
-        }
-    }
-
-    printf("%0.10f\n", dScoreMin);
+#endif
 
     return 0;
 }

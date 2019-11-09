@@ -1,0 +1,6 @@
+4 4 4
+10 10 10 10
+challenge 39
+challenge 29
+challenge 19
+challenge 9

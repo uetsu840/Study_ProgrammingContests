@@ -350,97 +350,78 @@ int main(void)
     SQWORD sqN = inputSQWORD();
     SQWORD sqM = inputSQWORD();
 
-    vector<SQWORD> s_avecsqOutEdge[N_MAX_NODE + 1];
-    vector<SQWORD> s_avecsqInEdge[N_MAX_NODE + 1];
+    vector<SQWORD> s_avecsqFwdEdge[N_MAX_NODE + 1];
+    vector<SQWORD> s_avecsqRevEdge[N_MAX_NODE + 1];
     
     for (SQWORD sqIdxE = 0; sqIdxE < sqM; sqIdxE++) {
         SQWORD sqS = inputSQWORD();
         SQWORD sqT = inputSQWORD();
 
-        s_avecsqOutEdge[sqS].emplace_back(sqT);
-        s_avecsqInEdge[sqT].emplace_back(sqS);
+        s_avecsqFwdEdge[sqS].emplace_back(sqT);
+        s_avecsqRevEdge[sqT].emplace_back(sqS);
     }
 
     /* 頂点番号の若い順に、入ってくる辺を合計して頂点の通過確率を計算する。 */
-    static DOUBLE s_adProba[N_MAX_NODE+1];
-    s_adProba[1] = 1.0;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        DOUBLE dProbCur = s_adProba[sqNode];
-        SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            s_adProba[next] += dProbCur / (DOUBLE)sqOutEdgeNum;
-        }
-    }
-
-    /* 先頭から各頂点までの距離の期待値を求める */
+    static DOUBLE s_adProbaF[N_MAX_NODE+1];
     static DOUBLE s_adDistExValF[N_MAX_NODE+1];
-    s_adDistExValF[1] = 0.0;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        DOUBLE dExValFCur = s_adDistExValF[sqNode];
-        SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            DOUBLE dEdgeExVal = s_adProba[sqNode] / (DOUBLE)sqOutEdgeNum;
-            s_adDistExValF[next] += dExValFCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal;
-        }
-    }
-
-    /* 各頂点から出口までの期待値を求める */
+    static DOUBLE s_adProbaR[N_MAX_NODE+1];
     static DOUBLE s_adDistExValR[N_MAX_NODE+1];
-    for (SQWORD sqStart = 1; sqStart <= sqN; sqStart++) {
-        vector<DOUBLE> vecdProbaPartial(N_MAX_NODE+1, 0);
-        vecdProbaPartial[sqStart] = 1.0;
-        for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-            DOUBLE dProbCur = vecdProbaPartial[sqNode];
-            SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
+    s_adDistExValF[1] = 0.0;
+    s_adProbaF[1] = 1.0;
+    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
+        DOUBLE dProbCur = s_adProbaF[sqNode];
+        DOUBLE dExValFCur = s_adDistExValF[sqNode];
+        SQWORD sqOutEdgeNum = s_avecsqFwdEdge[sqNode].size();
 
-            for (auto next: s_avecsqOutEdge[sqNode]) {
-                vecdProbaPartial[next] += dProbCur / (DOUBLE)sqOutEdgeNum;
-            }
+        for (auto next: s_avecsqFwdEdge[sqNode]) {
+            s_adProbaF[next]     += dProbCur / (DOUBLE)sqOutEdgeNum;
+            s_adDistExValF[next] += (dExValFCur / (DOUBLE)sqOutEdgeNum) + (dProbCur / (DOUBLE) sqOutEdgeNum);
         }
+    }
 
-        printf("edge ex %d\n", sqStart);
-        vector<DOUBLE> vecdDistExVal(N_MAX_NODE+1 ,0.0);
-        vecdDistExVal[sqStart] = 0.0;
-        for (SQWORD sqNode = sqStart; sqNode <= sqN; sqNode++) {
-            DOUBLE dExValCur = vecdDistExVal[sqNode];
-            SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-            for (auto next: s_avecsqOutEdge[sqNode]) {
-                DOUBLE dEdgeExVal = vecdProbaPartial[sqNode] / (DOUBLE)sqOutEdgeNum;
-                vecdDistExVal[next] += dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal;
-                printf("next %d add %f\n", next, dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal);
-            }
+    s_adDistExValR[sqN] = 0.0;
+    s_adProbaR[sqN] = 1.0;
+    for (SQWORD sqNode = sqN; 1 <= sqNode; sqNode--) {
+        DOUBLE dProbCur = s_adProbaR[sqNode];
+        DOUBLE dExValRCur = s_adDistExValR[sqNode];
+ 
+        for (auto prev: s_avecsqRevEdge[sqNode]) {
+            SQWORD sqDim = (DOUBLE)(s_avecsqFwdEdge[prev].size());
+            s_adProbaR[prev]     += (dProbCur   / sqDim);
+            s_adDistExValR[prev] += (dExValRCur + 1) / sqDim;
         }
-        s_adDistExValR[sqStart] = vecdDistExVal[sqN];
+    }
+
+#if 0
+    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
+        printf("%f %f\n", s_adProbaF[sqNode], s_adDistExValF[sqNode]);
     }
 
     for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        printf("prob:%lf ex-f:%lf ex-r:%lf\n", 
-            s_adProba[sqNode], s_adDistExValF[sqNode], s_adDistExValR[sqNode]);
+        printf("%f %f\n", s_adProbaR[sqNode], s_adDistExValR[sqNode]);
     }
+#endif
 
-    /* 期待値が最も大きな辺を探す */
-    DOUBLE dExValInit = s_adDistExValF[sqN];
-    pair<SQWORD, SQWORD> pairsqLargestEdge = make_pair(0, 0);
-    DOUBLE dScoreMin = dExValInit;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            SQWORD sqEdgeNumCur  = s_avecsqOutEdge[sqNode].size(); 
-            SQWORD sqEdgeNumNext = s_avecsqInEdge[next].size();
-            DOUBLE dProba = s_adProba[sqNode] / sqEdgeNumCur;
-            DOUBLE dExValTtl = (s_adDistExValF[sqNode]
-                                + s_adDistExValR[next] * dProba
-                                + dProba);
+    DOUBLE dOrgEx = s_adDistExValR[1];
+    DOUBLE dAns = dOrgEx;
+    for (SQWORD sqRemS = 1; sqRemS < sqN; sqRemS++) {
+        DOUBLE dExS = s_adDistExValF[sqRemS];
+        DOUBLE dProbaS = s_adProbaF[sqRemS];
+        DOUBLE dExCur = dOrgEx;
+        SQWORD sqDim = s_avecsqFwdEdge[sqRemS].size();
+        if (1 < sqDim) {
+            for (SQWORD sqRemT : s_avecsqFwdEdge[sqRemS]) {
+                dExCur -= dProbaS * (1 / (DOUBLE)(sqDim)) * (1 + s_adDistExValR[sqRemT]);            
+                dExCur += dProbaS * (1 / (DOUBLE)(sqDim - 1)) * (1 + s_adDistExValR[sqRemT]);            
+            }
 
-            DOUBLE dCurScore = (1.0 / (1.0 - dProba)) * (dExValInit - dExValTtl);
-            if (dCurScore <= dScoreMin) {
-                printf("%lld %lld %lf \n", sqNode, next, dExValTtl);
-                dScoreMin = dCurScore;
-            }                              
+            for (SQWORD sqRemT : s_avecsqFwdEdge[sqRemS]) {
+                DOUBLE dCandEx = dExCur - dProbaS * (1 / (DOUBLE)(sqDim - 1)) * (1 + s_adDistExValR[sqRemT]);
+                dAns = min(dAns, dCandEx);
+            }
         }
     }
-
-    printf("%0.10f\n", dScoreMin);
-
+    printf("%0.10f\n", dAns);
+    
     return 0;
 }

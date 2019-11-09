@@ -1,0 +1,12 @@
+3 10 3
+10 10 10
+challenge 5
+add 20
+challenge 10
+challenge 15
+add 1
+add 9
+challenge 31
+challenge 38
+challenge 50
+challenge 40

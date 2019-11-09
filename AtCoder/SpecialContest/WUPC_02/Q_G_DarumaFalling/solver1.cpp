@@ -342,105 +342,150 @@ public:
 };
 
 
+/**
+ *  BIT
+ *      インデックスは 1 ～ N であることに注意する。
+ * 
+ */
+template<typename T>
+class BinaryIndexedTree {
+    SDWORD lBitN;
+    vector<T> _vecBit; 
+
+public:
+    BinaryIndexedTree(SDWORD lNum)
+    {
+        lBitN = lNum + 1;
+        _vecBit.resize(lBitN + 1);
+        for (DWORD dwIdx = 0; dwIdx < _vecBit.size(); dwIdx++) {
+            _vecBit[dwIdx] = 0;
+        }
+    }
+
+    T Sum(const SDWORD lIdx)
+    {
+        if (lIdx < 1) {
+            return 0;
+        }
+
+        SDWORD lCur = lIdx;
+        T _sum = 0;
+        while (0 < lCur) {
+            _sum += _vecBit[lCur];
+            lCur -= (lCur & (-lCur));     /* 最後の1ビット */
+        }
+        return _sum;
+    }
+
+    void Add(SDWORD lIdx, T _x)
+    {
+        while (lIdx <= lBitN) {
+            _vecBit[lIdx] += _x;
+            lIdx += (lIdx & (-lIdx));
+        }
+    }
+
+    SDWORD binSearchExec(T _sum, bool bIsUb) 
+    {
+        SQWORD sqLb = 0;
+        SQWORD sqUb = lBitN;
+
+        while (1LL < sqUb - sqLb) {
+            SQWORD sqMid = (sqUb + sqLb) / 2LL;
+            bool bJudge;
+            if (bIsUb) {
+                bJudge = (_sum < Sum(sqMid));
+            } else {
+                bJudge = (_sum <= Sum(sqMid));
+            }
+
+            if (bJudge) {
+                sqUb = sqMid;
+            } else {
+                sqLb = sqMid;
+            }
+        }
+        return sqUb;
+    }
+
+
+    /**
+    *  累積和が指定した数より大きくなるインデックスを求める。 
+    *  (最小より小さい、最大より大きいとうまく動かないかも…)
+    */
+    SDWORD findSumUpperBound(T _sum) 
+    {
+        return binSearchExec(_sum, true);
+    }
+
+    /**
+    *  累積和が指定した数以上になるインデックスを求める。 
+    *  (最小より小さい、最大より大きいとうまく動かないかも…)
+    */
+    SDWORD findSumLowerBound(T _sum) 
+    {
+        return binSearchExec(_sum, false);
+    }
+
+    SDWORD End() {
+        return lBitN;
+    }
+
+    void DebugPrint(SDWORD lMax) {
+        for (SDWORD lIdx = 0; lIdx <= lMax; lIdx++) {
+            printf("%lld ", Sum(lIdx));
+        }
+        printf("\n");
+    }
+};
+
 /*----------------------------------------------*/
-#define N_MAX_NODE    (600)
+#define MAX_N   (100000)
+#define MAX_M   (100000)
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
     SQWORD sqM = inputSQWORD();
+    SQWORD sqH = inputSQWORD();
 
-    vector<SQWORD> s_avecsqOutEdge[N_MAX_NODE + 1];
-    vector<SQWORD> s_avecsqInEdge[N_MAX_NODE + 1];
-    
-    for (SQWORD sqIdxE = 0; sqIdxE < sqM; sqIdxE++) {
-        SQWORD sqS = inputSQWORD();
-        SQWORD sqT = inputSQWORD();
+    BinaryIndexedTree<SQWORD> bit(MAX_N + MAX_M);
 
-        s_avecsqOutEdge[sqS].emplace_back(sqT);
-        s_avecsqInEdge[sqT].emplace_back(sqS);
+    SQWORD sqBlockCnt = 0;
+    for (SQWORD sqIdx = 1; sqIdx <= sqN; sqIdx++) {
+        sqBlockCnt++;
+        SQWORD sqA = inputSQWORD();
+        bit.Add(sqBlockCnt, sqA);
     }
 
-    /* 頂点番号の若い順に、入ってくる辺を合計して頂点の通過確率を計算する。 */
-    static DOUBLE s_adProba[N_MAX_NODE+1];
-    s_adProba[1] = 1.0;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        DOUBLE dProbCur = s_adProba[sqNode];
-        SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
+    for (SQWORD sqQueryIdx = 0; sqQueryIdx < sqM; sqQueryIdx++) {
+        string strOp;
+        cin >> strOp;
 
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            s_adProba[next] += dProbCur / (DOUBLE)sqOutEdgeNum;
-        }
-    }
+        SQWORD sqArg = inputSQWORD();
 
-    /* 先頭から各頂点までの距離の期待値を求める */
-    static DOUBLE s_adDistExValF[N_MAX_NODE+1];
-    s_adDistExValF[1] = 0.0;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        DOUBLE dExValFCur = s_adDistExValF[sqNode];
-        SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            DOUBLE dEdgeExVal = s_adProba[sqNode] / (DOUBLE)sqOutEdgeNum;
-            s_adDistExValF[next] += dExValFCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal;
-        }
-    }
-
-    /* 各頂点から出口までの期待値を求める */
-    static DOUBLE s_adDistExValR[N_MAX_NODE+1];
-    for (SQWORD sqStart = 1; sqStart <= sqN; sqStart++) {
-        vector<DOUBLE> vecdProbaPartial(N_MAX_NODE+1, 0);
-        vecdProbaPartial[sqStart] = 1.0;
-        for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-            DOUBLE dProbCur = vecdProbaPartial[sqNode];
-            SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-
-            for (auto next: s_avecsqOutEdge[sqNode]) {
-                vecdProbaPartial[next] += dProbCur / (DOUBLE)sqOutEdgeNum;
+        if (strOp == "add") {
+            sqBlockCnt++;
+            bit.Add(sqBlockCnt, sqArg);
+        } else if (strOp == "challenge") {
+            SQWORD sqLower = bit.findSumLowerBound(sqArg - sqH + 1);
+            SQWORD sqUpper = bit.findSumLowerBound(sqArg + sqH);
+           
+            if (sqLower == bit.End()) {
+                printf("miss\n");
+            } else if ((sqUpper == bit.End()) && (bit.Sum(sqLower) == bit.Sum(sqUpper)) 
+                        || (sqLower == sqUpper)) {
+                printf("go\n");
+                SQWORD sqSumL = bit.Sum(sqLower - 1);
+                SQWORD sqSumU = bit.Sum(sqUpper);
+                bit.Add(sqLower, -(sqSumU - sqSumL));
+            } else {
+                printf("stop\n");
             }
-        }
-
-        printf("edge ex %d\n", sqStart);
-        vector<DOUBLE> vecdDistExVal(N_MAX_NODE+1 ,0.0);
-        vecdDistExVal[sqStart] = 0.0;
-        for (SQWORD sqNode = sqStart; sqNode <= sqN; sqNode++) {
-            DOUBLE dExValCur = vecdDistExVal[sqNode];
-            SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-            for (auto next: s_avecsqOutEdge[sqNode]) {
-                DOUBLE dEdgeExVal = vecdProbaPartial[sqNode] / (DOUBLE)sqOutEdgeNum;
-                vecdDistExVal[next] += dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal;
-                printf("next %d add %f\n", next, dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal);
-            }
-        }
-        s_adDistExValR[sqStart] = vecdDistExVal[sqN];
-    }
-
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        printf("prob:%lf ex-f:%lf ex-r:%lf\n", 
-            s_adProba[sqNode], s_adDistExValF[sqNode], s_adDistExValR[sqNode]);
-    }
-
-    /* 期待値が最も大きな辺を探す */
-    DOUBLE dExValInit = s_adDistExValF[sqN];
-    pair<SQWORD, SQWORD> pairsqLargestEdge = make_pair(0, 0);
-    DOUBLE dScoreMin = dExValInit;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            SQWORD sqEdgeNumCur  = s_avecsqOutEdge[sqNode].size(); 
-            SQWORD sqEdgeNumNext = s_avecsqInEdge[next].size();
-            DOUBLE dProba = s_adProba[sqNode] / sqEdgeNumCur;
-            DOUBLE dExValTtl = (s_adDistExValF[sqNode]
-                                + s_adDistExValR[next] * dProba
-                                + dProba);
-
-            DOUBLE dCurScore = (1.0 / (1.0 - dProba)) * (dExValInit - dExValTtl);
-            if (dCurScore <= dScoreMin) {
-                printf("%lld %lld %lf \n", sqNode, next, dExValTtl);
-                dScoreMin = dCurScore;
-            }                              
+        } else {
+            printf("Oops!\n");
         }
     }
-
-    printf("%0.10f\n", dScoreMin);
 
     return 0;
 }

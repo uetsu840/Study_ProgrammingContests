@@ -1,0 +1,7 @@
+3 5 5
+10 9 12
+challenge 8
+challenge 7
+challenge 6
+challenge 5
+challenge 5

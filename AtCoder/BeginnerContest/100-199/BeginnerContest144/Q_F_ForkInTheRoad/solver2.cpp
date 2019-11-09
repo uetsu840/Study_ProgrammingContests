@@ -341,6 +341,84 @@ public:
     }
 };
 
+#define N_MAX_NODE    (600)
+
+/* パス上にない点を削除する */
+static void dfs_rev(
+    SQWORD sqCur,
+    vector<bool> &vecbIsVisited,
+    const vector<set<SQWORD>> &vvEdgeRev)
+{
+//    printf("::: dfs %lld\n", sqCur);
+    vecbIsVisited[sqCur] = true;
+    for (auto next: vvEdgeRev[sqCur]) {
+        dfs_rev(next, vecbIsVisited, vvEdgeRev);
+    }
+}
+
+static void removeDeadEdge(
+    SQWORD sqN,
+    vector<set<SQWORD>> &vvEdgeFwd,
+    vector<set<SQWORD>> &vvEdgeRev)
+{
+    vector<bool> vecbIsVisited(sqN, false);
+
+    dfs_rev(sqN, vecbIsVisited, vvEdgeRev);
+    for (SQWORD sqRemoveNode = 1; sqRemoveNode <= sqN; sqRemoveNode++) {
+        if (!vecbIsVisited[sqRemoveNode]) {
+//            printf(">>>> remove %lld\n", sqRemoveNode);
+            for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
+                vvEdgeFwd[sqNode].erase(sqRemoveNode);
+            }
+        }
+    }
+}
+
+
+static DOUBLE calcExpVal(
+    SQWORD sqN,
+    SQWORD sqRemoveS,
+    SQWORD sqRemoveT,
+    vector<set<SQWORD>> vvEdge,
+    vector<set<SQWORD>> vvEdgeRev)
+{
+    /* 頂点を除去 */
+    if (sqRemoveS != sqRemoveT) {
+        vvEdge[sqRemoveS].erase(sqRemoveT);
+        vvEdgeRev[sqRemoveT].erase(sqRemoveS);
+    }
+
+    removeDeadEdge(sqN, vvEdge, vvEdgeRev);
+
+    /* 各頂点から出口までの期待値を求める */
+    SQWORD sqStart = 1;
+    vector<DOUBLE> vecdProbaPartial(N_MAX_NODE+1, 0);
+    vecdProbaPartial[sqStart] = 1.0;
+    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
+        DOUBLE dProbCur = vecdProbaPartial[sqNode];
+        SQWORD sqOutEdgeNum = vvEdge[sqNode].size();
+
+        for (auto next: vvEdge[sqNode]) {
+            vecdProbaPartial[next] += dProbCur / (DOUBLE)sqOutEdgeNum;
+        }
+    }
+
+    vector<DOUBLE> vecdDistExVal(N_MAX_NODE+1 ,0.0);
+    vecdDistExVal[sqStart] = 0.0;
+    for (SQWORD sqNode = sqStart; sqNode <= sqN; sqNode++) {
+        DOUBLE dExValCur = vecdDistExVal[sqNode];
+        SQWORD sqOutEdgeNum = vvEdge[sqNode].size();
+        for (auto next: vvEdge[sqNode]) {
+            DOUBLE dEdgeExVal = vecdProbaPartial[sqNode] / (DOUBLE)sqOutEdgeNum;
+            vecdDistExVal[next] += dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal;
+//            printf("next %d add %f\n", next, dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal);
+        }
+    }
+    double dRet = vecdDistExVal[sqN];
+
+//    printf("exp %f\n", dRet);
+    return dRet;
+}
 
 /*----------------------------------------------*/
 #define N_MAX_NODE    (600)
@@ -350,97 +428,28 @@ int main(void)
     SQWORD sqN = inputSQWORD();
     SQWORD sqM = inputSQWORD();
 
-    vector<SQWORD> s_avecsqOutEdge[N_MAX_NODE + 1];
-    vector<SQWORD> s_avecsqInEdge[N_MAX_NODE + 1];
+    vector<set<SQWORD>> s_vvEdge(N_MAX_NODE + 1, set<SQWORD>{});
+    vector<set<SQWORD>> s_vvEdgeRev(N_MAX_NODE + 1, set<SQWORD>{});
     
     for (SQWORD sqIdxE = 0; sqIdxE < sqM; sqIdxE++) {
         SQWORD sqS = inputSQWORD();
         SQWORD sqT = inputSQWORD();
 
-        s_avecsqOutEdge[sqS].emplace_back(sqT);
-        s_avecsqInEdge[sqT].emplace_back(sqS);
+        s_vvEdge[sqS].insert(sqT);
+        s_vvEdgeRev[sqT].insert(sqS);
     }
 
-    /* 頂点番号の若い順に、入ってくる辺を合計して頂点の通過確率を計算する。 */
-    static DOUBLE s_adProba[N_MAX_NODE+1];
-    s_adProba[1] = 1.0;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        DOUBLE dProbCur = s_adProba[sqNode];
-        SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            s_adProba[next] += dProbCur / (DOUBLE)sqOutEdgeNum;
-        }
-    }
-
-    /* 先頭から各頂点までの距離の期待値を求める */
-    static DOUBLE s_adDistExValF[N_MAX_NODE+1];
-    s_adDistExValF[1] = 0.0;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        DOUBLE dExValFCur = s_adDistExValF[sqNode];
-        SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            DOUBLE dEdgeExVal = s_adProba[sqNode] / (DOUBLE)sqOutEdgeNum;
-            s_adDistExValF[next] += dExValFCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal;
-        }
-    }
-
-    /* 各頂点から出口までの期待値を求める */
-    static DOUBLE s_adDistExValR[N_MAX_NODE+1];
-    for (SQWORD sqStart = 1; sqStart <= sqN; sqStart++) {
-        vector<DOUBLE> vecdProbaPartial(N_MAX_NODE+1, 0);
-        vecdProbaPartial[sqStart] = 1.0;
-        for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-            DOUBLE dProbCur = vecdProbaPartial[sqNode];
-            SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-
-            for (auto next: s_avecsqOutEdge[sqNode]) {
-                vecdProbaPartial[next] += dProbCur / (DOUBLE)sqOutEdgeNum;
+    DOUBLE dExpVal = calcExpVal(sqN, sqN, sqN, s_vvEdge, s_vvEdgeRev);
+    for (SQWORD sqRemoveS = 0; sqRemoveS < sqN - 1; sqRemoveS++) {
+        for (auto removeT: s_vvEdge[sqRemoveS]) {
+            DOUBLE dExpValCur = calcExpVal(sqN, sqRemoveS, removeT, s_vvEdge, s_vvEdgeRev);
+            if (0 < dExpValCur) {
+                dExpVal = min(dExpVal, dExpValCur);
             }
         }
-
-        printf("edge ex %d\n", sqStart);
-        vector<DOUBLE> vecdDistExVal(N_MAX_NODE+1 ,0.0);
-        vecdDistExVal[sqStart] = 0.0;
-        for (SQWORD sqNode = sqStart; sqNode <= sqN; sqNode++) {
-            DOUBLE dExValCur = vecdDistExVal[sqNode];
-            SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-            for (auto next: s_avecsqOutEdge[sqNode]) {
-                DOUBLE dEdgeExVal = vecdProbaPartial[sqNode] / (DOUBLE)sqOutEdgeNum;
-                vecdDistExVal[next] += dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal;
-                printf("next %d add %f\n", next, dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal);
-            }
-        }
-        s_adDistExValR[sqStart] = vecdDistExVal[sqN];
     }
 
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        printf("prob:%lf ex-f:%lf ex-r:%lf\n", 
-            s_adProba[sqNode], s_adDistExValF[sqNode], s_adDistExValR[sqNode]);
-    }
-
-    /* 期待値が最も大きな辺を探す */
-    DOUBLE dExValInit = s_adDistExValF[sqN];
-    pair<SQWORD, SQWORD> pairsqLargestEdge = make_pair(0, 0);
-    DOUBLE dScoreMin = dExValInit;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            SQWORD sqEdgeNumCur  = s_avecsqOutEdge[sqNode].size(); 
-            SQWORD sqEdgeNumNext = s_avecsqInEdge[next].size();
-            DOUBLE dProba = s_adProba[sqNode] / sqEdgeNumCur;
-            DOUBLE dExValTtl = (s_adDistExValF[sqNode]
-                                + s_adDistExValR[next] * dProba
-                                + dProba);
-
-            DOUBLE dCurScore = (1.0 / (1.0 - dProba)) * (dExValInit - dExValTtl);
-            if (dCurScore <= dScoreMin) {
-                printf("%lld %lld %lf \n", sqNode, next, dExValTtl);
-                dScoreMin = dCurScore;
-            }                              
-        }
-    }
-
-    printf("%0.10f\n", dScoreMin);
+    printf("%0.10f\n", dExpVal);
 
     return 0;
 }

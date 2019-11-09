@@ -343,104 +343,86 @@ public:
 
 
 /*----------------------------------------------*/
-#define N_MAX_NODE    (600)
+#define MULTIPLIER   (28)
+#define N_MAX_CITIES (1000)
+#define N_MAX_NODE   (1000 * MULTIPLIER)
+
+struct EDGE_ST {
+    SQWORD sqTo;
+    SQWORD sqCost;
+
+    EDGE_ST(SQWORD to, SQWORD cost) {
+        sqTo = to;
+        sqCost = cost;
+    };
+};
+
+#define     SQWORD_INF      (100100100100100100)
+
+void solveDijkstraEx(
+    SQWORD sqFrom, 
+    const vector<vector<EDGE_ST>> &vvstEdges,
+    vector<SQWORD> &cost)
+{
+    typedef pair<SQWORD, SQWORD> P;
+    priority_queue<P, vector<P>, greater<P>> que;
+    
+    cost[sqFrom] = 0;
+    que.push(P(0, sqFrom));
+
+    while (!que.empty()) {
+        P p = que.top();
+        que.pop();
+
+        SDWORD v = p.second;
+        if (p.first <= cost[v]) {
+            SQWORD sqEdgeNum = vvstEdges[v / MULTIPLIER].size();
+            for (SDWORD lIdx = 0; lIdx < sqEdgeNum; lIdx++) {
+                SQWORD sqFromCityIdx = v / MULTIPLIER;
+                EDGE_ST e = vvstEdges[sqFromCityIdx][lIdx];
+                SQWORD sqToNodeIdx = e.sqTo * MULTIPLIER + ((v + e.sqCost) % MULTIPLIER); 
+
+                if (cost[sqToNodeIdx] > cost[v] + e.sqCost) {
+                    cost[sqToNodeIdx] = cost[v] + e.sqCost;
+
+                    que.push(P(cost[sqToNodeIdx], sqToNodeIdx));
+                }
+            }
+        }
+    }
+}
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
     SQWORD sqM = inputSQWORD();
 
-    vector<SQWORD> s_avecsqOutEdge[N_MAX_NODE + 1];
-    vector<SQWORD> s_avecsqInEdge[N_MAX_NODE + 1];
-    
-    for (SQWORD sqIdxE = 0; sqIdxE < sqM; sqIdxE++) {
-        SQWORD sqS = inputSQWORD();
+    vector<vector<EDGE_ST>> vvstRoads(N_MAX_CITIES, vector<EDGE_ST>{});
+    vector<SQWORD> vsqCost(N_MAX_NODE, SQWORD_INF);
+
+    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
+        SQWORD sqF = inputSQWORD();
         SQWORD sqT = inputSQWORD();
+        SQWORD sqC = inputSQWORD();
 
-        s_avecsqOutEdge[sqS].emplace_back(sqT);
-        s_avecsqInEdge[sqT].emplace_back(sqS);
-    }
-
-    /* 頂点番号の若い順に、入ってくる辺を合計して頂点の通過確率を計算する。 */
-    static DOUBLE s_adProba[N_MAX_NODE+1];
-    s_adProba[1] = 1.0;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        DOUBLE dProbCur = s_adProba[sqNode];
-        SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            s_adProba[next] += dProbCur / (DOUBLE)sqOutEdgeNum;
+        if (sqF != sqN - 1) {
+            vvstRoads[sqF].emplace_back(sqT, sqC);
+        }
+        if (sqT != sqN - 1) {
+            vvstRoads[sqT].emplace_back(sqF, sqC);
         }
     }
 
-    /* 先頭から各頂点までの距離の期待値を求める */
-    static DOUBLE s_adDistExValF[N_MAX_NODE+1];
-    s_adDistExValF[1] = 0.0;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        DOUBLE dExValFCur = s_adDistExValF[sqNode];
-        SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            DOUBLE dEdgeExVal = s_adProba[sqNode] / (DOUBLE)sqOutEdgeNum;
-            s_adDistExValF[next] += dExValFCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal;
+    solveDijkstraEx(0, vvstRoads, vsqCost);
+
+    SQWORD sqAns = SQWORD_INF;
+    for (SQWORD sqIdx = (sqN - 1) * MULTIPLIER; sqIdx < (sqN - 1) * MULTIPLIER + MULTIPLIER; sqIdx++) {
+        if ((0 == sqIdx % 4) || (0 == sqIdx % 7)) {
+            sqAns = min(sqAns, vsqCost[sqIdx]);
         }
     }
 
-    /* 各頂点から出口までの期待値を求める */
-    static DOUBLE s_adDistExValR[N_MAX_NODE+1];
-    for (SQWORD sqStart = 1; sqStart <= sqN; sqStart++) {
-        vector<DOUBLE> vecdProbaPartial(N_MAX_NODE+1, 0);
-        vecdProbaPartial[sqStart] = 1.0;
-        for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-            DOUBLE dProbCur = vecdProbaPartial[sqNode];
-            SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-
-            for (auto next: s_avecsqOutEdge[sqNode]) {
-                vecdProbaPartial[next] += dProbCur / (DOUBLE)sqOutEdgeNum;
-            }
-        }
-
-        printf("edge ex %d\n", sqStart);
-        vector<DOUBLE> vecdDistExVal(N_MAX_NODE+1 ,0.0);
-        vecdDistExVal[sqStart] = 0.0;
-        for (SQWORD sqNode = sqStart; sqNode <= sqN; sqNode++) {
-            DOUBLE dExValCur = vecdDistExVal[sqNode];
-            SQWORD sqOutEdgeNum = s_avecsqOutEdge[sqNode].size();
-            for (auto next: s_avecsqOutEdge[sqNode]) {
-                DOUBLE dEdgeExVal = vecdProbaPartial[sqNode] / (DOUBLE)sqOutEdgeNum;
-                vecdDistExVal[next] += dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal;
-                printf("next %d add %f\n", next, dExValCur / (DOUBLE)sqOutEdgeNum + dEdgeExVal);
-            }
-        }
-        s_adDistExValR[sqStart] = vecdDistExVal[sqN];
-    }
-
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        printf("prob:%lf ex-f:%lf ex-r:%lf\n", 
-            s_adProba[sqNode], s_adDistExValF[sqNode], s_adDistExValR[sqNode]);
-    }
-
-    /* 期待値が最も大きな辺を探す */
-    DOUBLE dExValInit = s_adDistExValF[sqN];
-    pair<SQWORD, SQWORD> pairsqLargestEdge = make_pair(0, 0);
-    DOUBLE dScoreMin = dExValInit;
-    for (SQWORD sqNode = 1; sqNode <= sqN; sqNode++) {
-        for (auto next: s_avecsqOutEdge[sqNode]) {
-            SQWORD sqEdgeNumCur  = s_avecsqOutEdge[sqNode].size(); 
-            SQWORD sqEdgeNumNext = s_avecsqInEdge[next].size();
-            DOUBLE dProba = s_adProba[sqNode] / sqEdgeNumCur;
-            DOUBLE dExValTtl = (s_adDistExValF[sqNode]
-                                + s_adDistExValR[next] * dProba
-                                + dProba);
-
-            DOUBLE dCurScore = (1.0 / (1.0 - dProba)) * (dExValInit - dExValTtl);
-            if (dCurScore <= dScoreMin) {
-                printf("%lld %lld %lf \n", sqNode, next, dExValTtl);
-                dScoreMin = dCurScore;
-            }                              
-        }
-    }
-
-    printf("%0.10f\n", dScoreMin);
+    printf("%lld\n", sqAns);
 
     return 0;
 }
