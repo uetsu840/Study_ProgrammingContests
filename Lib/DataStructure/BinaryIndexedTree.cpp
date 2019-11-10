@@ -5,11 +5,6 @@
  *      インデックスは 1 ～ N であることに注意する。
  * 
  */
-/**
- *  BIT
- *      インデックスは 1 ～ N であることに注意する。
- * 
- */
 template<typename T>
 class BinaryIndexedTree {
     SDWORD lBitN;

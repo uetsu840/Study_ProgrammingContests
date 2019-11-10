@@ -341,7 +341,6 @@ public:
     }
 };
 
-
 /**
  *  BIT
  *      インデックスは 1 ～ N であることに注意する。
@@ -351,7 +350,6 @@ template<typename T>
 class BinaryIndexedTree {
     SDWORD lBitN;
     vector<T> _vecBit; 
-    SDWORD lDepth;      /* 段数 */
 
 public:
     BinaryIndexedTree(SDWORD lNum)
@@ -360,12 +358,6 @@ public:
         _vecBit.resize(lBitN + 1);
         for (DWORD dwIdx = 0; dwIdx < _vecBit.size(); dwIdx++) {
             _vecBit[dwIdx] = 0;
-        }
-
-        /* 段数 */
-        lDepth = 0;
-        for (SDWORD lPow2 = 1; lPow2 < lNum; lPow2 <<= 1) {
-            lDepth++;
         }
     }
 
@@ -394,26 +386,27 @@ public:
 
     SDWORD binSearchExec(T _sum, bool bIsUb) 
     {
-        SDWORD lSrch = 0;
-        SDWORD lCurInit = 0x1 << (lDepth - 1);
-        T _rest = _sum;
+        SQWORD sqLb = 0;
+        SQWORD sqUb = lBitN;
 
-        for (SDWORD lCur = lCurInit; 0 < lCur; lCur /= 2) {
-                if (lSrch + lCur < lBitN) {
-                bool bJudge;
-                if (bIsUb) {
-                    bJudge = (_vecBit[lSrch + lCur] <= _rest);
-                } else {
-                    bJudge = (_vecBit[lSrch + lCur] < _rest);
-                }
-                if (bJudge) {
-                    _rest -= _vecBit[lSrch + lCur];
-                    lSrch += lCur;
-                }
+        while (1LL < sqUb - sqLb) {
+            SQWORD sqMid = (sqUb + sqLb) / 2LL;
+            bool bJudge;
+            if (bIsUb) {
+                bJudge = (_sum < Sum(sqMid));
+            } else {
+                bJudge = (_sum <= Sum(sqMid));
+            }
+
+            if (bJudge) {
+                sqUb = sqMid;
+            } else {
+                sqLb = sqMid;
             }
         }
-        return lSrch + 1;
+        return sqUb;
     }
+
 
     /**
     *  累積和が指定した数より大きくなるインデックスを求める。 
@@ -445,53 +438,64 @@ public:
     }
 };
 
+
 /*----------------------------------------------*/
-#define MAX_N   (100000)
-#define MAX_M   (100000)
+
+struct ST_MEMBER {
+    SQWORD sqIdx;
+    SQWORD sqHeightOrder;
+    SQWORD sqHeight;
+
+    ST_MEMBER(SQWORD i, SQWORD h) : sqIdx(i), sqHeightOrder(0), sqHeight(h) {}; 
+};
+
+bool cmpIdx(const ST_MEMBER &a, const ST_MEMBER &b)
+{
+    return a.sqIdx < b.sqIdx;
+}
+
+bool cmpHeight(const ST_MEMBER &a, const ST_MEMBER &b)
+{
+    return a.sqHeight < b.sqHeight;
+}
+
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqH = inputSQWORD();
 
-    BinaryIndexedTree<SQWORD> bit(MAX_N + MAX_M);
-
-    SQWORD sqBlockCnt = 0;
-    for (SQWORD sqIdx = 1; sqIdx <= sqN; sqIdx++) {
-        sqBlockCnt++;
-        SQWORD sqA = inputSQWORD();
-        bit.Add(sqBlockCnt, sqA);
+    vector<ST_MEMBER> vecsqH;
+    for (SQWORD sqIdx = 0 ;sqIdx < sqN; sqIdx++) {
+        SQWORD sqH = inputSQWORD();
+        vecsqH.emplace_back(sqIdx, sqH);
     }
+    sort(vecsqH.begin(), vecsqH.end(), cmpHeight);
 
-    for (SQWORD sqQueryIdx = 0; sqQueryIdx < sqM; sqQueryIdx++) {
-        string strOp;
-        cin >> strOp;
-
-        SQWORD sqArg = inputSQWORD();
-
-        if (strOp == "add") {
-            sqBlockCnt++;
-            bit.Add(sqBlockCnt, sqArg);
-        } else if (strOp == "challenge") {
-            SQWORD sqLower = bit.findSumLowerBound(sqArg - sqH + 1);
-            SQWORD sqUpper = bit.findSumLowerBound(sqArg + sqH);
-
-            if (sqLower == bit.End()) {
-                printf("miss\n");
-            } else if ((sqUpper == bit.End()) && (bit.Sum(sqLower) == bit.Sum(sqUpper)) 
-                        || (sqLower == sqUpper)) {
-                printf("go\n");
-                SQWORD sqSumL = bit.Sum(sqLower - 1);
-                SQWORD sqSumU = bit.Sum(sqUpper);
-                bit.Add(sqLower, -(sqSumU - sqSumL));
-            } else {
-                printf("stop\n");
+    SQWORD sqOrder = 1;
+    for (auto it = vecsqH.begin(); it != vecsqH.end(); ++it) {
+        it->sqHeightOrder = sqOrder;
+        sqOrder++;
+        if (it != vecsqH.begin()) {
+            if (it->sqHeight == (it-1)->sqHeight) {
+                printf("-1\n");
+                return 0;
             }
-        } else {
-            printf("Oops!\n");
         }
     }
+    SQWORD sqOrderMax = sqOrder;
+    sort(vecsqH.begin(), vecsqH.end(), cmpIdx);
+    
+    BinaryIndexedTree<SQWORD> bit(sqOrderMax);
+    SQWORD sqAns = 0;
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        auto member = vecsqH[sqIdx];
+        bit.Add(member.sqHeightOrder, 1);
+        SQWORD sqCost = (sqIdx - bit.Sum(member.sqHeightOrder - 1)) * member.sqHeight;
+//        printf("%lld %lld C: %lld\n", member.sqHeight, member.sqHeightOrder, sqCost);
+        sqAns += sqCost;
+    }
+
+    printf("%lld\n", sqAns);
 
     return 0;
 }
