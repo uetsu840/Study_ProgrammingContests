@@ -3,48 +3,31 @@
 /**
  *  セグメント木
  */
-struct SEGMENT_NODE_MAX_ST {
-    SQWORD sqVal;
+struct SEGMENT_NODE_ST {
+    SQWORD sqX;
+    SQWORD sqY;
 
 public:
-    SEGMENT_NODE_MAX_ST(SQWORD a) : sqVal(a) {};
-    SEGMENT_NODE_MAX_ST() : sqVal(0) {};
-    static SQWORD getInvalidVal()
+    SEGMENT_NODE_ST(SQWORD x, SQWORD y) : sqX(x), sqY(y) {};
+    SEGMENT_NODE_ST() : sqX(0), sqY(0) {};
+    static SEGMENT_NODE_ST getInvalidVal()
     {
-        return 0;
+        return SEGMENT_NODE_ST{0, 0};
     }
-    static SQWORD uniteVal(SQWORD sqValA, SQWORD sqValB)
+    static SEGMENT_NODE_ST uniteNode(SEGMENT_NODE_ST nodeA,  SEGMENT_NODE_ST nodeB)
     {
-        return max(sqValA, sqValB);
+        SEGMENT_NODE_ST stRet;
+
+        stRet.sqX = nodeA.sqX + nodeB.sqX;
+        stRet.sqY = max(nodeA.sqY + nodeB.sqX, nodeB.sqY);
+        return stRet;
     }
     void init() {
-        sqVal = getInvalidVal();
+        sqX = 0;
+        sqY = 0;
     }
     void debugPrint() {
-        printf("%lld ", sqVal);
-    }
-};
-
-struct SEGMENT_NODE_MIN_ST {
-    SQWORD sqVal;
-
-public:
-    SEGMENT_NODE_MIN_ST(SQWORD a) : sqVal(a) {};
-    SEGMENT_NODE_MIN_ST() : sqVal(0) {};
-
-    static SQWORD getInvalidVal()
-    {
-        return MAX_SQWORD;
-    }
-    static SQWORD uniteVal(SQWORD sqValA, SQWORD sqValB)
-    {
-        return min(sqValA, sqValB);
-    }
-    void init() {
-        sqVal = getInvalidVal();
-    }
-    void debugPrint() {
-        printf("%lld ", sqVal);
+        printf("<%lld %lld> ", sqX, sqY);
     }
 };
 
@@ -72,7 +55,7 @@ private:
     {
         T stRet;
         
-        stRet.sqVal = T::uniteVal(stR.sqVal, stL.sqVal);
+        stRet = T::uniteNode(stL, stR);
         return stRet;
     }
 
@@ -111,8 +94,13 @@ public:
         initSegmentTree(v);
     }
 
-    void update(DWORD dwNodeIdx, const T &stNewVal) {
+    T getNode(DWORD dwNodeIdx) {
+        // 最下段のノードにアクセスする
+        SDWORD lTreeIdx = dwNodeIdx + (dwBaseSize - 1);
+        return vNode[lTreeIdx];
+    }
 
+    void update(DWORD dwNodeIdx, const T &stNewVal) {
         // 最下段のノードにアクセスする
         SDWORD lTreeIdx = dwNodeIdx + (dwBaseSize - 1);
 
@@ -124,7 +112,7 @@ public:
         }
     }
 
-    SQWORD GetValue(SDWORD lA, SDWORD lB, SDWORD lNodeIdx=0, SDWORD lLeft=0, SDWORD lRight=-1)
+    T GetValue(SDWORD lA, SDWORD lB, SDWORD lNodeIdx=0, SDWORD lLeft=0, SDWORD lRight=-1)
     {
         if (-1 == lRight) {
             lRight = dwBaseSize;
@@ -135,13 +123,13 @@ public:
         }
 
         if ((lA <= lLeft) && (lRight <= lB)) {
-            return vNode[lNodeIdx].sqVal;
+            return vNode[lNodeIdx];
         }
 
-        SQWORD sqResL, sqResR;
+        T sqResL, sqResR;
         SQWORD lCenter = (lLeft + lRight) / 2;
         sqResL = GetValue(lA, lB, (lNodeIdx * 2) + 1, lLeft, lCenter);
         sqResR = GetValue(lA, lB, (lNodeIdx * 2) + 2, lCenter, lRight);
-        return T::uniteVal(sqResL, sqResR);
+        return T::uniteNode(sqResL, sqResR);
     }
 };

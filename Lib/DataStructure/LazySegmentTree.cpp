@@ -3,18 +3,113 @@
 #define SQWORD_INF  (100100100100100100)
 
 /**
- *  セグメント木
+ *  遅延評価セグメント木
+ */
+struct SEGMENT_VAL_ST {
+    SQWORD sqVal;
+
+    SEGMENT_VAL_ST (SQWORD val) {
+        sqVal = val;
+    }
+    SEGMENT_VAL_ST () {
+        sqVal = 0;
+    }
+    void init(void) {
+        sqVal = 0;
+    }
+    void setVal(SQWORD val) {
+        sqVal = val;
+    }
+    void clear() {
+        sqVal = 0;
+    }
+    static SEGMENT_VAL_ST evaluate(
+        const SEGMENT_VAL_ST &a, 
+        const SEGMENT_VAL_ST &b)
+    {
+        SEGMENT_VAL_ST ret;
+        ret.sqVal = max(a.sqVal, b.sqVal);
+        return ret;
+    }
+    static SEGMENT_VAL_ST update(
+        const SEGMENT_VAL_ST &a, 
+        const SEGMENT_VAL_ST &b)
+    {
+        SEGMENT_VAL_ST ret;
+        ret.sqVal = a.sqVal + b.sqVal;
+        return ret;
+    }
+};
+
+
+/**
+ *  遅延評価セグメント木
  */
 struct SEGMENT_NODE_ST {
-    SQWORD sqVal;     /* 値 (担当区間の最小値) */
-    SQWORD sqLazy;    /* 遅延評価 (加算値)*/
+    SEGMENT_VAL_ST stVal;     /* 値 (担当区間の最小値) */
+    SEGMENT_VAL_ST stLazy;    /* 遅延評価 (加算値)*/
     bool bLazyFlag;  /* 遅延評価フラグ */
 
 public:
-    void init(SQWORD sqInitVal) {
-        sqVal = sqInitVal;
-        sqLazy = 0;
+    SEGMENT_NODE_ST () {
+        stVal.init();
+        stLazy.init();
         bLazyFlag = false;
+    }
+
+    SEGMENT_NODE_ST (SQWORD v) {
+        stVal.setVal(v);
+        stLazy.init();
+        bLazyFlag = false;
+    }
+
+    SEGMENT_NODE_ST (SQWORD v, SQWORD l) {
+        stVal.setVal(v);
+        stLazy.setVal(l);
+        bLazyFlag = false;
+    }
+
+    static SEGMENT_NODE_ST getInvalidVal() {
+        SEGMENT_NODE_ST stRet;
+        return stRet;
+    }
+
+    static SEGMENT_NODE_ST evaluateFunc(
+        const SEGMENT_NODE_ST &stNodeL,
+        const SEGMENT_NODE_ST &stNodeR)
+    {
+        SEGMENT_NODE_ST stRet;
+        stRet.stVal = SEGMENT_VAL_ST::evaluate(stNodeL.stVal, stNodeR.stVal);
+        return stRet;
+    };
+
+    static SEGMENT_NODE_ST getNodeVal(
+        const SEGMENT_NODE_ST &stN)
+    {
+        SEGMENT_NODE_ST stRet;
+        if (stN.bLazyFlag) {
+            stRet.stVal = SEGMENT_VAL_ST::update(stN.stLazy, stN.stVal);
+        } else {
+            stRet.stVal = stN.stVal;          
+        }
+
+        return stRet;
+    }
+
+    static void refreshLazyVal(
+        SEGMENT_NODE_ST &stN)
+    {
+        stN.stVal  = SEGMENT_VAL_ST::update(stN.stVal, stN.stLazy);
+        stN.bLazyFlag = false;
+        stN.stLazy.clear();
+    }
+
+    static void updateLazyVal(
+        SEGMENT_NODE_ST &stN,
+        const SEGMENT_NODE_ST &stX)
+    {
+        stN.stLazy = SEGMENT_VAL_ST::update(stN.stLazy, stX.stLazy);
+        stN.bLazyFlag = true;
     }
 };
 
@@ -27,51 +122,19 @@ private:
     void debugPrint(void) {
         for (SQWORD sqIdx = 0; sqIdx < dwBaseSize * 2 - 1; sqIdx++) {
             printf("[%lld : v:%lld l:%lld] f[%d]\n", 
-                sqIdx, vNode[sqIdx].sqVal, vNode[sqIdx].sqLazy, vNode[sqIdx].bLazyFlag);
+                sqIdx, vNode[sqIdx].stVal.sqVal, vNode[sqIdx].stLazy.sqVal, vNode[sqIdx].bLazyFlag);
         }
     }
 
-    static inline SQWORD evaluateFunc(
-        const SQWORD sqValL,
-        const SQWORD sqValR)
-    {
-        return min(sqValL, sqValR);
-    }
-
-    static inline SQWORD getNodeVal(
-        const SEGMENT_NODE_ST &stN)
-    {
-        if (stN.bLazyFlag) {
-            return stN.sqLazy;
-        } else {
-            return stN.sqVal;          
-        }
-    }
-
-    static inline void refreshLazyVal(
-        SEGMENT_NODE_ST &stN)
-    {
-        stN.sqVal = stN.sqLazy;
-        stN.bLazyFlag = false;
-        stN.sqLazy    = 0;
-    }
-
-    static inline void updateLazyVal(
-        SEGMENT_NODE_ST &stN,
-        SQWORD sqX)
-    {
-        stN.sqLazy = sqX;
-        stN.bLazyFlag = true;
-    }
 
     void initSegmentTree(
-        vector<SQWORD> vsqInitVal)
+        vector<SEGMENT_NODE_ST> &vstInitVal)
     {
         /**
          *  最下段のノード数は元配列のサイズ以上になる最小の 2 冪 -> これを n とおく
          * セグメント木全体で必要なノード数は 2n-1 個である
          */
-        DWORD dwSize = vsqInitVal.size();
+        DWORD dwSize = vstInitVal.size();
         dwBaseSize = 1; 
         while (dwBaseSize < dwSize) {
             dwBaseSize *= 2;
@@ -82,21 +145,21 @@ private:
          *  最下段に値を入れたあとに、下の段から順番に値を入れる
          * 値を入れるには、自分の子の 2 値を参照すれば良い
          */
-        for(SDWORD lIdx = 0; lIdx < vsqInitVal.size(); lIdx++) {
-            vNode[lIdx + (dwBaseSize - 1)].init(vsqInitVal[lIdx]);
+        for(SDWORD lIdx = 0; lIdx < vstInitVal.size(); lIdx++) {
+            vNode[lIdx + (dwBaseSize - 1)] = vstInitVal[lIdx];
         }
         for (SDWORD lIdx = dwBaseSize - 2; 0 <= lIdx; lIdx--) {
-            vNode[lIdx].sqVal = evaluateFunc(vNode[lIdx*2+1].sqVal, vNode[lIdx*2+2].sqVal);
+            vNode[lIdx] = SEGMENT_NODE_ST::evaluateFunc(vNode[lIdx*2+1], vNode[lIdx*2+2]);
         }
     }
 
     void lazyEvaluate(int lNodeIdx, int lLeft, int lRight) {
         if (vNode[lNodeIdx].bLazyFlag) {
             if (lRight - lLeft > 1) {
-                updateLazyVal(vNode[lNodeIdx*2+1], vNode[lNodeIdx].sqLazy);
-                updateLazyVal(vNode[lNodeIdx*2+2], vNode[lNodeIdx].sqLazy);
+                SEGMENT_NODE_ST::updateLazyVal(vNode[lNodeIdx*2+1], vNode[lNodeIdx]);
+                SEGMENT_NODE_ST::updateLazyVal(vNode[lNodeIdx*2+2], vNode[lNodeIdx]);
             }
-            refreshLazyVal(vNode[lNodeIdx]);
+            SEGMENT_NODE_ST::refreshLazyVal(vNode[lNodeIdx]);
         }
     }
 
@@ -104,10 +167,9 @@ public:
     void UpdateValue(
         SDWORD lA, 
         SDWORD lB, 
-        SDWORD lX,      /* update value */
+        SEGMENT_VAL_ST stX,      
         SDWORD lNodeIdx=0, SDWORD lLeft=0, SDWORD lRight=-1)    /* 自分のノードが対象とする区間 */
     {
-        
         if (lRight < 0) {
             lRight = dwBaseSize;
         }
@@ -117,21 +179,23 @@ public:
         }
 
         if ((lA <= lLeft) && (lRight <= lB)) {
-            updateLazyVal(vNode[lNodeIdx], lX);
+            SEGMENT_NODE_ST stUpdate;
+            stUpdate.stLazy = stX;
+            SEGMENT_NODE_ST::updateLazyVal(vNode[lNodeIdx], stUpdate);
         } else {
             lazyEvaluate(lNodeIdx, lLeft, lRight);
 
             SDWORD lCenter = (lLeft + lRight) / 2;
             SDWORD lNodeIdx_L = (lNodeIdx * 2) + 1; 
             SDWORD lNodeIdx_R = (lNodeIdx * 2) + 2;
-            UpdateValue(lA, lB, lX, lNodeIdx_L, lLeft, lCenter);
-            UpdateValue(lA, lB, lX, lNodeIdx_R, lCenter, lRight);
-            vNode[lNodeIdx].sqVal = evaluateFunc(getNodeVal(vNode[lNodeIdx_L]), 
-                                                 getNodeVal(vNode[lNodeIdx_R]));
+            UpdateValue(lA, lB, stX, lNodeIdx_L, lLeft, lCenter);
+            UpdateValue(lA, lB, stX, lNodeIdx_R, lCenter, lRight);
+            vNode[lNodeIdx] = SEGMENT_NODE_ST::evaluateFunc(SEGMENT_NODE_ST::getNodeVal(vNode[lNodeIdx_L]), 
+                                                            SEGMENT_NODE_ST::getNodeVal(vNode[lNodeIdx_R]));
         }
     };
 
-    SQWORD FindMin(
+    SEGMENT_NODE_ST FindVal(
         SDWORD lA, 
         SDWORD lB, 
         SDWORD lNodeIdx=0, SDWORD lLeft=0, SDWORD lRight=-1)    /* 自分のノードが対象とする区間 */
@@ -141,24 +205,24 @@ public:
         }
 
         if ((lRight <= lA) || (lB <= lLeft)) {
-            return SQWORD_INF;
+            return SEGMENT_NODE_ST::getInvalidVal();
         }
 
         if ((lA <= lLeft) && (lRight <= lB)) {
-            return getNodeVal(vNode[lNodeIdx]);
+            return SEGMENT_NODE_ST::getNodeVal(vNode[lNodeIdx]);
         } else {
             lazyEvaluate(lNodeIdx, lLeft, lRight);
             SDWORD lCenter = (lLeft + lRight) / 2;
             SDWORD lNodeIdx_L = (lNodeIdx * 2) + 1; 
             SDWORD lNodeIdx_R = (lNodeIdx * 2) + 2;
-            SQWORD sqValL = FindMin(lA, lB, lNodeIdx_L, lLeft, lCenter);
-            SQWORD sqValR = FindMin(lA, lB, lNodeIdx_R, lCenter, lRight);
-            return evaluateFunc(sqValL, sqValR);
+            SEGMENT_NODE_ST stValL = FindVal(lA, lB, lNodeIdx_L, lLeft, lCenter);
+            SEGMENT_NODE_ST stValR = FindVal(lA, lB, lNodeIdx_R, lCenter, lRight);
+            return SEGMENT_NODE_ST::evaluateFunc(stValL, stValR);
         }
     };
 
     /* 元配列 v をセグメント木で表現する */
-    LazySegmentTree(vector<SQWORD> init) {
+    LazySegmentTree(vector<SEGMENT_NODE_ST> init) {
         initSegmentTree(init);
     }
 };
