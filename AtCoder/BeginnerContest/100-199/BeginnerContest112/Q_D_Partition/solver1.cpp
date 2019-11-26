@@ -252,51 +252,92 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 
 /*----------------------------------------------*/
-/*----------------------------------------------*/
+
+
+static void calcPrimeFactorication(SQWORD sqNum, vector<pair<SQWORD, SQWORD>> &vlPrimes)
+{
+    if (1 == sqNum) {
+        return;
+    }
+    if (2 == sqNum) {
+        vlPrimes.emplace_back(make_pair(2, 1));
+        return;
+    }
+    if (3 == sqNum) {
+        vlPrimes.emplace_back(make_pair(3, 1));
+        return;
+    }
+
+    SQWORD sqCur = sqNum;
+    SQWORD sqUpper = sqrt(sqNum) + 1;
+    for (SQWORD sqDiv = 2; sqDiv <= sqUpper; sqDiv++) {
+        SDWORD lPowerCnt = 0;
+        while(0 == sqCur % sqDiv) {
+            sqCur /= sqDiv;
+            lPowerCnt++;
+        }
+        if (0 < lPowerCnt) {
+            vlPrimes.emplace_back(make_pair(sqDiv, lPowerCnt));
+        }
+        if (1 == sqCur) {
+            break;
+        }
+    }
+    if (1 < sqCur) {
+        vlPrimes.emplace_back(make_pair(sqCur, 1));
+    }
+}
+
+static void getDivisorsOne(
+    vector<pair<SQWORD, SQWORD>> vpairlPrimes,  
+    vector<SQWORD> &vsqDivisors,                /*!<[out] 約数 */
+    SQWORD sqCur, 
+    SQWORD sqOrgNumber)
+{
+    if (vpairlPrimes.empty()) {
+        vsqDivisors.emplace_back(sqCur);
+        return;
+    }
+
+    auto prime = vpairlPrimes.back();
+    vpairlPrimes.pop_back();
+    SQWORD sqDiv = sqCur;
+
+    for (SDWORD lPow = 0; lPow <= prime.second; lPow++) {
+        getDivisorsOne(vpairlPrimes, vsqDivisors, sqDiv, sqOrgNumber);
+        sqDiv *= prime.first;
+    }
+}
+
+static vector<SQWORD> getAllDivisors(SQWORD sqNum)
+{
+    vector<pair<SQWORD, SQWORD>> vpairlPrimes;
+    vector<SQWORD> vsqAllDivisors;
+
+    calcPrimeFactorication(sqNum, vpairlPrimes);   
+    getDivisorsOne(vpairlPrimes, vsqAllDivisors, 1, sqNum);
+
+    return vsqAllDivisors;
+}
+
+
+/*--------------------------------------*/
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
+    SQWORD sqM = inputSQWORD();
 
-    MODINT::Init(sqK);
-    vector<MODINT> vsqRemSum;
-    MODINT sqSum = 0;
-    map<SQWORD, SQWORD> mapRem;
-    for (SQWORD sqIdx = 1; sqIdx <= sqN; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        sqSum += (MODINT(sqA) - 1);
-//        printf("----%lld\n", sqSum);
-        vsqRemSum.emplace_back(sqSum);
-    }
+    vector<SQWORD> vsqAllDivisors = getAllDivisors(sqM);
 
-    for (SQWORD sqIdx = 0; sqIdx < min(sqN, sqK-1); sqIdx++) {
-        mapRem[vsqRemSum[sqIdx].getVal()]++;
-    }
-
-    MODINT sqPrevFront = 0;
-    MODINT sqSearch = 0;
-    SQWORD sqAns = 0;
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        MODINT sqFront = vsqRemSum[sqIdx] - sqPrevFront;
-
-        if (0 < mapRem.count(sqSearch.getVal())) {
-            sqAns += mapRem[sqSearch.getVal()];
-        }
-
-//        printf("f : %lld search %lld, cnt%lld rem %lld\n", sqFront, sqSearch,  mapRem[sqSearch.getVal()], vsqRemSum[sqIdx]);
-//        printf("%lld %lld %lld %lld\n", mapRem[0], mapRem[1], mapRem[2], mapRem[3]);
-
-        sqSearch += sqFront;
-        sqPrevFront = vsqRemSum[sqIdx];
-        mapRem[vsqRemSum[sqIdx].getVal()]--;
-        if (sqIdx + sqK - 1 < sqN) {
-            mapRem[vsqRemSum[sqIdx + sqK - 1].getVal()]++;
+    SQWORD sqDiv = MAX_SQWORD;
+    for (auto d: vsqAllDivisors) {
+        if (sqN <= d) {
+            sqDiv = min(sqDiv, d);
         }
     }
 
-    printf("%lld\n", sqAns);
-
+    printf("%lld\n", sqM / sqDiv);
 
     return 0;
 }

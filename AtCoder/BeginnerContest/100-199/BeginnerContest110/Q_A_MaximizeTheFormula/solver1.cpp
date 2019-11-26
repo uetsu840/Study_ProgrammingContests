@@ -252,51 +252,18 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 
 /*----------------------------------------------*/
-/*----------------------------------------------*/
+
 
 int main(void)
 {
-    SQWORD sqN = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
+    vector<SQWORD> vsqNum(3, 0);
 
-    MODINT::Init(sqK);
-    vector<MODINT> vsqRemSum;
-    MODINT sqSum = 0;
-    map<SQWORD, SQWORD> mapRem;
-    for (SQWORD sqIdx = 1; sqIdx <= sqN; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        sqSum += (MODINT(sqA) - 1);
-//        printf("----%lld\n", sqSum);
-        vsqRemSum.emplace_back(sqSum);
-    }
+    vsqNum[0] = inputSQWORD();
+    vsqNum[1] = inputSQWORD();
+    vsqNum[2] = inputSQWORD();
 
-    for (SQWORD sqIdx = 0; sqIdx < min(sqN, sqK-1); sqIdx++) {
-        mapRem[vsqRemSum[sqIdx].getVal()]++;
-    }
-
-    MODINT sqPrevFront = 0;
-    MODINT sqSearch = 0;
-    SQWORD sqAns = 0;
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        MODINT sqFront = vsqRemSum[sqIdx] - sqPrevFront;
-
-        if (0 < mapRem.count(sqSearch.getVal())) {
-            sqAns += mapRem[sqSearch.getVal()];
-        }
-
-//        printf("f : %lld search %lld, cnt%lld rem %lld\n", sqFront, sqSearch,  mapRem[sqSearch.getVal()], vsqRemSum[sqIdx]);
-//        printf("%lld %lld %lld %lld\n", mapRem[0], mapRem[1], mapRem[2], mapRem[3]);
-
-        sqSearch += sqFront;
-        sqPrevFront = vsqRemSum[sqIdx];
-        mapRem[vsqRemSum[sqIdx].getVal()]--;
-        if (sqIdx + sqK - 1 < sqN) {
-            mapRem[vsqRemSum[sqIdx + sqK - 1].getVal()]++;
-        }
-    }
-
-    printf("%lld\n", sqAns);
-
+    sort(vsqNum.begin(), vsqNum.end(), greater<SQWORD>());
+    printf("%lld\n", vsqNum[0] * 10 + vsqNum[1] + vsqNum[2]);
 
     return 0;
 }

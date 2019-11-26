@@ -252,51 +252,115 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 
 /*----------------------------------------------*/
-/*----------------------------------------------*/
+
+static void calcPrimeFactorication(
+    SQWORD sqNum, 
+    vector<pair<SQWORD, SQWORD>> &vlPrimes)
+{
+    if (1 == sqNum) {
+        return;
+    }
+    if (2 == sqNum) {
+        vlPrimes.emplace_back(make_pair(2, 1));
+        return;
+    }
+    if (3 == sqNum) {
+        vlPrimes.emplace_back(make_pair(3, 1));
+        return;
+    }
+
+    SQWORD sqCur = sqNum;
+    SQWORD sqUpper = sqrt(sqNum) + 1;
+    for (SQWORD sqDiv = 2; sqDiv <= sqUpper; sqDiv++) {
+        SDWORD lPowerCnt = 0;
+        while(0 == sqCur % sqDiv) {
+            sqCur /= sqDiv;
+            lPowerCnt++;
+        }
+        if (0 < lPowerCnt) {
+            vlPrimes.emplace_back(make_pair(sqDiv, lPowerCnt));
+        }
+        if (1 == sqCur) {
+            break;
+        }
+    }
+    if (1 < sqCur) {
+        vlPrimes.emplace_back(make_pair(sqCur, 1));
+    }
+}
+
+
+/* ある値以上の個数を求める */
+static SQWORD getCnt(
+    const vector<SQWORD> &vecsqVal,
+    SQWORD sqN)
+{
+    SQWORD sqCnt = 0;
+    for (auto v: vecsqVal) {
+        if (sqN <= v) {
+            sqCnt++;
+        }
+    }
+    return sqCnt;
+}
+
+
+#define LEVEL_MAX   (50)
+struct BURGER_CNT {
+    SQWORD sqNumB;
+    SQWORD sqNumP;
+    SQWORD sqSum;
+
+    BURGER_CNT (SQWORD sqB, SQWORD sqP): sqNumB(sqB), sqNumP(sqP) {
+        sqSum = sqB + sqP;
+    };
+};
+
+static SQWORD countAns(
+    SQWORD sqNum,
+    SQWORD sqLayer,
+    const vector<BURGER_CNT> &vBC)
+{
+//    printf("Lv %lld : %lld>>\n", sqLayer, sqNum);
+    SQWORD sqTtl  = vBC[sqLayer].sqSum;
+    SQWORD sqTtlP = vBC[sqLayer].sqNumP;
+    SQWORD sqNextHalf = vBC[sqLayer - 1].sqSum;
+    SQWORD sqHalfP = vBC[sqLayer - 1].sqNumP;
+    if (0 == sqNum) {
+        return 0;
+    } else if (sqTtl == sqNum) {
+        return sqTtlP;
+    } else if (1 + sqNextHalf + 1 < sqNum) {
+        SQWORD sqUpper = sqNum - (1 + sqNextHalf  + 1);
+        return sqHalfP + 1 + countAns(sqUpper, sqLayer - 1, vBC);
+    } else if (1 + sqNextHalf + 1 == sqNum) {
+        return (sqHalfP + 1);
+    } else {
+        SQWORD sqLower = sqNum - 1;
+        return countAns(sqLower, sqLayer - 1, vBC);
+    }
+}
 
 int main(void)
 {
+    SQWORD sqH0 = 1;
     SQWORD sqN = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
+    SQWORD sqX = inputSQWORD();
 
-    MODINT::Init(sqK);
-    vector<MODINT> vsqRemSum;
-    MODINT sqSum = 0;
-    map<SQWORD, SQWORD> mapRem;
-    for (SQWORD sqIdx = 1; sqIdx <= sqN; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        sqSum += (MODINT(sqA) - 1);
-//        printf("----%lld\n", sqSum);
-        vsqRemSum.emplace_back(sqSum);
+    vector<BURGER_CNT> vBC;
+    vBC.emplace_back(0, 1);
+    for (SQWORD sqLv = 1; sqLv <= sqN; sqLv++) {
+        SQWORD sqB = vBC[sqLv - 1].sqNumB * 2 + 2;
+        SQWORD sqP = vBC[sqLv - 1].sqNumP * 2 + 1;
+
+        vBC.emplace_back(sqB, sqP);
+
+//        printf("%lld %lld %lld\n", sqB, sqP, vBC[sqLv].sqSum);
     }
 
-    for (SQWORD sqIdx = 0; sqIdx < min(sqN, sqK-1); sqIdx++) {
-        mapRem[vsqRemSum[sqIdx].getVal()]++;
-    }
 
-    MODINT sqPrevFront = 0;
-    MODINT sqSearch = 0;
-    SQWORD sqAns = 0;
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        MODINT sqFront = vsqRemSum[sqIdx] - sqPrevFront;
-
-        if (0 < mapRem.count(sqSearch.getVal())) {
-            sqAns += mapRem[sqSearch.getVal()];
-        }
-
-//        printf("f : %lld search %lld, cnt%lld rem %lld\n", sqFront, sqSearch,  mapRem[sqSearch.getVal()], vsqRemSum[sqIdx]);
-//        printf("%lld %lld %lld %lld\n", mapRem[0], mapRem[1], mapRem[2], mapRem[3]);
-
-        sqSearch += sqFront;
-        sqPrevFront = vsqRemSum[sqIdx];
-        mapRem[vsqRemSum[sqIdx].getVal()]--;
-        if (sqIdx + sqK - 1 < sqN) {
-            mapRem[vsqRemSum[sqIdx + sqK - 1].getVal()]++;
-        }
-    }
-
+    SQWORD sqAns = countAns(sqX, sqN, vBC);
     printf("%lld\n", sqAns);
-
 
     return 0;
 }

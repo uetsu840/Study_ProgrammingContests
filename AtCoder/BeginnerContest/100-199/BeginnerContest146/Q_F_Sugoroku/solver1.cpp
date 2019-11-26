@@ -255,7 +255,51 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 /*----------------------------------------------*/
 
+struct DP_ENTRY {
+    SQWORD sqCnt;
+    SQWORD sqPrev;
+};
+
 int main(void)
 {
+    SQWORD sqN = inputSQWORD();
+    SQWORD sqM = inputSQWORD();
+
+    string strS;
+    cin >> strS;
+
+    vector<SQWORD> vsqPtr(sqN + 1, 0);
+
+    SQWORD sqNext = sqN;
+    for (SQWORD sqIdx = sqN; 0 <= sqIdx; sqIdx--) {
+        if ('0' == strS[sqIdx]) {
+            sqNext = sqIdx;
+        }
+        vsqPtr[sqIdx] = sqNext;
+    } 
+
+
+    SQWORD sqCur = sqN;
+    vector<SQWORD> vsqAns;
+    while(1) {
+        if (sqCur <= sqM) {
+            vsqAns.emplace_back(sqCur);
+            break;
+        }
+
+        if (sqCur == vsqPtr[sqCur - sqM]) {
+            printf("-1\n");
+            return 0;
+        }
+
+        vsqAns.emplace_back(sqCur - vsqPtr[sqCur - sqM]);
+        sqCur = vsqPtr[sqCur - sqM];
+    }
+    reverse(vsqAns.begin(), vsqAns.end());
+
+    for (auto s: vsqAns) {
+        printf("%lld ", s);
+    }
+    printf("\n");
     return 0;
 }
