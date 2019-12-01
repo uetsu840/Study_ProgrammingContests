@@ -250,90 +250,12 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
-
 /*----------------------------------------------*/
 
 
-/*-----------------------------------------------------*/
-static void getPrimes(vector<SDWORD> &vlPrimes, SDWORD lMax)
-{
-    /* lSearchMax と ループ内の *2 の関係から、入力は3以上とすること */
-    if (!(1 <= lMax)) {
-        printf("Oops!");
-        return;
-    }
-
-    /* 素数のリストを作る */
-    vector<bool> vbIsPrime(lMax + 1, true);
-    SDWORD lSearchMax = sqrt(lMax) + 1;
-    vbIsPrime[0] = false;
-    vbIsPrime[1] = false;
-    for (SDWORD lPrime = 2; lPrime < vbIsPrime.size(); lPrime++) {
-        if (vbIsPrime[lPrime]) {
-            vlPrimes.emplace_back(lPrime);
-            if (lPrime <= lSearchMax) {
-                for (SDWORD lCurNum = lPrime * 2; lCurNum <= lMax; lCurNum += lPrime) {
-                    vbIsPrime[lCurNum] = false;
-                }
-            }
-        }
-    }
-}    
-
+/*----------------------------------------------*/
 
 int main(void)
 {
-    SQWORD sqN = inputSQWORD();
-
-    vector<SDWORD> vlPrimes;
-    getPrimes(vlPrimes, 55555 * 5);
-
-    set<SQWORD> setPrimes;
-    for (auto p: vlPrimes) {
-        setPrimes.insert(p);
-    }
-
-    set<SQWORD> setSum4;
-    SQWORD sqSum = 0;
-    vector<SQWORD> vsqAns;
-    SQWORD sqPrimeIdxUpper = (lower_bound(vlPrimes.begin(), vlPrimes.end(), 55555) - vlPrimes.begin()) - 1;
-    SQWORD sqPrimeIdx = sqPrimeIdxUpper;
-    for (; sqPrimeIdxUpper - 5 < sqPrimeIdx; sqPrimeIdx--) {
-        sqSum += vlPrimes[sqPrimeIdx];
-        vsqAns.emplace_back(vlPrimes[sqPrimeIdx]);
-    }
-    setSum4.insert(sqSum);
-
-    for (;; sqPrimeIdx--) {
-        vector<SQWORD> sqAddSum;
-        bool bIsAllSumPrime = false;
-        for (auto s : setSum4) {
-            if (setPrimes.find(s + vlPrimes[sqPrimeIdx]) != setPrimes.end()) {
-                printf(">>>> %lld\n", s + vlPrimes[sqPrimeIdx]);
-                bIsAllSumPrime = true;
-            }
-        }
-
-        if (!bIsAllSumPrime) {
-            printf("%lld\n", vlPrimes[sqPrimeIdx]);
-            vsqAns.emplace_back(vlPrimes[sqPrimeIdx]);  
-            for (SQWORD sqIdx1 = sqPrimeIdxUpper; sqPrimeIdx + 3 <= sqIdx1; sqIdx1--) {
-                for (SQWORD sqIdx2 = sqIdx1 - 1; sqPrimeIdx + 2 <= sqIdx2; sqIdx2--) {
-                    for (SQWORD sqIdx3 = sqIdx2 - 1; sqPrimeIdx + 1 <= sqIdx3; sqIdx3--) {
-                        for (SQWORD sqIdx4 = sqIdx3 - 1; sqPrimeIdx + 0<= sqIdx4; sqIdx4--) {
-                            setSum4.insert(vlPrimes[sqIdx1] + vlPrimes[sqIdx2] + vlPrimes[sqIdx3] + vlPrimes[sqIdx4]);
-                        }
-                    }
-                }
-            }
-        }
-        if (sqN <= vsqAns.size()) {
-            break;
-        }
-    }
-
-    for (auto a : vsqAns) {
-        printf("%lld ", a);
-    }
-    printf("\n");
+    return 0;
 }
