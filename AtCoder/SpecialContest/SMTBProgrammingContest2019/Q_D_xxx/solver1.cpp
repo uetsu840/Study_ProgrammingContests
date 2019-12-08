@@ -255,6 +255,47 @@ SQWORD MODINT::MOD = ANS_MOD;
 /*----------------------------------------------*/
 int main(void)
 {
+    string strS;
+
+    SQWORD sqN = inputSQWORD();
+    cin >> strS;
+
+    /* dp[k][d][i]
+    *   k桁目までを考えたとき 最後の文字がd で、i文字のパスワードの数
+    *
+    */
+    SQWORD s_aaasqDp[sqN+1][10][4];
+    memset(s_aaasqDp, 0, sizeof(s_aaasqDp));
+
+    for (SQWORD sqDigit = 1; sqDigit <= sqN; sqDigit++) {
+        SQWORD sqOrgStrDigit = strS[sqDigit - 1] - '0';
+        for (SQWORD sqNum = 0; sqNum <= 9; sqNum++) {
+            for (SQWORD sqPwdLen = 1; sqPwdLen <= 3; sqPwdLen++) {
+                if (sqNum == sqOrgStrDigit) {
+                    if (1 == sqPwdLen) {
+                        s_aaasqDp[sqDigit][sqNum][sqPwdLen] = 1;
+                    } else {                    
+                        SQWORD sqNextDp = 0;
+                        for (SQWORD sqNumCnt = 0; sqNumCnt <= 9; sqNumCnt++) {
+                            sqNextDp += s_aaasqDp[sqDigit - 1][sqNumCnt][sqPwdLen - 1];
+                        }
+                        s_aaasqDp[sqDigit][sqNum][sqPwdLen] = sqNextDp;
+                    }
+                } else {
+                    s_aaasqDp[sqDigit][sqNum][sqPwdLen] = s_aaasqDp[sqDigit - 1][sqNum][sqPwdLen];
+                }
+//                printf("%lld %lld %lld : %lld\n", sqDigit, sqNum, sqPwdLen, s_aaasqDp[sqDigit][sqNum][sqPwdLen]);
+            } 
+        }
+    }
+
+    SQWORD sqAns = 0;
+    for (SQWORD sqNum = 0; sqNum <= 9; sqNum++) {
+        sqAns += s_aaasqDp[sqN][sqNum][3];
+    }
+    printf("%lld\n", sqAns);
+
+
 
     return 0;
 }

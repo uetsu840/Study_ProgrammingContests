@@ -255,6 +255,18 @@ SQWORD MODINT::MOD = ANS_MOD;
 /*----------------------------------------------*/
 int main(void)
 {
+    SQWORD sqX = inputSQWORD();
+
+
+    SQWORD sqMod = sqX % 100;
+    SQWORD sqDiv = sqX / 100;
+
+    if (sqMod <= sqDiv * 5) {
+        printf("1\n");
+    } else {
+        printf("0\n");
+    }
+    
 
     return 0;
 }

@@ -45,7 +45,8 @@
             "forward_list": "cpp",
             "list": "cpp",
             "valarray": "cpp",
-            "random": "cpp"
+            "random": "cpp",
+            "regex": "cpp"
         }
 	}
 }

@@ -257,5 +257,46 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 int main(void)
 {
+    SQWORD sqT1 = inputSQWORD();
+    SQWORD sqT2 = inputSQWORD();
+
+    SQWORD sqA1 = inputSQWORD();
+    SQWORD sqA2 = inputSQWORD();
+    SQWORD sqB1 = inputSQWORD();
+    SQWORD sqB2 = inputSQWORD();
+
+    SQWORD sqCycleA = sqT1 * sqA1 + sqT2 * sqA2;
+    SQWORD sqCycleB = sqT1 * sqB1 + sqT2 * sqB2;
+
+    /* CA > CB とする。 */
+    if (sqCycleA < sqCycleB) {
+        swap(sqA1, sqB1);
+        swap(sqA2, sqB2);
+        swap(sqCycleA, sqCycleB);
+    }
+
+    if (sqCycleA == sqCycleB) {
+        printf("infinity\n");
+        return 0;
+    }
+
+    if (sqB1 < sqA1) {
+        printf("0\n");
+        return 0;
+    }
+
+    SQWORD sqN   = (sqT1 * (sqB1 - sqA1)) / (sqCycleA - sqCycleB);
+    SQWORD sqMod = (sqT1 * (sqB1 - sqA1)) % (sqCycleA - sqCycleB);
+    
+//    printf("--- %lld %lld\n", sqCycleA, sqCycleB);
+//    printf("--- %lld %lld\n", sqN, sqMod);
+
+    if (0 == sqMod) {
+        printf("%lld\n", sqN * 2);
+    } else {
+        printf("%lld\n", sqN * 2 + 1);
+    }
+
     return 0;
+
 }

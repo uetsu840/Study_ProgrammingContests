@@ -254,8 +254,52 @@ SQWORD MODINT::MOD = ANS_MOD;
 /*----------------------------------------------*/
 /*----------------------------------------------*/
 
+static SQWORD countPat(
+    const vector<SQWORD> &vsqA, 
+    SQWORD sqMatch)
+{
+    SQWORD sqCnt = 0;
+    for (auto n: vsqA) {
+        if (n == sqMatch) {
+            sqCnt++;
+        }
+    }
+    return sqCnt;
+}
+
+static void updatePat(
+    vector<SQWORD> &vsqA,
+    SQWORD sqNum)
+{
+    for (SQWORD sqIdx = 0; sqIdx < vsqA.size(); sqIdx++) {
+        if (sqNum == vsqA[sqIdx]) {
+            vsqA[sqIdx]++;
+            break;
+        }
+    }
+}
+
+
 int main(void)
 {
+    SQWORD sqN = inputSQWORD();
+
+    vector<SQWORD> vsqPat(3, 0);
+
+    MODINT miAns = 1;
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqA = inputSQWORD();
+        SQWORD sqCnt = countPat(vsqPat, sqA);
+
+//        printf("%lld %lld\n", sqA, sqCnt);
+
+        miAns *= sqCnt;
+        updatePat(vsqPat, sqA);
+    }
+
+    printf("%lld\n", miAns);
+
+
 
     return 0;
 }

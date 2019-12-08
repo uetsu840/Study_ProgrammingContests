@@ -253,35 +253,21 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 /*----------------------------------------------*/
 
-static SQWORD getDayCnt(string &s)
-{
-    if (s == "SUN") {
-        return 0;
-    } else if (s == "MON") {
-        return 1;
-    } else if (s == "TUE") {
-        return 2;
-    } else if (s == "WED") {
-        return 3;
-    } else if (s == "THU") {
-        return 4;
-    } else if (s == "FRI") {
-        return 5;
-    } else if (s == "SAT") {
-        return 6;
-    } else {
-        return 10000;
-    }
-}
+                                /*   1   2   3   4   5   6   7   8   9  10  11  12 */
+static SQWORD s_asqLastDays[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 int main(void)
 {
-    string str;
+    SQWORD sqM1 = inputSQWORD();
+    SQWORD sqD1 = inputSQWORD();
+    SQWORD sqM2 = inputSQWORD();
+    SQWORD sqD2 = inputSQWORD();
 
-    cin >> str;
+    if (sqD2 < sqD1) {
+        printf("1\n");
+    } else {
+        printf("0\n");
+    }
 
-    SQWORD sqDay = getDayCnt(str);
-
-    printf("%lld\n", 7 - sqDay);
     return 0;
 }

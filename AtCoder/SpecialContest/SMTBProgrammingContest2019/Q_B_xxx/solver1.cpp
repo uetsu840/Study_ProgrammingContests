@@ -256,5 +256,15 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 int main(void)
 {
+    SQWORD sqN = inputSQWORD();
+
+    for (SQWORD sqYen = 1; sqYen <= 50000; sqYen++) {
+        if (sqN == ((sqYen * 108) / 100)) {
+            printf("%lld\n", sqYen);
+            return 0;
+        }
+    }
+    printf(":(\n");
+
     return 0;
 }
