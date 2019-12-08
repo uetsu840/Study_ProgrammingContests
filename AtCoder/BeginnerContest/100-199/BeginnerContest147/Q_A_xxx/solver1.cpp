@@ -250,201 +250,38 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
-/*----------------------------------------------*/
-
 
 /*----------------------------------------------*/
 
-struct EDGE_ST {
-    SQWORD sqTo;
-
-    EDGE_ST(SQWORD to) {
-        sqTo = to;
-    };
-};
-
-#define N_MAX_NODES     (100000)
-#define MAX_LOG_NODES   (20)
-
-class SCC_Graph {
-    vector<vector<EDGE_ST>> vvstEdge;
-    vector<vector<EDGE_ST>> vvstRevEdge;
-    vector<SQWORD> vsqInOrderFwd;
-    SQWORD  sqNumNode;
-    vector<SQWORD>  vsqOrder;
-    vector<SQWORD>  vsqComp;
-
-    void dfs(SQWORD sqNode, vector<bool> &vbIsVisited)
-    {
-        if (vbIsVisited[sqNode]) {
-            return;
-        }
-        vbIsVisited[sqNode] = true; 
-        for (auto e: vvstEdge[sqNode]) {
-            dfs(e.sqTo, vbIsVisited);
-        }
-        vsqOrder.emplace_back(sqNode);
-    }
-
-    void rdfs(SQWORD sqNode, SQWORD sqCnt, vector<vector<SQWORD>> &rnodes)
-    {
-        if (vsqComp[sqNode] != -1) {
-            return;
-        }
-        vsqComp[sqNode] = sqCnt;
-        rnodes[sqCnt].push_back(sqNode);
-        for(auto to : vvstRevEdge[sqNode]) {
-            rdfs(to.sqTo, sqCnt, rnodes);
-        }
-    }
-
-public:
-    SCC_Graph(SQWORD sqN) {
-        sqNumNode = sqN;
-        vvstEdge.resize(sqNumNode + 1, vector<EDGE_ST>{});
-        vvstRevEdge.resize(sqNumNode + 1, vector<EDGE_ST>{});
-        vsqComp.resize(sqNumNode + 1, -1);
-    }
-
-    void RegistEdge(SQWORD sqA, SQWORD sqB)
-    {
-        vvstEdge[sqA].emplace_back(sqB);
-        vvstRevEdge[sqB].emplace_back(sqA);
-    }
-        
-    SQWORD operator[](SQWORD k) {
-        return vsqComp[k];
-    }
-
-    /**
-     *  t:      強連結成分を、1から番号を振りなおしたグラフ 
-     *  rnodes: 強連結成分からもとのグラフへの逆引きテーブル。
-     * 
-     *  強連結成分のグラフも、ノード番号は1はじまりとしてるので注意。
-     */
-
-    void Build(
-        vector<vector<EDGE_ST>> &t,
-        vector<vector<SQWORD>> &rnodes)
-    {
-        vector<bool>  vIsVisitedFwd(sqNumNode, false);
-        vector<bool>  vIsVisitedRev(sqNumNode, false);
-        rnodes.resize(sqNumNode + 1);
-
-        for (SQWORD sqStart = 1; sqStart < sqNumNode + 1; sqStart++) {
-            dfs(sqStart, vIsVisitedFwd);
-        }
-
-        reverse(vsqOrder.begin(), vsqOrder.end());
-        SQWORD ptr = 1;
-        for (auto rStart: vsqOrder) {
-            if (vsqComp[rStart] == -1) {
-                rdfs(rStart, ptr, rnodes);
-                ptr++;
-            }
-        }
-
-        rnodes.resize(ptr);
-        t.resize(ptr);
-        for(SQWORD sqNode = 1; sqNode < sqNumNode + 1; sqNode++) {
-            for(auto &to : vvstEdge[sqNode]) {
-                SQWORD sqX = vsqComp[sqNode], sqY = vsqComp[to.sqTo];
-                if (sqX != sqY) {
-                    t[sqX].push_back(EDGE_ST{sqY});
-                }
-            }
-        }
-    }
-};
-
-
-/*----------------------------------------------*/
-#define N_MAX_BITS    (60)
-
-static void AnsDfs(SQWORD sqNode, const vector<vector<SQWORD>> &vvstEdge, vector<bool> &vbVisited, vector<SQWORD> &sqAns)
+static SQWORD getDayCnt(string &s)
 {
-    if (vbVisited[sqNode]) {
-        return;
+    if (s == "SUN") {
+        return 0;
+    } else if (s == "MON") {
+        return 1;
+    } else if (s == "TUE") {
+        return 2;
+    } else if (s == "WED") {
+        return 3;
+    } else if (s == "THU") {
+        return 4;
+    } else if (s == "FRI") {
+        return 5;
+    } else if (s == "SAT") {
+        return 6;
+    } else {
+        return 10000;
     }
-    vbVisited[sqNode] = true;
-
-    for (auto e: vvstEdge[sqNode]) {
-        AnsDfs(e, vvstEdge, vbVisited, sqAns);
-    }
-    sqAns.emplace_back(sqNode);
 }
 
 int main(void)
 {
-    SQWORD sqN = inputSQWORD();
+    string str;
 
-    SCC_Graph scc(sqN);
+    cin >> str;
 
-    vector<vector<SQWORD>> vvEdge(sqN + 1);
-    for (SQWORD sqFrom = 1; sqFrom <= sqN; sqFrom++) {
-        for (SQWORD sqTo = 1; sqTo <= sqN; sqTo++) {
-            SQWORD sqVal = inputSQWORD();
-            if (1 == sqVal) {
-                scc.RegistEdge(sqFrom, sqTo);
-                printf("%lld --> %lld\n", sqFrom, sqTo);
-                vvEdge[sqFrom].emplace_back(sqTo);
-            }
-        }
-    }
+    SQWORD sqDay = getDayCnt(str);
 
-    vector<vector<EDGE_ST>> vvstCompEdge;
-    vector<vector<SQWORD>> vvCompNodes;
-    scc.Build(vvstCompEdge, vvCompNodes);
-
-#if 0
-    for (SQWORD sqIdx = 0; sqIdx < vvstCompEdge.size(); sqIdx++) {
-        printf("cmp idx: %lld\n", sqIdx);
-        for (auto n: vvCompNodes[sqIdx]) {
-            printf("%lld ", n);
-        }
-        printf("\n");
-    }
-#endif
-
-    /* トポロジカルソートする */
-    /* 先頭ノードを求める。一緒に逆辺もつくっておく */
-    SQWORD sqCompNodeNum = vvstCompEdge.size() - 1;
-    vector<vector<EDGE_ST>> vvstCompRevEdge(sqCompNodeNum + 1);
-    vector<SQWORD> vsqInCnt(sqCompNodeNum + 1, 0);
-    for (SQWORD sqNode = 1; sqNode <= sqCompNodeNum; sqNode++) {
-        for (auto comp_to: vvstCompEdge[sqNode]) {
-            vsqInCnt[comp_to.sqTo]++;
-            vvstCompRevEdge[comp_to.sqTo].emplace_back(EDGE_ST{sqNode});
-        }
-    }
-    set<SQWORD> setFrontNodes;
-    for (SQWORD sqNode = 1; sqNode <= sqCompNodeNum; sqNode++) {
-        if (0 == vsqInCnt[sqNode]) {
-            setFrontNodes.insert(sqNode);
-        }
-    }
-
-    /* トポロジカルソート */
-    vector<SQWORD> vsqSccTopological;
-    for (;;) {
-        /* remove front node */
-        if (0 == setFrontNodes.size()) {
-            break;
-        }
-
-        auto it = setFrontNodes.begin();
-        SQWORD sqNode = *it;
-        setFrontNodes.erase(*it);
-        vsqSccTopological.emplace_back(sqNode);
-        for (auto e: vvstCompEdge[sqNode]) {
-            vsqInCnt[e.sqTo]--;
-            if (0 == vsqInCnt[e.sqTo]) {
-                setFrontNodes.insert(e.sqTo);
-            }
-        }
-    }
-
-    /* 1回目のDP */
-
+    printf("%lld\n", 7 - sqDay);
     return 0;
 }

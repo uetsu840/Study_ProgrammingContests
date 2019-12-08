@@ -361,90 +361,93 @@ public:
 /*----------------------------------------------*/
 #define N_MAX_BITS    (60)
 
-static void AnsDfs(SQWORD sqNode, const vector<vector<SQWORD>> &vvstEdge, vector<bool> &vbVisited, vector<SQWORD> &sqAns)
-{
-    if (vbVisited[sqNode]) {
-        return;
-    }
-    vbVisited[sqNode] = true;
+struct COLOR_RANGE {
+    SQWORD sqL;
+    SQWORD sqR;
+};
 
-    for (auto e: vvstEdge[sqNode]) {
-        AnsDfs(e, vvstEdge, vbVisited, sqAns);
+static bool IsWallOnNml(
+    const COLOR_RANGE &c,
+    SQWORD sqM,
+    SQWORD sqPos)
+{
+//    printf("   tst [%lld %lld] %lld\n", c.sqL, c.sqR, sqPos);
+    if ((c.sqL <= sqPos) && (sqPos <= c.sqR)) {
+        return true;
     }
-    sqAns.emplace_back(sqNode);
+    return false;
 }
+
+static bool IsWallOnRev(
+    const COLOR_RANGE &c,
+    SQWORD sqM,
+    SQWORD sqPos)
+{
+    SQWORD sqRevL = (sqM - 1) - c.sqR;
+    SQWORD sqRevR = (sqM - 1) - c.sqL;
+//    printf("   revtst [%lld %lld][%lld %lld] %lld\n", c.sqR, c.sqL, sqRevL, sqRevR, sqPos);
+    if ((sqRevL <= sqPos) && (sqPos <= sqRevR)) {
+        return true;
+    }
+    return false;
+}
+
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
+    SQWORD sqM = inputSQWORD();
 
-    SCC_Graph scc(sqN);
+    vector<COLOR_RANGE> vstColorRange;
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqL = inputSQWORD();
+        SQWORD sqR = inputSQWORD();
+        vstColorRange.emplace_back(COLOR_RANGE{sqL, sqR});
+    }
 
-    vector<vector<SQWORD>> vvEdge(sqN + 1);
-    for (SQWORD sqFrom = 1; sqFrom <= sqN; sqFrom++) {
-        for (SQWORD sqTo = 1; sqTo <= sqN; sqTo++) {
-            SQWORD sqVal = inputSQWORD();
-            if (1 == sqVal) {
-                scc.RegistEdge(sqFrom, sqTo);
-                printf("%lld --> %lld\n", sqFrom, sqTo);
-                vvEdge[sqFrom].emplace_back(sqTo);
+    /**
+     * 2_SATのグラフを作る 
+     *      Rj : j番目のブロックがそのままの場合TRUE、反転する場合FALSE
+     *
+     *      各列について、
+     *      色がついている列の状態(反転・非反転)
+     *      色がついている状態の全ての反転を論理式で並べる。
+     * 
+     *      グラフの頂点番号
+     *      2*j  : Rj
+     *      2*j+1: not Rj
+     */
+    vector<vector<bool>> vvEdgeMatrix(sqN * 2, vector<bool>(sqN * 2, false));
+    for (SQWORD sqCol = 0; sqCol < sqM; sqCol++) {
+        vector<SQWORD> vsqConds;
+        for (SQWORD sqRow = 0; sqRow < sqN; sqRow++) {
+            if (IsWallOnNml(vstColorRange[sqRow], sqM, sqCol)) {
+                vsqConds.emplace_back(sqRow * 2);
+            }
+            if (IsWallOnRev(vstColorRange[sqRow], sqM, sqCol)) {
+                vsqConds.emplace_back(sqRow * 2 + 1);
             }
         }
-    }
 
-    vector<vector<EDGE_ST>> vvstCompEdge;
-    vector<vector<SQWORD>> vvCompNodes;
-    scc.Build(vvstCompEdge, vvCompNodes);
+        SQWORD sqCondNum = vsqConds.size();
+        for (SQWORD sqIdxI = 0; sqIdxI < sqCondNum - 1; sqIdxI++) {
+            for (SQWORD sqIdxJ = sqIdxI + 1; sqIdxJ < sqCondNum; sqIdxJ++) {
+                SQWORD sqNode1 = vsqConds[sqIdxI];
+                SQWORD sqNode2 = vsqConds[sqIdxJ];
+                SQWORD sqNotNode1 = (sqNode1 % 2) ? sqNode1 - 1 : sqNode1 + 1;
+                SQWORD sqNotNode2 = (sqNode2 % 2) ? sqNode2 - 1 : sqNode2 + 1;
 
-#if 0
-    for (SQWORD sqIdx = 0; sqIdx < vvstCompEdge.size(); sqIdx++) {
-        printf("cmp idx: %lld\n", sqIdx);
-        for (auto n: vvCompNodes[sqIdx]) {
-            printf("%lld ", n);
-        }
-        printf("\n");
-    }
-#endif
-
-    /* トポロジカルソートする */
-    /* 先頭ノードを求める。一緒に逆辺もつくっておく */
-    SQWORD sqCompNodeNum = vvstCompEdge.size() - 1;
-    vector<vector<EDGE_ST>> vvstCompRevEdge(sqCompNodeNum + 1);
-    vector<SQWORD> vsqInCnt(sqCompNodeNum + 1, 0);
-    for (SQWORD sqNode = 1; sqNode <= sqCompNodeNum; sqNode++) {
-        for (auto comp_to: vvstCompEdge[sqNode]) {
-            vsqInCnt[comp_to.sqTo]++;
-            vvstCompRevEdge[comp_to.sqTo].emplace_back(EDGE_ST{sqNode});
-        }
-    }
-    set<SQWORD> setFrontNodes;
-    for (SQWORD sqNode = 1; sqNode <= sqCompNodeNum; sqNode++) {
-        if (0 == vsqInCnt[sqNode]) {
-            setFrontNodes.insert(sqNode);
-        }
-    }
-
-    /* トポロジカルソート */
-    vector<SQWORD> vsqSccTopological;
-    for (;;) {
-        /* remove front node */
-        if (0 == setFrontNodes.size()) {
-            break;
-        }
-
-        auto it = setFrontNodes.begin();
-        SQWORD sqNode = *it;
-        setFrontNodes.erase(*it);
-        vsqSccTopological.emplace_back(sqNode);
-        for (auto e: vvstCompEdge[sqNode]) {
-            vsqInCnt[e.sqTo]--;
-            if (0 == vsqInCnt[e.sqTo]) {
-                setFrontNodes.insert(e.sqTo);
+                /* p1 or p2   <========>   not p1 -> p2 , not p2 -> p1  */
+                vvEdgeMatrix[sqNotNode1][sqNode2] = true;
+                vvEdgeMatrix[sqNotNode2][sqNode1] = true;
             }
         }
+
     }
 
-    /* 1回目のDP */
+    
+
+
 
     return 0;
 }

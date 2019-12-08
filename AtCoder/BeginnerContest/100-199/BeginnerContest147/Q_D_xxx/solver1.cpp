@@ -54,6 +54,7 @@ static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+static inline DOUBLE ABS(DOUBLE a) {return 0 <= a ? a : -a;}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -250,201 +251,84 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
-/*----------------------------------------------*/
-
 
 /*----------------------------------------------*/
-
-struct EDGE_ST {
-    SQWORD sqTo;
-
-    EDGE_ST(SQWORD to) {
-        sqTo = to;
-    };
-};
-
-#define N_MAX_NODES     (100000)
-#define MAX_LOG_NODES   (20)
-
-class SCC_Graph {
-    vector<vector<EDGE_ST>> vvstEdge;
-    vector<vector<EDGE_ST>> vvstRevEdge;
-    vector<SQWORD> vsqInOrderFwd;
-    SQWORD  sqNumNode;
-    vector<SQWORD>  vsqOrder;
-    vector<SQWORD>  vsqComp;
-
-    void dfs(SQWORD sqNode, vector<bool> &vbIsVisited)
-    {
-        if (vbIsVisited[sqNode]) {
-            return;
-        }
-        vbIsVisited[sqNode] = true; 
-        for (auto e: vvstEdge[sqNode]) {
-            dfs(e.sqTo, vbIsVisited);
-        }
-        vsqOrder.emplace_back(sqNode);
-    }
-
-    void rdfs(SQWORD sqNode, SQWORD sqCnt, vector<vector<SQWORD>> &rnodes)
-    {
-        if (vsqComp[sqNode] != -1) {
-            return;
-        }
-        vsqComp[sqNode] = sqCnt;
-        rnodes[sqCnt].push_back(sqNode);
-        for(auto to : vvstRevEdge[sqNode]) {
-            rdfs(to.sqTo, sqCnt, rnodes);
-        }
-    }
-
+class Combination {
+    vector<MODINT> vecmsqComb;
 public:
-    SCC_Graph(SQWORD sqN) {
-        sqNumNode = sqN;
-        vvstEdge.resize(sqNumNode + 1, vector<EDGE_ST>{});
-        vvstRevEdge.resize(sqNumNode + 1, vector<EDGE_ST>{});
-        vsqComp.resize(sqNumNode + 1, -1);
+    Combination(SQWORD sqN) {
+        /* nCjを事前計算する */
+        vecmsqComb.resize(sqN + 1);
+
+        MODINT sqComb((SQWORD)1);
+        vecmsqComb[0] = sqComb;
+        for (SQWORD sqJ = 1; sqJ <= sqN; sqJ++) {
+            sqComb *= MODINT(sqN - sqJ + 1);
+            sqComb /= MODINT(sqJ);
+            vecmsqComb[sqJ] = sqComb;
+        }
     }
 
-    void RegistEdge(SQWORD sqA, SQWORD sqB)
+    MODINT GetVal(SQWORD sqJ) 
     {
-        vvstEdge[sqA].emplace_back(sqB);
-        vvstRevEdge[sqB].emplace_back(sqA);
-    }
-        
-    SQWORD operator[](SQWORD k) {
-        return vsqComp[k];
-    }
-
-    /**
-     *  t:      強連結成分を、1から番号を振りなおしたグラフ 
-     *  rnodes: 強連結成分からもとのグラフへの逆引きテーブル。
-     * 
-     *  強連結成分のグラフも、ノード番号は1はじまりとしてるので注意。
-     */
-
-    void Build(
-        vector<vector<EDGE_ST>> &t,
-        vector<vector<SQWORD>> &rnodes)
-    {
-        vector<bool>  vIsVisitedFwd(sqNumNode, false);
-        vector<bool>  vIsVisitedRev(sqNumNode, false);
-        rnodes.resize(sqNumNode + 1);
-
-        for (SQWORD sqStart = 1; sqStart < sqNumNode + 1; sqStart++) {
-            dfs(sqStart, vIsVisitedFwd);
-        }
-
-        reverse(vsqOrder.begin(), vsqOrder.end());
-        SQWORD ptr = 1;
-        for (auto rStart: vsqOrder) {
-            if (vsqComp[rStart] == -1) {
-                rdfs(rStart, ptr, rnodes);
-                ptr++;
-            }
-        }
-
-        rnodes.resize(ptr);
-        t.resize(ptr);
-        for(SQWORD sqNode = 1; sqNode < sqNumNode + 1; sqNode++) {
-            for(auto &to : vvstEdge[sqNode]) {
-                SQWORD sqX = vsqComp[sqNode], sqY = vsqComp[to.sqTo];
-                if (sqX != sqY) {
-                    t[sqX].push_back(EDGE_ST{sqY});
-                }
-            }
-        }
+        return vecmsqComb[sqJ];
     }
 };
 
+/*-----------------------------------------------------*/
 
-/*----------------------------------------------*/
-#define N_MAX_BITS    (60)
+map<pair<SQWORD, SQWORD>, SQWORD> mapEdge;
 
-static void AnsDfs(SQWORD sqNode, const vector<vector<SQWORD>> &vvstEdge, vector<bool> &vbVisited, vector<SQWORD> &sqAns)
+void dfs(
+    SQWORD sqFrom, 
+    SQWORD sqCur, 
+    SQWORD sqPrevColor,
+    const vector<vector<SQWORD>> &vvEdge,
+    vector<SQWORD> &vColor) 
 {
-    if (vbVisited[sqNode]) {
-        return;
+    SQWORD sqColor = 1;
+    for (auto n: vvEdge[sqCur]) {
+        if (sqColor == sqPrevColor) {
+            sqColor++;
+        }
+        if (n != sqFrom) {
+            SQWORD sqEdgeIdx = mapEdge[make_pair(sqCur, n)];
+            vColor[sqEdgeIdx] = sqColor;
+//            printf("%lld %lld %lld\n", sqCur, n, sqColor);
+            dfs(sqCur, n, sqColor, vvEdge, vColor);        
+            sqColor++;
+        }
     }
-    vbVisited[sqNode] = true;
-
-    for (auto e: vvstEdge[sqNode]) {
-        AnsDfs(e, vvstEdge, vbVisited, sqAns);
-    }
-    sqAns.emplace_back(sqNode);
 }
+
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
+    vector<vector<SQWORD>> vvEdge(sqN + 1, vector<SQWORD>());
+    vector<SQWORD> vColor(sqN - 1, 0);
 
-    SCC_Graph scc(sqN);
-
-    vector<vector<SQWORD>> vvEdge(sqN + 1);
-    for (SQWORD sqFrom = 1; sqFrom <= sqN; sqFrom++) {
-        for (SQWORD sqTo = 1; sqTo <= sqN; sqTo++) {
-            SQWORD sqVal = inputSQWORD();
-            if (1 == sqVal) {
-                scc.RegistEdge(sqFrom, sqTo);
-                printf("%lld --> %lld\n", sqFrom, sqTo);
-                vvEdge[sqFrom].emplace_back(sqTo);
-            }
-        }
+    for (SQWORD sqIdx = 0; sqIdx < sqN - 1; sqIdx++) {
+        SQWORD sqA = inputSQWORD();
+        SQWORD sqB = inputSQWORD();
+        mapEdge[make_pair(sqA, sqB)] = sqIdx;
+        mapEdge[make_pair(sqB, sqA)] = sqIdx;
+        vvEdge[sqA].emplace_back(sqB);
+        vvEdge[sqB].emplace_back(sqA);
     }
 
-    vector<vector<EDGE_ST>> vvstCompEdge;
-    vector<vector<SQWORD>> vvCompNodes;
-    scc.Build(vvstCompEdge, vvCompNodes);
+    dfs(-1, 1, 0, vvEdge, vColor);
 
-#if 0
-    for (SQWORD sqIdx = 0; sqIdx < vvstCompEdge.size(); sqIdx++) {
-        printf("cmp idx: %lld\n", sqIdx);
-        for (auto n: vvCompNodes[sqIdx]) {
-            printf("%lld ", n);
-        }
-        printf("\n");
-    }
-#endif
-
-    /* トポロジカルソートする */
-    /* 先頭ノードを求める。一緒に逆辺もつくっておく */
-    SQWORD sqCompNodeNum = vvstCompEdge.size() - 1;
-    vector<vector<EDGE_ST>> vvstCompRevEdge(sqCompNodeNum + 1);
-    vector<SQWORD> vsqInCnt(sqCompNodeNum + 1, 0);
-    for (SQWORD sqNode = 1; sqNode <= sqCompNodeNum; sqNode++) {
-        for (auto comp_to: vvstCompEdge[sqNode]) {
-            vsqInCnt[comp_to.sqTo]++;
-            vvstCompRevEdge[comp_to.sqTo].emplace_back(EDGE_ST{sqNode});
-        }
-    }
-    set<SQWORD> setFrontNodes;
-    for (SQWORD sqNode = 1; sqNode <= sqCompNodeNum; sqNode++) {
-        if (0 == vsqInCnt[sqNode]) {
-            setFrontNodes.insert(sqNode);
-        }
+    SQWORD sqNumColor = 0;
+    for (auto c: vColor) {
+        sqNumColor = max(c, sqNumColor);
     }
 
-    /* トポロジカルソート */
-    vector<SQWORD> vsqSccTopological;
-    for (;;) {
-        /* remove front node */
-        if (0 == setFrontNodes.size()) {
-            break;
-        }
 
-        auto it = setFrontNodes.begin();
-        SQWORD sqNode = *it;
-        setFrontNodes.erase(*it);
-        vsqSccTopological.emplace_back(sqNode);
-        for (auto e: vvstCompEdge[sqNode]) {
-            vsqInCnt[e.sqTo]--;
-            if (0 == vsqInCnt[e.sqTo]) {
-                setFrontNodes.insert(e.sqTo);
-            }
-        }
+    printf("%lld\n", sqNumColor);
+    for (auto c: vColor) {
+        printf("%lld\n", c);
     }
-
-    /* 1回目のDP */
 
     return 0;
 }

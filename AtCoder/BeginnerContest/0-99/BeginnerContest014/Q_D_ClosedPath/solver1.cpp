@@ -54,6 +54,7 @@ static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+static inline DOUBLE ABS(DOUBLE a) {return 0 <= a ? a : -a;}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -250,201 +251,228 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
-/*----------------------------------------------*/
-
 
 /*----------------------------------------------*/
 
-struct EDGE_ST {
-    SQWORD sqTo;
+/**
+ *  セグメント木
+ */
+struct SEGMENT_NODE_ST {
+    SQWORD sqX;
 
-    EDGE_ST(SQWORD to) {
-        sqTo = to;
-    };
+public:
+    SEGMENT_NODE_ST(SQWORD x) : sqX(x) {};
+    SEGMENT_NODE_ST() : sqX(0) {};
+    static SEGMENT_NODE_ST getInvalidVal()
+    {
+        return SEGMENT_NODE_ST{MAX_SQWORD};
+    }
+    static SEGMENT_NODE_ST uniteNode(SEGMENT_NODE_ST nodeA,  SEGMENT_NODE_ST nodeB)
+    {
+        SEGMENT_NODE_ST stRet;
+
+        stRet.sqX = min(nodeA.sqX, nodeB.sqX);
+        return stRet;
+    }
+    void init() {
+        sqX = 0;
+    }
+    void debugPrint() {
+        printf("<%lld %lld> ", sqX);
+    }
 };
 
-#define N_MAX_NODES     (100000)
-#define MAX_LOG_NODES   (20)
 
-class SCC_Graph {
-    vector<vector<EDGE_ST>> vvstEdge;
-    vector<vector<EDGE_ST>> vvstRevEdge;
-    vector<SQWORD> vsqInOrderFwd;
-    SQWORD  sqNumNode;
-    vector<SQWORD>  vsqOrder;
-    vector<SQWORD>  vsqComp;
+template<typename T>
+class SegmentTree {
+private:
+    DWORD dwBaseSize;
+    vector<T> vNode;
 
-    void dfs(SQWORD sqNode, vector<bool> &vbIsVisited)
+private:
+    void debugPrint(void)
     {
-        if (vbIsVisited[sqNode]) {
-            return;
+        printf("====\n");
+        for (SDWORD lIdx = 0; lIdx < vNode.size(); lIdx++) {
+            printf(" [%d] ", lIdx);
+            vNode[lIdx].debugPrint();
+            printf("\n");
         }
-        vbIsVisited[sqNode] = true; 
-        for (auto e: vvstEdge[sqNode]) {
-            dfs(e.sqTo, vbIsVisited);
-        }
-        vsqOrder.emplace_back(sqNode);
     }
 
-    void rdfs(SQWORD sqNode, SQWORD sqCnt, vector<vector<SQWORD>> &rnodes)
+    static inline T updateNode(
+        const T &stL,
+        const T &stR)
     {
-        if (vsqComp[sqNode] != -1) {
-            return;
+        T stRet;
+        
+        stRet = T::uniteNode(stL, stR);
+        return stRet;
+    }
+
+    void initSegmentTree(vector<T> &v) {
+        /**
+         *  最下段のノード数は元配列のサイズ以上になる最小の 2 冪 -> これを n とおく
+         * セグメント木全体で必要なノード数は 2n-1 個である
+         */
+        DWORD dwSize = v.size();
+        dwBaseSize = 1; 
+        while (dwBaseSize < dwSize) {
+            dwBaseSize *= 2;
         }
-        vsqComp[sqNode] = sqCnt;
-        rnodes[sqCnt].push_back(sqNode);
-        for(auto to : vvstRevEdge[sqNode]) {
-            rdfs(to.sqTo, sqCnt, rnodes);
+        vNode.resize(2 * dwBaseSize - 1);
+
+        /**
+         *  最下段に値を入れたあとに、下の段から順番に値を入れる
+         * 値を入れるには、自分の子の 2 値を参照すれば良い
+         */
+        /* 最下段 */
+        for (SDWORD lIdx = 0; lIdx < dwSize; lIdx++) {
+            vNode[lIdx + (dwBaseSize - 1)] = v[lIdx];
+        }
+        for(SDWORD lIdx = dwSize; lIdx < dwBaseSize; lIdx++) {
+            vNode[lIdx + (dwBaseSize - 1)].init();
+        }
+        /* 2段目以降 */
+        for (SDWORD lIdx = dwBaseSize - 2; 0 <= lIdx; lIdx--) {
+            vNode[lIdx] = updateNode(vNode[lIdx*2+1], vNode[lIdx*2+2]);
         }
     }
 
 public:
-    SCC_Graph(SQWORD sqN) {
-        sqNumNode = sqN;
-        vvstEdge.resize(sqNumNode + 1, vector<EDGE_ST>{});
-        vvstRevEdge.resize(sqNumNode + 1, vector<EDGE_ST>{});
-        vsqComp.resize(sqNumNode + 1, -1);
+    /* 元配列 v をセグメント木で表現する */
+    SegmentTree(vector<T> v) {
+        initSegmentTree(v);
     }
 
-    void RegistEdge(SQWORD sqA, SQWORD sqB)
+    T getNode(DWORD dwNodeIdx) {
+        // 最下段のノードにアクセスする
+        SDWORD lTreeIdx = dwNodeIdx + (dwBaseSize - 1);
+        return vNode[lTreeIdx];
+    }
+
+    void update(DWORD dwNodeIdx, const T &stNewVal) {
+        // 最下段のノードにアクセスする
+        SDWORD lTreeIdx = dwNodeIdx + (dwBaseSize - 1);
+
+        // 最下段のノードを更新したら、あとは親に上って更新していく
+        vNode[lTreeIdx] = stNewVal;
+        while(lTreeIdx > 0) {
+            lTreeIdx = (lTreeIdx - 1) / 2;
+            vNode[lTreeIdx] = updateNode(vNode[2*lTreeIdx+1], vNode[2*lTreeIdx+2]);
+        }
+    }
+
+    T GetValue(SDWORD lA, SDWORD lB, SDWORD lNodeIdx=0, SDWORD lLeft=0, SDWORD lRight=-1)
     {
-        vvstEdge[sqA].emplace_back(sqB);
-        vvstRevEdge[sqB].emplace_back(sqA);
-    }
-        
-    SQWORD operator[](SQWORD k) {
-        return vsqComp[k];
-    }
-
-    /**
-     *  t:      強連結成分を、1から番号を振りなおしたグラフ 
-     *  rnodes: 強連結成分からもとのグラフへの逆引きテーブル。
-     * 
-     *  強連結成分のグラフも、ノード番号は1はじまりとしてるので注意。
-     */
-
-    void Build(
-        vector<vector<EDGE_ST>> &t,
-        vector<vector<SQWORD>> &rnodes)
-    {
-        vector<bool>  vIsVisitedFwd(sqNumNode, false);
-        vector<bool>  vIsVisitedRev(sqNumNode, false);
-        rnodes.resize(sqNumNode + 1);
-
-        for (SQWORD sqStart = 1; sqStart < sqNumNode + 1; sqStart++) {
-            dfs(sqStart, vIsVisitedFwd);
+        if (-1 == lRight) {
+            lRight = dwBaseSize;
         }
 
-        reverse(vsqOrder.begin(), vsqOrder.end());
-        SQWORD ptr = 1;
-        for (auto rStart: vsqOrder) {
-            if (vsqComp[rStart] == -1) {
-                rdfs(rStart, ptr, rnodes);
-                ptr++;
-            }
+        if ((lRight <= lA) || (lB <= lLeft)) {
+            return T::getInvalidVal();
         }
 
-        rnodes.resize(ptr);
-        t.resize(ptr);
-        for(SQWORD sqNode = 1; sqNode < sqNumNode + 1; sqNode++) {
-            for(auto &to : vvstEdge[sqNode]) {
-                SQWORD sqX = vsqComp[sqNode], sqY = vsqComp[to.sqTo];
-                if (sqX != sqY) {
-                    t[sqX].push_back(EDGE_ST{sqY});
-                }
-            }
+        if ((lA <= lLeft) && (lRight <= lB)) {
+            return vNode[lNodeIdx];
         }
+
+        T sqResL, sqResR;
+        SQWORD lCenter = (lLeft + lRight) / 2;
+        sqResL = GetValue(lA, lB, (lNodeIdx * 2) + 1, lLeft, lCenter);
+        sqResR = GetValue(lA, lB, (lNodeIdx * 2) + 2, lCenter, lRight);
+        return T::uniteNode(sqResL, sqResR);
     }
 };
 
+/*-----------------------------------------------------*/
 
-/*----------------------------------------------*/
-#define N_MAX_BITS    (60)
+vector<vector<SQWORD>> vvEdge;
+vector<SQWORD> vVisitSeq;
+vector<SQWORD> vDepth;
+vector<SQWORD> vNodeToSeq;
 
-static void AnsDfs(SQWORD sqNode, const vector<vector<SQWORD>> &vvstEdge, vector<bool> &vbVisited, vector<SQWORD> &sqAns)
+void dfs(
+    SQWORD sqFrom, 
+    SQWORD sqCur, 
+    SQWORD &sqSeq,
+    SQWORD sqDepth,
+    const vector<vector<SQWORD>> &vvEdge)
 {
-    if (vbVisited[sqNode]) {
-        return;
-    }
-    vbVisited[sqNode] = true;
+//    printf("%lld %lld\n", sqFrom, sqCur);
 
-    for (auto e: vvstEdge[sqNode]) {
-        AnsDfs(e, vvstEdge, vbVisited, sqAns);
+    vVisitSeq.emplace_back(sqCur);
+    vDepth.emplace_back(sqDepth);
+    vNodeToSeq[sqCur] = sqSeq;
+    sqSeq++;
+    
+    for (SQWORD to: vvEdge[sqCur]) {
+        if (to != sqFrom) {
+            dfs(sqCur, to, sqSeq, sqDepth + 1, vvEdge);
+            vVisitSeq.emplace_back(sqCur);
+            vDepth.emplace_back(sqDepth);
+            sqSeq++;
+        }
     }
-    sqAns.emplace_back(sqNode);
 }
+
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
 
-    SCC_Graph scc(sqN);
+    vvEdge.resize(sqN + 1);
+    vNodeToSeq.resize(sqN + 1);
 
-    vector<vector<SQWORD>> vvEdge(sqN + 1);
-    for (SQWORD sqFrom = 1; sqFrom <= sqN; sqFrom++) {
-        for (SQWORD sqTo = 1; sqTo <= sqN; sqTo++) {
-            SQWORD sqVal = inputSQWORD();
-            if (1 == sqVal) {
-                scc.RegistEdge(sqFrom, sqTo);
-                printf("%lld --> %lld\n", sqFrom, sqTo);
-                vvEdge[sqFrom].emplace_back(sqTo);
-            }
-        }
+    for (SQWORD sqIdx = 0; sqIdx < sqN - 1; sqIdx++) {
+        SQWORD sqX = inputSQWORD();
+        SQWORD sqY = inputSQWORD();
+
+        vvEdge[sqX].emplace_back(sqY);
+        vvEdge[sqY].emplace_back(sqX);
     }
 
-    vector<vector<EDGE_ST>> vvstCompEdge;
-    vector<vector<SQWORD>> vvCompNodes;
-    scc.Build(vvstCompEdge, vvCompNodes);
+    SQWORD sqSeq = 0;
+    dfs(-1, 1, sqSeq, 0, vvEdge);    
 
 #if 0
-    for (SQWORD sqIdx = 0; sqIdx < vvstCompEdge.size(); sqIdx++) {
-        printf("cmp idx: %lld\n", sqIdx);
-        for (auto n: vvCompNodes[sqIdx]) {
-            printf("%lld ", n);
-        }
-        printf("\n");
+    for (auto v: vVisitSeq) {
+        printf("%lld ", v);
     }
+    printf("\n");
+    for (auto d: vDepth) {
+        printf("%lld ", d);
+    }
+    printf("\n");
+    for (auto n: vNodeToSeq) {
+        printf("%lld ", n);
+    }
+    printf("\n");
 #endif
-
-    /* トポロジカルソートする */
-    /* 先頭ノードを求める。一緒に逆辺もつくっておく */
-    SQWORD sqCompNodeNum = vvstCompEdge.size() - 1;
-    vector<vector<EDGE_ST>> vvstCompRevEdge(sqCompNodeNum + 1);
-    vector<SQWORD> vsqInCnt(sqCompNodeNum + 1, 0);
-    for (SQWORD sqNode = 1; sqNode <= sqCompNodeNum; sqNode++) {
-        for (auto comp_to: vvstCompEdge[sqNode]) {
-            vsqInCnt[comp_to.sqTo]++;
-            vvstCompRevEdge[comp_to.sqTo].emplace_back(EDGE_ST{sqNode});
-        }
+    vector<SEGMENT_NODE_ST> vSegInit(vDepth.size());
+    for (SQWORD sqIdx = 0; sqIdx < vSegInit.size(); sqIdx++) {
+        vSegInit[sqIdx].sqX = vDepth[sqIdx];
     }
-    set<SQWORD> setFrontNodes;
-    for (SQWORD sqNode = 1; sqNode <= sqCompNodeNum; sqNode++) {
-        if (0 == vsqInCnt[sqNode]) {
-            setFrontNodes.insert(sqNode);
-        }
-    }
+    SegmentTree<SEGMENT_NODE_ST> seg(vSegInit);
 
-    /* トポロジカルソート */
-    vector<SQWORD> vsqSccTopological;
-    for (;;) {
-        /* remove front node */
-        if (0 == setFrontNodes.size()) {
-            break;
-        }
+    SQWORD sqQ = inputSQWORD();
 
-        auto it = setFrontNodes.begin();
-        SQWORD sqNode = *it;
-        setFrontNodes.erase(*it);
-        vsqSccTopological.emplace_back(sqNode);
-        for (auto e: vvstCompEdge[sqNode]) {
-            vsqInCnt[e.sqTo]--;
-            if (0 == vsqInCnt[e.sqTo]) {
-                setFrontNodes.insert(e.sqTo);
-            }
-        }
+    for (SQWORD sqIdx = 0; sqIdx < sqQ; sqIdx++) {
+        SQWORD sqf = inputSQWORD();
+        SQWORD sqt = inputSQWORD();
+
+        SQWORD sqIdx_r = max(vNodeToSeq[sqf], vNodeToSeq[sqt]);
+        SQWORD sqIdx_l = min(vNodeToSeq[sqt], vNodeToSeq[sqf]);
+
+        SQWORD sqDepth_r = vDepth[sqIdx_r];
+        SQWORD sqDepth_l = vDepth[sqIdx_l]; 
+        SQWORD sqDepth_lca = (seg.GetValue(sqIdx_l, sqIdx_r + 1)).sqX;
+
+//        printf("%lld %lld %lld\n", sqIdx_l, sqIdx_r, sqDepth_lca);
+        printf("%lld\n", (sqDepth_r - sqDepth_lca) + (sqDepth_l - sqDepth_lca) + 1);
     }
 
-    /* 1回目のDP */
+   
 
     return 0;
 }
