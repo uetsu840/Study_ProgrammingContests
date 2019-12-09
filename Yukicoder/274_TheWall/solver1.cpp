@@ -330,6 +330,7 @@ public:
         vector<bool>  vIsVisitedFwd(sqNumNode, false);
         vector<bool>  vIsVisitedRev(sqNumNode, false);
         rnodes.resize(sqNumNode + 1);
+        t.resize(sqNumNode + 1);
 
         for (SQWORD sqStart = 1; sqStart < sqNumNode + 1; sqStart++) {
             dfs(sqStart, vIsVisitedFwd);
@@ -357,6 +358,8 @@ public:
     }
 };
 
+
+/*----------------------------------------------*/
 
 /*----------------------------------------------*/
 #define N_MAX_BITS    (60)
@@ -420,6 +423,7 @@ int main(void)
     vector<vector<bool>> vvEdgeMatrix(sqN * 2, vector<bool>(sqN * 2, false));
     for (SQWORD sqCol = 0; sqCol < sqM; sqCol++) {
         vector<SQWORD> vsqConds;
+        printf(">");
         for (SQWORD sqRow = 0; sqRow < sqN; sqRow++) {
             if (IsWallOnNml(vstColorRange[sqRow], sqM, sqCol)) {
                 vsqConds.emplace_back(sqRow * 2);
@@ -430,6 +434,7 @@ int main(void)
         }
 
         SQWORD sqCondNum = vsqConds.size();
+        printf(".%lld", sqCondNum);
         for (SQWORD sqIdxI = 0; sqIdxI < sqCondNum - 1; sqIdxI++) {
             for (SQWORD sqIdxJ = sqIdxI + 1; sqIdxJ < sqCondNum; sqIdxJ++) {
                 SQWORD sqNode1 = vsqConds[sqIdxI];
@@ -438,16 +443,37 @@ int main(void)
                 SQWORD sqNotNode2 = (sqNode2 % 2) ? sqNode2 - 1 : sqNode2 + 1;
 
                 /* p1 or p2   <========>   not p1 -> p2 , not p2 -> p1  */
+//                printf("%lld:%lld\n", sqNotNode1, sqNode2);
+//                printf("%lld:%lld\n", sqNotNode2, sqNode1);
+
                 vvEdgeMatrix[sqNotNode1][sqNode2] = true;
                 vvEdgeMatrix[sqNotNode2][sqNode1] = true;
             }
         }
+    }
+    printf("----");
 
+
+    SCC_Graph scc(sqN * 2);
+    for (SQWORD sqIdxF = 0; sqIdxF < sqN * 2; sqIdxF++) {
+        for (SQWORD sqIdxT = 0; sqIdxT < sqN * 2; sqIdxT++) {
+            if (vvEdgeMatrix[sqIdxF][sqIdxT]) {
+                scc.RegistEdge(sqIdxT + 1, sqIdxF + 1); /* 1 -indexed */
+            }
+        }
     }
 
+    vector<vector<EDGE_ST>> vvstCompEdge;
+    vector<vector<SQWORD>> vvCompNodes;
+    scc.Build(vvstCompEdge, vvCompNodes);
+
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        if (scc[sqIdx * 2 + 1] == scc[sqIdx * 2 + 2]) {
+            printf("NO\n");
+            return 0;
+        }
+    }
+    printf("YES\n");
     
-
-
-
     return 0;
 }

@@ -252,67 +252,87 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 /*--------------------------------------*/
 
-static SQWORD getDigit(SQWORD sqX)
-{
-    SQWORD sqTen = 1;
-    for (SQWORD sqDigit = 0; sqDigit < 11; sqDigit++) {
-        if (sqX < sqTen) {
-            return sqDigit;
-        }
-        sqTen *= 10;
-    }
-    return 0;
-}
-
-static bool IsReasonable(
-    SQWORD sqTry,
-    SQWORD sqA, 
-    SQWORD sqB,
-    SQWORD sqX)
-{
-    SQWORD sqPrice = sqA * sqTry + sqB * getDigit(sqTry);
-//    printf("%lld %lld %lld\n", sqTry, sqPrice, getDigit(sqTry));
-    if (sqPrice <= sqX) {
-        return true;
-    }
-    return false;
-}
-
-static SQWORD binarySearch(
-    bool (*pfJudge)(SQWORD, SQWORD, SQWORD, SQWORD), 
-    SQWORD sqInitLower, 
-    SQWORD sqInitUpper, 
-    SQWORD sqA, 
-    SQWORD sqB,
-    SQWORD sqX)
-{
-    SQWORD sqOk = sqInitLower;
-    SQWORD sqNg = sqInitUpper;
-
-    while (1LL < sqNg - sqOk) {
-        SQWORD sqMid = (sqNg + sqOk) / 2LL;
-        if (pfJudge(sqMid, sqA, sqB, sqX)) {
-            sqOk = sqMid;
-        } else {
-            sqNg = sqMid;
-        }
-    }
-    return sqOk;
-}
 
 /*----------------------------------------------*/
-#define MAX_ANS (1e+9)
+
+struct CLAIM_ST {
+    SQWORD  sqHonestMask;
+    SQWORD  sqNegativeMask;
+};
+
+
+static SQWORD bitCnt(SQWORD sqBits)
+{
+    SQWORD sqCnt = 0;
+    while (0 < sqBits) {
+        if (sqBits & 0x1) {
+            sqCnt++;
+        }
+        sqBits >>= 1;
+    }
+
+    return sqCnt;
+}
+
+static bool check(
+    SQWORD sqN,
+    SQWORD sqHonestMap, 
+    const vector<CLAIM_ST> &vClaims)
+{
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqMask = 0x1 << sqIdx;
+
+        if (sqHonestMap & sqMask) {
+            /* 正直者 */
+            SQWORD sqHonestMask = vClaims[sqIdx].sqHonestMask;
+            SQWORD sqNegativeMask = vClaims[sqIdx].sqNegativeMask;
+//printf("::: %lld 0x%x 0x%x 0x%x\n", sqIdx, sqHonestMap, sqHonestMask, sqNegativeMask);
+            if ((sqHonestMask & sqHonestMap) != sqHonestMask) {
+//                printf(">>H [%x]\n", sqHonestMask & sqHonestMap);
+                return false;
+            }
+            if ((sqNegativeMask & (~sqHonestMap)) != sqNegativeMask) {
+//                printf(">>N [%x %x]\n", sqNegativeMask, (~sqHonestMap));
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+
 int main(void)
 {
-    SQWORD sqA = inputSQWORD();
-    SQWORD sqB = inputSQWORD();
-    SQWORD sqX = inputSQWORD();
+    SQWORD sqN = inputSQWORD();
 
-    SQWORD sqAns = binarySearch(IsReasonable, 0, MAX_ANS + 1, sqA, sqB, sqX);
+    vector<CLAIM_ST> vClaims;
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqA = inputSQWORD();
+        SQWORD sqHonestMask = 0;
+        SQWORD sqNegativeMask = 0;
 
-    if (MAX_ANS < sqAns) {
-        sqAns = MAX_ANS;
+        for (SQWORD sqIdx = 0; sqIdx < sqA; sqIdx++) {
+            SQWORD sqX = inputSQWORD();
+            SQWORD sqY = inputSQWORD();
+
+            if (1 == sqY) {
+                sqHonestMask |= (0x1 << (sqX - 1));
+            } else {
+                sqNegativeMask |= (0x1 << (sqX - 1));
+            }
+        }
+        vClaims.push_back(CLAIM_ST{sqHonestMask, sqNegativeMask});
     }
+
+    SQWORD sqLoopUpper = (0x1 << sqN);
+    SQWORD sqAns = 0;
+    for (SQWORD sqBitmap = 0; sqBitmap < sqLoopUpper; sqBitmap++) {
+//        printf("----%lld\n", sqBitmap);
+        if (check(sqN, sqBitmap, vClaims)) {
+            sqAns = max(sqAns, bitCnt(sqBitmap));
+        }
+    }
+
     printf("%lld\n", sqAns);
 
     return 0;

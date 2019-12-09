@@ -171,117 +171,18 @@ static inline DOUBLE inputFP(void)
 }
 
 /*----------------------------------------------*/
-/**
- *  mod による操作ライブラリ
- */
-#define ANS_MOD (1000000007)
-
-class MODINT {
-    static SQWORD MOD;
-    SQWORD m_x;
-
-public:
-    MODINT(SQWORD val) {
-        m_x = (val % MOD + MOD) % MOD;
-    };
-    MODINT() {
-        m_x = 0;
-    }
-    static void Init(SQWORD sqMod) {
-        MOD = sqMod;
-    }
-
-	MODINT& operator+= (const MODINT a)
-    {
-        m_x = (m_x + a.m_x) % MOD; 
-        return *this;
-    };
-	MODINT& operator-= (const MODINT a)
-    { 
-        m_x = (m_x - a.m_x + MOD) % MOD; 
-        return *this;
-    };
-	MODINT& operator*= (const MODINT a)
-    {
-        m_x = (m_x * a.m_x) % MOD;
-        return *this;
-    };
-    MODINT pow(SQWORD t) const {
-        if (!t) return 1;
-        MODINT a = pow(t>>1);
-        a *= a;
-        if (t&1) a *= *this;
-        return a;
-    }
-	MODINT operator+ (const MODINT a) const {
-		MODINT res(*this);
-		return (res += a);
-	}
-	MODINT operator- (const MODINT a) const {
-		MODINT res(*this);
-		return (res -= a);
-	}
-	MODINT operator* (const MODINT a) const {
-		MODINT res(*this);
-		return (res *= a);
-	}
-	MODINT operator/ (const MODINT a) const {
-		MODINT res(*this);
-		return (res /= a);
-	}
-
-    /* 逆元 */
-    MODINT inv() const {
-        return pow(MOD-2);
-    }
-
-    /* 除算 */
-    MODINT& operator/=(const MODINT a) {
-        return (*this) *= a.inv();
-    } 
-
-    /* 整数版 */
-	MODINT& operator+= (const SQWORD a) {*this += MODINT(a); return *this;};
-	MODINT& operator-= (const SQWORD a) {*this -= MODINT(a); return *this;};
-	MODINT& operator*= (const SQWORD a) {*this *= MODINT(a); return *this;};
-	MODINT& operator/= (const SQWORD a) {*this /= MODINT(a); return *this;};
-
-    SQWORD getVal() { return m_x; };
-};
-SQWORD MODINT::MOD = ANS_MOD;
-
-
 /*----------------------------------------------*/
-
-static SQWORD getDayCnt(string &s)
-{
-    if (s == "SUN") {
-        return 0;
-    } else if (s == "MON") {
-        return 1;
-    } else if (s == "TUE") {
-        return 2;
-    } else if (s == "WED") {
-        return 3;
-    } else if (s == "THU") {
-        return 4;
-    } else if (s == "FRI") {
-        return 5;
-    } else if (s == "SAT") {
-        return 6;
-    } else {
-        return 10000;
-    }
-}
 
 int main(void)
 {
-    string str;
+    SQWORD sqA1 = inputSQWORD();
+    SQWORD sqA2 = inputSQWORD();
+    SQWORD sqA3 = inputSQWORD();
 
-    cin >> str;
-
-    SQWORD sqDay = getDayCnt(str);
-
-    printf("%lld\n", 7 - sqDay);
+    if (22 <= sqA1 + sqA2 + sqA3) {
+        printf("bust\n");
+    } else {
+        printf("win\n");
+    }
     return 0;
 }

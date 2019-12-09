@@ -169,88 +169,6 @@ static inline DOUBLE inputFP(void)
         }
     }
 }
-
-/*----------------------------------------------*/
-/**
- *  mod による操作ライブラリ
- */
-#define ANS_MOD (1000000007)
-
-class MODINT {
-    static SQWORD MOD;
-    SQWORD m_x;
-
-public:
-    MODINT(SQWORD val) {
-        m_x = (val % MOD + MOD) % MOD;
-    };
-    MODINT() {
-        m_x = 0;
-    }
-    static void Init(SQWORD sqMod) {
-        MOD = sqMod;
-    }
-
-	MODINT& operator+= (const MODINT a)
-    {
-        m_x = (m_x + a.m_x) % MOD; 
-        return *this;
-    };
-	MODINT& operator-= (const MODINT a)
-    { 
-        m_x = (m_x - a.m_x + MOD) % MOD; 
-        return *this;
-    };
-	MODINT& operator*= (const MODINT a)
-    {
-        m_x = (m_x * a.m_x) % MOD;
-        return *this;
-    };
-    MODINT pow(SQWORD t) const {
-        if (!t) return 1;
-        MODINT a = pow(t>>1);
-        a *= a;
-        if (t&1) a *= *this;
-        return a;
-    }
-	MODINT operator+ (const MODINT a) const {
-		MODINT res(*this);
-		return (res += a);
-	}
-	MODINT operator- (const MODINT a) const {
-		MODINT res(*this);
-		return (res -= a);
-	}
-	MODINT operator* (const MODINT a) const {
-		MODINT res(*this);
-		return (res *= a);
-	}
-	MODINT operator/ (const MODINT a) const {
-		MODINT res(*this);
-		return (res /= a);
-	}
-
-    /* 逆元 */
-    MODINT inv() const {
-        return pow(MOD-2);
-    }
-
-    /* 除算 */
-    MODINT& operator/=(const MODINT a) {
-        return (*this) *= a.inv();
-    } 
-
-    /* 整数版 */
-	MODINT& operator+= (const SQWORD a) {*this += MODINT(a); return *this;};
-	MODINT& operator-= (const SQWORD a) {*this -= MODINT(a); return *this;};
-	MODINT& operator*= (const SQWORD a) {*this *= MODINT(a); return *this;};
-	MODINT& operator/= (const SQWORD a) {*this /= MODINT(a); return *this;};
-
-    SQWORD getVal() { return m_x; };
-};
-SQWORD MODINT::MOD = ANS_MOD;
-
-
 /*----------------------------------------------*/
 
 
@@ -258,17 +176,16 @@ int main(void)
 {
     string strS;
 
-    SQWORD sqN = inputSQWORD();
     cin >> strS;
+    SQWORD sqLen = strS.size();
 
-    for (SQWORD sqIdx = 0; sqIdx < strS.size(); sqIdx++) {
-        char c = strS[sqIdx];
-        char cNext = 'A' + ((c - 'A') + sqN) % 26;
-//        printf("%d %c\n", c - 'A', cNext);
-        strS[sqIdx] = cNext;
+    SQWORD sqAns = 0;
+    for (SQWORD sqIdx = 0; sqIdx < sqLen / 2; sqIdx++) {
+        if (strS[sqIdx] != strS[sqLen - sqIdx - 1]) {
+            sqAns++;
+        }
     }
-
-    cout << strS;
+    printf("%lld\n", sqAns);
 
     return 0;
 }

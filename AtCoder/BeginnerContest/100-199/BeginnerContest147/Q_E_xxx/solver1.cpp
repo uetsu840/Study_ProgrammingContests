@@ -256,46 +256,79 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 int main(void)
 {
-    SQWORD sqN = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
+    SQWORD sqH = inputSQWORD();
+    SQWORD sqW = inputSQWORD();
 
-    MODINT::Init(sqK);
-    vector<MODINT> vsqRemSum;
-    MODINT sqSum = 0;
-    map<SQWORD, SQWORD> mapRem;
-    for (SQWORD sqIdx = 1; sqIdx <= sqN; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        sqSum += (MODINT(sqA) - 1);
-//        printf("----%lld\n", sqSum);
-        vsqRemSum.emplace_back(sqSum);
-    }
+    vector<vector<SQWORD>> vvA(sqH + 1, vector<SQWORD>(sqW + 1, 0));
+    vector<vector<SQWORD>> vvB(sqH + 1, vector<SQWORD>(sqW + 1, 0));
+    vector<vector<SQWORD>> vvDiff(sqH + 1, vector<SQWORD>(sqW + 1, 0));
 
-    for (SQWORD sqIdx = 0; sqIdx < min(sqN, sqK-1); sqIdx++) {
-        mapRem[vsqRemSum[sqIdx].getVal()]++;
-    }
-
-    MODINT sqPrevFront = 0;
-    MODINT sqSearch = 0;
-    SQWORD sqAns = 0;
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        MODINT sqFront = vsqRemSum[sqIdx] - sqPrevFront;
-
-        if (0 < mapRem.count(sqSearch.getVal())) {
-            sqAns += mapRem[sqSearch.getVal()];
+    for (SQWORD sqRow = 0; sqRow < sqH; sqRow++) {
+        for (SQWORD sqCol = 0; sqCol < sqW; sqCol++) {
+            SQWORD sqA = inputSQWORD();
+            vvA[sqRow][sqCol] = sqA;
         }
+    }
+    for (SQWORD sqRow = 0; sqRow < sqH; sqRow++) {
+        for (SQWORD sqCol = 0; sqCol < sqW; sqCol++) {
+            SQWORD sqB = inputSQWORD();
+            vvB[sqRow][sqCol] = sqB;
+        }
+    }
 
-//        printf("f : %lld search %lld, cnt%lld rem %lld\n", sqFront, sqSearch,  mapRem[sqSearch.getVal()], vsqRemSum[sqIdx]);
-//        printf("%lld %lld %lld %lld\n", mapRem[0], mapRem[1], mapRem[2], mapRem[3]);
+    for (SQWORD sqRow = 0; sqRow < sqH; sqRow++) {
+        for (SQWORD sqCol = 0; sqCol < sqW; sqCol++) {
+            vvDiff[sqRow][sqCol] = vvA[sqRow][sqCol] - vvB[sqRow][sqCol];
+//            printf(":%lld ", vvDiff[sqRow][sqCol]);
+        }
+//        printf("\n");
+    }
 
-        sqSearch += sqFront;
-        sqPrevFront = vsqRemSum[sqIdx];
-        mapRem[vsqRemSum[sqIdx].getVal()]--;
-        if (sqIdx + sqK - 1 < sqN) {
-            mapRem[vsqRemSum[sqIdx + sqK - 1].getVal()]++;
+    const SQWORD sqScoreOfs = 81 * 81;
+    static bool aaabDp[81][81][81 * 81 * 2 + 1];
+    memset(aaabDp, 0, sizeof(aaabDp));
+
+    aaabDp[0][0][sqScoreOfs + vvDiff[0][0]] = true;
+    aaabDp[0][0][sqScoreOfs - vvDiff[0][0]] = true;
+
+    for (SQWORD sqRowIdx = 0; sqRowIdx < sqH; sqRowIdx++) {
+        for (SQWORD sqColIdx = 0; sqColIdx < sqW; sqColIdx++) {
+            for (SQWORD sqScore = 0; sqScore < sqScoreOfs * 2; sqScore++) {
+                if (aaabDp[sqRowIdx][sqColIdx][sqScore]) {
+//                    printf("%lld %lld %lld\n", sqRowIdx, sqColIdx, sqScore);
+                    {
+                        SQWORD sqNextRow = sqRowIdx + 1;
+                        SQWORD sqNextCol = sqColIdx;
+//                        printf("%lld %lld\n", sqScore, vvDiff[sqNextRow][sqNextCol]);
+                        aaabDp[sqNextRow][sqNextCol][sqScore + vvDiff[sqNextRow][sqNextCol]] = true; 
+                        aaabDp[sqNextRow][sqNextCol][sqScore - vvDiff[sqNextRow][sqNextCol]] = true; 
+                    }
+                    {
+                        SQWORD sqNextRow = sqRowIdx;
+                        SQWORD sqNextCol = sqColIdx + 1;
+//                        printf("%lld %lld\n", sqScore, vvDiff[sqNextRow][sqNextCol]);
+                        aaabDp[sqNextRow][sqNextCol][sqScore + vvDiff[sqNextRow][sqNextCol]] = true; 
+                        aaabDp[sqNextRow][sqNextCol][sqScore - vvDiff[sqNextRow][sqNextCol]] = true; 
+                    }
+                }
+            }
+        }
+    }
+
+    SQWORD sqAns;
+    for (SQWORD sqAbs = 0; sqAbs <= sqScoreOfs; sqAbs++) {
+        if (aaabDp[sqH-1][sqW-1][sqScoreOfs + sqAbs]) {
+            sqAns = abs(sqAbs);
+            break;
+        }
+        if (aaabDp[sqH-1][sqW-1][sqScoreOfs - sqAbs]) {
+            sqAns = abs(sqAbs);
+            break;
         }
     }
 
     printf("%lld\n", sqAns);
+    
 
 
     return 0;

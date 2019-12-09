@@ -251,84 +251,55 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
-
 /*----------------------------------------------*/
-class Combination {
-    vector<MODINT> vecmsqComb;
-public:
-    Combination(SQWORD sqN) {
-        /* nCjを事前計算する */
-        vecmsqComb.resize(sqN + 1);
 
-        MODINT sqComb((SQWORD)1);
-        vecmsqComb[0] = sqComb;
-        for (SQWORD sqJ = 1; sqJ <= sqN; sqJ++) {
-            sqComb *= MODINT(sqN - sqJ + 1);
-            sqComb /= MODINT(sqJ);
-            vecmsqComb[sqJ] = sqComb;
-        }
-    }
 
-    MODINT GetVal(SQWORD sqJ) 
-    {
-        return vecmsqComb[sqJ];
-    }
-};
-
-/*-----------------------------------------------------*/
-
-map<pair<SQWORD, SQWORD>, SQWORD> mapEdge;
-
-void dfs(
-    SQWORD sqFrom, 
-    SQWORD sqCur, 
-    SQWORD sqPrevColor,
-    const vector<vector<SQWORD>> &vvEdge,
-    vector<SQWORD> &vColor) 
+static void CountBit(vector<SQWORD> &vecBit, SQWORD sqNum)
 {
-    SQWORD sqColor = 1;
-    for (auto n: vvEdge[sqCur]) {
-        if (sqColor == sqPrevColor) {
-            sqColor++;
+    SQWORD sqDigit = 0;
+    while (0 < sqNum) {
+        if (sqNum & 0x1) {
+            vecBit[sqDigit]++;
         }
-        if (n != sqFrom) {
-            SQWORD sqEdgeIdx = mapEdge[make_pair(sqCur, n)];
-            vColor[sqEdgeIdx] = sqColor;
-//            printf("%lld %lld %lld\n", sqCur, n, sqColor);
-            dfs(sqCur, n, sqColor, vvEdge, vColor);        
-            sqColor++;
-        }
+        sqNum >>= 1;
+        sqDigit++;
     }
 }
 
 
+
+/*-----------------------------------------------------*/
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    vector<vector<SQWORD>> vvEdge(sqN + 1, vector<SQWORD>());
-    vector<SQWORD> vColor(sqN - 1, 0);
 
-    for (SQWORD sqIdx = 0; sqIdx < sqN - 1; sqIdx++) {
+    vector<SQWORD> vecBitCnt(61, 0);
+
+    MODINT miSum = 0;
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
         SQWORD sqA = inputSQWORD();
-        SQWORD sqB = inputSQWORD();
-        mapEdge[make_pair(sqA, sqB)] = sqIdx;
-        mapEdge[make_pair(sqB, sqA)] = sqIdx;
-        vvEdge[sqA].emplace_back(sqB);
-        vvEdge[sqB].emplace_back(sqA);
+        miSum += sqA;
+        CountBit(vecBitCnt, sqA);
     }
 
-    dfs(-1, 1, 0, vvEdge, vColor);
+    MODINT miAns = miSum * (MODINT(sqN) - (MODINT(1)));
 
-    SQWORD sqNumColor = 0;
-    for (auto c: vColor) {
-        sqNumColor = max(c, sqNumColor);
+//    printf("%lld\n", miAns);
+
+    MODINT miAndSum = 0;
+    SQWORD sqDigit = 0;
+    for (auto cntBit: vecBitCnt) {
+        if (2 <= vecBitCnt[sqDigit]) {
+            MODINT comb = (MODINT(vecBitCnt[sqDigit]) * MODINT(vecBitCnt[sqDigit] - 1));
+//            printf("%lld\n", comb);
+            miAndSum += comb * MODINT((SQWORD)0x1 << sqDigit);
+        }
+        sqDigit++;
     }
 
+    miAns -= miAndSum;
 
-    printf("%lld\n", sqNumColor);
-    for (auto c: vColor) {
-        printf("%lld\n", c);
-    }
+    printf("%lld\n", miAns);
 
     return 0;
 }
