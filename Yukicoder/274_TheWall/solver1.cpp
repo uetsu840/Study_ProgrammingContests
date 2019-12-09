@@ -402,10 +402,16 @@ int main(void)
     SQWORD sqM = inputSQWORD();
 
     vector<COLOR_RANGE> vstColorRange;
+    SQWORD sqSum = 0;
     for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
         SQWORD sqL = inputSQWORD();
         SQWORD sqR = inputSQWORD();
         vstColorRange.emplace_back(COLOR_RANGE{sqL, sqR});
+        sqSum += (sqR - sqL + 1);
+    }
+    if (sqM < sqSum) {
+        printf("NO\n");
+        return 0;
     }
 
     /**
@@ -419,11 +425,15 @@ int main(void)
      *      グラフの頂点番号
      *      2*j  : Rj
      *      2*j+1: not Rj
+     * 
+     *      a , b, c のいずれか一つまたは0個が1
+     *      ⇔ not(a and b) and not(b and c) and not(c and a)
+     *      ⇔ (not a or not b) and (not b or not c) and (not c or not a)
+     *      ⇔ (a → not b) and (b -> not a) and (b -> not c) and (c -> not b)
      */
     vector<vector<bool>> vvEdgeMatrix(sqN * 2, vector<bool>(sqN * 2, false));
     for (SQWORD sqCol = 0; sqCol < sqM; sqCol++) {
         vector<SQWORD> vsqConds;
-        printf(">");
         for (SQWORD sqRow = 0; sqRow < sqN; sqRow++) {
             if (IsWallOnNml(vstColorRange[sqRow], sqM, sqCol)) {
                 vsqConds.emplace_back(sqRow * 2);
@@ -434,7 +444,6 @@ int main(void)
         }
 
         SQWORD sqCondNum = vsqConds.size();
-        printf(".%lld", sqCondNum);
         for (SQWORD sqIdxI = 0; sqIdxI < sqCondNum - 1; sqIdxI++) {
             for (SQWORD sqIdxJ = sqIdxI + 1; sqIdxJ < sqCondNum; sqIdxJ++) {
                 SQWORD sqNode1 = vsqConds[sqIdxI];
@@ -446,12 +455,13 @@ int main(void)
 //                printf("%lld:%lld\n", sqNotNode1, sqNode2);
 //                printf("%lld:%lld\n", sqNotNode2, sqNode1);
 
-                vvEdgeMatrix[sqNotNode1][sqNode2] = true;
-                vvEdgeMatrix[sqNotNode2][sqNode1] = true;
+//                vvEdgeMatrix[sqNotNode1][sqNode2] = true;
+//                vvEdgeMatrix[sqNotNode2][sqNode1] = true;
+                vvEdgeMatrix[sqNode1][sqNotNode2] = true;
+                vvEdgeMatrix[sqNode2][sqNotNode1] = true;
             }
         }
     }
-    printf("----");
 
 
     SCC_Graph scc(sqN * 2);
