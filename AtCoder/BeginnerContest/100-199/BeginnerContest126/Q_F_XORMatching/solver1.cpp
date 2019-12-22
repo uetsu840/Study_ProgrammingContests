@@ -204,7 +204,61 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 }
 
 
+static void solver2(SQWORD sqK)
+{
+    if (0 == sqK) {
+        printf("1 1 0 0\n");
+    } else {
+        printf("-1\n");
+    }
+}
+
+static void solverGen(SQWORD sqN, SQWORD sqK)
+{
+    vector<SQWORD> vecVals;
+
+    SQWORD sqMax = (1 << sqN);
+
+//    printf("%lld %lld\n", sqN, sqMax);
+    if (sqMax <= sqK) {
+        printf("-1\n");
+        return;
+    }
+
+    for (SQWORD sqIdx = 0; sqIdx < sqMax; sqIdx++) {
+        if (sqIdx != sqK) {
+            vecVals.emplace_back(sqIdx);
+        }
+    }
+
+    vector<SQWORD> vecValRev = vecVals;
+    reverse(vecValRev.begin(), vecValRev.end());
+
+    vector<SQWORD> vecAns;
+
+    vecAns.emplace_back(sqK);
+    vecAns.insert(vecAns.end(), vecVals.begin(), vecVals.end());
+    vecAns.emplace_back(sqK);
+    vecAns.insert(vecAns.end(), vecValRev.begin(), vecValRev.end());
+
+    for (auto a: vecAns) {
+        printf("%lld ", a);
+    }
+    printf("\n");
+}
+
 int main(void)
 {
+    SQWORD sqN = inputSQWORD();
+    SQWORD sqK = inputSQWORD();
+
+    if (1 == sqN) {
+        solver2(sqK);
+    } else {
+        solverGen(sqN, sqK);
+    }
+
+
+
     return 0;
 }
