@@ -54,6 +54,7 @@ static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+static inline DOUBLE ABS(DOUBLE a) {return 0 <= a ? a : -a;}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -250,87 +251,55 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
-
 /*----------------------------------------------*/
-#define SQWORD_INF_N    (-100100100100100100)
 
+
+static void CountBit(vector<SQWORD> &vecBit, SQWORD sqNum)
+{
+    SQWORD sqDigit = 0;
+    while (0 < sqNum) {
+        if (sqNum & 0x1) {
+            vecBit[sqDigit]++;
+        }
+        sqNum >>= 1;
+        sqDigit++;
+    }
+}
+
+
+
+/*-----------------------------------------------------*/
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
 
-    vector<SQWORD> vsqA;
+    vector<SQWORD> vecBitCnt(61, 0);
 
+    MODINT miSum = 0;
     for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        vsqA.emplace_back(inputSQWORD());
+        SQWORD sqA = inputSQWORD();
+        miSum += sqA;
+        CountBit(vecBitCnt, sqA);
     }
 
-    /**
-     *  dp[i][j] i回ボールを投げたとき、右端がj番目の時の最大得点
-     * 
-     *      dp[i][j] = max(dp[i-1][j-M], dp[i-1][j-M+1],,,dp[i-1][j-1]) + j * P_j
-     */
-    vector<vector<SQWORD>> vvsqDp(sqK+1, vector<SQWORD>(sqN));
-    for (SQWORD sqTryCnt = 1; sqTryCnt <= sqK; sqTryCnt++) {
+    MODINT miAns = miSum * (MODINT(sqN) - (MODINT(1)));
 
-        /* スライド最大値 */
-        vector<SQWORD> vsqDeq(sqN, 0);
-        SDWORD lDeqS = 0, lDeqT = 0;
-        for (SQWORD sqPanelIdx = 0; sqPanelIdx < sqN; sqPanelIdx++) {
-            SQWORD sqMax;
-            if (1 == sqTryCnt) {
-                /* 1投目、1枚目はスライド最小値がない場合があり、0で初期化しておく */
-                sqMax = 0;
-            } else {
-                /* 2投目以降は、スライド最小値が必ず存在する。ない場合には答えになり得ない。 */
-                sqMax = SQWORD_INF_N;
-            }
-            vector<SQWORD> &vsqDpPrev = vvsqDp[sqTryCnt - 1];
+//    printf("%lld\n", miAns);
 
-            if (0 < sqPanelIdx) {
-                SQWORD sqPanelIdxPrev = sqPanelIdx - 1;
-#if 0            
-                while ((lDeqS < lDeqT) && (vsqDpPrev[sqPanelIdx] <= vsqDpPrev[vsqDeq[lDeqT - 1]])) {
-                    lDeqT--;
-                }
-#else
-                while (1) {
-                    if (lDeqT <= lDeqS) {
-                        break;
-                    }
-                    if (vsqDpPrev[sqPanelIdxPrev] < vsqDpPrev[vsqDeq[lDeqT - 1]]) {
-                        break;
-                    }
-                    lDeqT--;
-                }
-#endif
-                vsqDeq[lDeqT] = sqPanelIdxPrev;
-                lDeqT++;
-
-                sqMax = vsqDpPrev[vsqDeq[lDeqS]];
-                if (0 <= sqPanelIdxPrev - sqM + 1) {
-                    if (vsqDeq[lDeqS] == sqPanelIdxPrev - sqM + 1) {
-                        lDeqS++;
-                    }
-                }
-            }
-
-            vvsqDp[sqTryCnt][sqPanelIdx] = sqMax + sqTryCnt * vsqA[sqPanelIdx];
+    MODINT miAndSum = 0;
+    SQWORD sqDigit = 0;
+    for (auto cntBit: vecBitCnt) {
+        if (2 <= vecBitCnt[sqDigit]) {
+            MODINT comb = (MODINT(vecBitCnt[sqDigit]) * MODINT(vecBitCnt[sqDigit] - 1));
+//            printf("%lld\n", comb);
+            miAndSum += comb * MODINT((SQWORD)0x1 << sqDigit);
         }
-#if 0
-        for (SQWORD sqPanelIdx = 0; sqPanelIdx < sqN; sqPanelIdx++) {
-            printf("%lld ", vvsqDp[sqTryCnt][sqPanelIdx]);
-        }
-        printf("\n");
-#endif
+        sqDigit++;
     }
-    SQWORD sqAns = 0;
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        sqAns = max(sqAns, vvsqDp[sqK][sqIdx]);
-    }
-    printf("%lld\n", sqAns);
 
+    miAns -= miAndSum;
+
+    printf("%lld\n", miAns);
 
     return 0;
 }

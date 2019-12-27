@@ -220,6 +220,7 @@ static SQWORD combMod(SQWORD n, SQWORD k)
 
 /*----------------------------------------------*/
 
+
 typedef struct {
     SDWORD lTo;
     SQWORD sqCap;
@@ -227,12 +228,11 @@ typedef struct {
     SDWORD lRev;
 } ST_EDGE;
 
-#define MAX_V   (202)
+#define MAX_V   (20002)
 
 struct Flow {
 private:
     vector<ST_EDGE> avGraph[MAX_V];
-    SDWORD  alDims[MAX_V];
     SQWORD  sqEdgeNum;
     SQWORD  asqDist[MAX_V];
     SDWORD  alPrevV[MAX_V];   
@@ -242,21 +242,9 @@ private:
     SDWORD  alDinic_Iter[MAX_V];
 
 public:
-    Flow() {
-        for (auto v: avGraph) {
-            v.clear();
-        }
-        memset(alDims, 0, sizeof(alDims));
-        memset(asqDist, 0, sizeof(asqDist));
-        memset(alPrevV, 0, sizeof(alPrevV)); 
-        memset(alPrevEdge, 0, sizeof(alPrevEdge));
-        memset(alDinic_Level, 0, sizeof(alDinic_Level));
-        memset(alDinic_Iter, 0, sizeof(alDinic_Iter));
-    }
     void addEdge(SDWORD lFrom, SDWORD lTo, SQWORD sqCap, SQWORD sqCost) {
-//        printf("%d ----[%lld] ----> %d\n", lFrom, sqCap, lTo);
-        
-        alDims[lFrom]++;
+        // printf("%d ----[%lld] ----> %d\n", lFrom, sqCap, lTo);
+
         avGraph[lFrom].push_back((ST_EDGE){lTo, sqCap, sqCost, (SDWORD)(avGraph[lTo].size())});
         avGraph[lTo].push_back((ST_EDGE){lFrom, 0, -sqCost, (SDWORD)(avGraph[lFrom].size() - 1)});
     }
@@ -365,136 +353,27 @@ public:
             }
         }
     }
-
-    SQWORD getFlow(SDWORD lPnt)
-    {
-        SQWORD sqCapSum = 0; 
-        for (auto e: avGraph[lPnt]) {
-            sqCapSum += e.sqCap;
-        }
-        return alDims[lPnt] - sqCapSum;
-    }
 };
 
-/*----------------------------------------------*/
+/*------------------------------------------*/
 
-static void getPrimes(vector<SDWORD> &vlPrimes, SDWORD lMax)
+#define PNT_NO_OFFSET_SHOP  (0)
+#define PNT_NO_OFFSET_KEY   (1000)
+#define PNT_NO_OFFSET_BOX   (2000)
+
+#define PNT_NO_START        (0)
+#define PNT_NO_TARGET       (3000)
+
+struct TRAIN_ST {
+    SQWORD sqFrom;
+    SQWORD sqTo;
+    SQWORD sqCost;
+};
+
+#define NODE_STATION_OFFSET (20)
+#define NODE_START          ()
+
+SQWORD getMinCost(vector<vector<TRAIN_ST>> vvTrains)
 {
-    /* lSearchMax と ループ内の *2 の関係から、入力は3以上とすること */
-    if (!(1 <= lMax)) {
-        printf("Oops!");
-        return;
-    }
-
-    /* 素数のリストを作る */
-    vector<bool> vbIsPrime(lMax + 1, true);
-    SDWORD lSearchMax = sqrt(lMax) + 1;
-    vbIsPrime[0] = false;
-    vbIsPrime[1] = false;
-    for (SDWORD lPrime = 2; lPrime < vbIsPrime.size(); lPrime++) {
-        if (vbIsPrime[lPrime]) {
-            vlPrimes.emplace_back(lPrime);
-            if (lPrime <= lSearchMax) {
-                for (SDWORD lCurNum = lPrime * 2; lCurNum <= lMax; lCurNum += lPrime) {
-                    vbIsPrime[lCurNum] = false;
-                }
-            }
-        }
-    }
-}    
-
-/*----------------------------------------------*/
-
-#define PNT_NO_START    (0)
-#define PNT_NO_OFFSET   (100)
-#define PNT_NO_TARGET   (201)
-#define FLOW_OFFSET     (1000000000)
-#define CAPACITY_INF    (1000000001)
-#define DUMMY_COST      (1)
-
-int main(void)
-{
-    SQWORD sqN = inputSQWORD();
-
-    Flow solverFlow;
-    vector<SQWORD> vsqA;
-    vector<SQWORD> vsqB;
-    vector<SDWORD> vlPrimes;
-
-    getPrimes(vlPrimes, 1e7 + 1);
-    vlPrimes.erase(find(vlPrimes.begin(), vlPrimes.end(), 2));
-
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        vsqA.emplace_back(sqA);
-    }
-
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        if (0 < sqIdx) {
-            if (!(vsqA[sqIdx - 1] == vsqA[sqIdx] - 1)) {
-                vsqB.emplace_back(vsqA[sqIdx]);
-            }
-        } else {
-            vsqB.emplace_back(vsqA[sqIdx]);      
-        }
-        if (sqIdx < sqN - 1) {
-            if (!(vsqA[sqIdx] + 1 == vsqA[sqIdx + 1])) {
-                vsqB.emplace_back(vsqA[sqIdx] + 1);
-            }
-        } else {
-            vsqB.emplace_back(vsqA[sqIdx] + 1);
-        }
-    }
-
-    map<SQWORD, SQWORD> mapB;
-
-    for (SQWORD sqIdx = 0; sqIdx < vsqB.size(); sqIdx++) {
-        mapB[vsqB[sqIdx]] = sqIdx + 1;
-    }
-
-    /* 二部マッチング */
-    for (auto b: vsqB) {
-        solverFlow.addEdge(PNT_NO_START,            mapB[b],       1, DUMMY_COST);
-        solverFlow.addEdge(mapB[b] + PNT_NO_OFFSET, PNT_NO_TARGET, 1, DUMMY_COST);
-    }
-
-    for (auto p: vlPrimes) {
-        for (auto b: vsqB) {
-            auto it = lower_bound(vsqB.begin(), vsqB.end(), b + p);
-            if (it != vsqB.end()) {
-                if (*it == b + p) {
-                    if (b + p < 1e7 + 1) {
-                        solverFlow.addEdge(mapB[b], mapB[b + p] + PNT_NO_OFFSET, 1, DUMMY_COST);
-                    }
-                }
-            }
-        }
-    }
-
-    SQWORD sqMaxFlow = solverFlow.MaxFlow(PNT_NO_START, PNT_NO_TARGET);
-    vector<SQWORD> vsqBRestEven;
-    vector<SQWORD> vsqBRestOdd;
-    for (auto b: vsqB) {
-        SQWORD sqFlow = solverFlow.getFlow(mapB[b]);
-
-        if (0 == sqFlow) {
-            if (0 == b % 2) {
-                vsqBRestEven.emplace_back(b);
-            } else {
-                vsqBRestOdd.emplace_back(b);
-            }
-        }
-    }
-
-    SQWORD sqAns = sqMaxFlow;    
-    sqAns += (vsqBRestEven.size() / 2) * 2;
-    sqAns += (vsqBRestOdd.size() / 2) * 2;
-    if (0 < (vsqBRestEven.size() %  2)) {
-        sqAns += 3;
-    }
-
-    printf("%lld\n", sqAns);
-
     return 0;
 }
-/*------------------------------------------*/

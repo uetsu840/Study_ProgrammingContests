@@ -250,86 +250,75 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
+/*----------------------------------------------*/
+
 
 /*----------------------------------------------*/
-#define SQWORD_INF_N    (-100100100100100100)
+static vector<vector<SQWORD>> vvEdge;
+static SQWORD s_sqDepthTakahashi;
+static SQWORD s_sqMaxDepth;
+static SQWORD s_sqU;
+static SQWORD s_sqDfs2Start;
+static SQWORD s_sqDfs2Dir;
+static SQWORD s_sqDfs2BaseDepth;
+
+static bool dfs(SQWORD sqPrev, SQWORD sqCur, SQWORD sqDepth)
+{
+    bool bFound = false;
+    if (sqCur == s_sqU) {
+        s_sqDepthTakahashi = sqDepth;
+        return true;
+    }
+
+    for (auto e: vvEdge[sqCur]) {
+        if (e != sqPrev) {
+            if (dfs(sqCur, e, sqDepth + 1)) {
+                bFound = true;
+                if (sqDepth == ((s_sqDepthTakahashi - 1) / 2)) {
+                    s_sqDfs2BaseDepth = sqDepth + 1;
+                    s_sqDfs2Start = sqCur;
+                    s_sqDfs2Dir   = e;
+                }
+            }
+        }
+    }
+
+    return bFound;
+}
+
+static void dfs2A(SQWORD sqPrev, SQWORD sqCur, SQWORD sqDepth)
+{
+    s_sqMaxDepth = max(sqDepth, s_sqMaxDepth);
+
+    for (auto e: vvEdge[sqCur]) {
+        if (e != sqPrev) {
+            dfs2A(sqCur, e, sqDepth + 1);
+        }
+    }
+}
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
+    s_sqU = inputSQWORD();
+    SQWORD sqV = inputSQWORD();
 
-    vector<SQWORD> vsqA;
-
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        vsqA.emplace_back(inputSQWORD());
+    vvEdge.resize(sqN + 1);
+    for (SQWORD sqIdx = 0; sqIdx < sqN - 1; sqIdx++) {
+        SQWORD sqA = inputSQWORD();
+        SQWORD sqB = inputSQWORD();
+        vvEdge[sqA].emplace_back(sqB);
+        vvEdge[sqB].emplace_back(sqA);
     }
 
-    /**
-     *  dp[i][j] i回ボールを投げたとき、右端がj番目の時の最大得点
-     * 
-     *      dp[i][j] = max(dp[i-1][j-M], dp[i-1][j-M+1],,,dp[i-1][j-1]) + j * P_j
-     */
-    vector<vector<SQWORD>> vvsqDp(sqK+1, vector<SQWORD>(sqN));
-    for (SQWORD sqTryCnt = 1; sqTryCnt <= sqK; sqTryCnt++) {
+    dfs(-1, sqV, 0);
 
-        /* スライド最大値 */
-        vector<SQWORD> vsqDeq(sqN, 0);
-        SDWORD lDeqS = 0, lDeqT = 0;
-        for (SQWORD sqPanelIdx = 0; sqPanelIdx < sqN; sqPanelIdx++) {
-            SQWORD sqMax;
-            if (1 == sqTryCnt) {
-                /* 1投目、1枚目はスライド最小値がない場合があり、0で初期化しておく */
-                sqMax = 0;
-            } else {
-                /* 2投目以降は、スライド最小値が必ず存在する。ない場合には答えになり得ない。 */
-                sqMax = SQWORD_INF_N;
-            }
-            vector<SQWORD> &vsqDpPrev = vvsqDp[sqTryCnt - 1];
+//    printf("%lld %lld d %lld\n", s_sqDfs2Start, s_sqDfs2Dir, s_sqDfs2BaseDepth);
 
-            if (0 < sqPanelIdx) {
-                SQWORD sqPanelIdxPrev = sqPanelIdx - 1;
-#if 0            
-                while ((lDeqS < lDeqT) && (vsqDpPrev[sqPanelIdx] <= vsqDpPrev[vsqDeq[lDeqT - 1]])) {
-                    lDeqT--;
-                }
-#else
-                while (1) {
-                    if (lDeqT <= lDeqS) {
-                        break;
-                    }
-                    if (vsqDpPrev[sqPanelIdxPrev] < vsqDpPrev[vsqDeq[lDeqT - 1]]) {
-                        break;
-                    }
-                    lDeqT--;
-                }
-#endif
-                vsqDeq[lDeqT] = sqPanelIdxPrev;
-                lDeqT++;
+    dfs2A(s_sqDfs2Start, s_sqDfs2Dir, 0);
 
-                sqMax = vsqDpPrev[vsqDeq[lDeqS]];
-                if (0 <= sqPanelIdxPrev - sqM + 1) {
-                    if (vsqDeq[lDeqS] == sqPanelIdxPrev - sqM + 1) {
-                        lDeqS++;
-                    }
-                }
-            }
 
-            vvsqDp[sqTryCnt][sqPanelIdx] = sqMax + sqTryCnt * vsqA[sqPanelIdx];
-        }
-#if 0
-        for (SQWORD sqPanelIdx = 0; sqPanelIdx < sqN; sqPanelIdx++) {
-            printf("%lld ", vvsqDp[sqTryCnt][sqPanelIdx]);
-        }
-        printf("\n");
-#endif
-    }
-    SQWORD sqAns = 0;
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        sqAns = max(sqAns, vvsqDp[sqK][sqIdx]);
-    }
-    printf("%lld\n", sqAns);
+    printf("%lld\n", s_sqMaxDepth + s_sqDfs2BaseDepth - 1);
 
 
     return 0;

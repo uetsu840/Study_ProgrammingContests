@@ -252,85 +252,63 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 
 /*----------------------------------------------*/
-#define SQWORD_INF_N    (-100100100100100100)
+
+const SQWORD sqMaxLogN = 17;
+constexpr int N = 1e5;
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
-
-    vector<SQWORD> vsqA;
-
+    vector<SQWORD> vsqX;
     for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        vsqA.emplace_back(inputSQWORD());
+        vsqX.emplace_back(inputSQWORD());
     }
+    SQWORD sqL = inputSQWORD();
 
-    /**
-     *  dp[i][j] i回ボールを投げたとき、右端がj番目の時の最大得点
-     * 
-     *      dp[i][j] = max(dp[i-1][j-M], dp[i-1][j-M+1],,,dp[i-1][j-1]) + j * P_j
-     */
-    vector<vector<SQWORD>> vvsqDp(sqK+1, vector<SQWORD>(sqN));
-    for (SQWORD sqTryCnt = 1; sqTryCnt <= sqK; sqTryCnt++) {
-
-        /* スライド最大値 */
-        vector<SQWORD> vsqDeq(sqN, 0);
-        SDWORD lDeqS = 0, lDeqT = 0;
-        for (SQWORD sqPanelIdx = 0; sqPanelIdx < sqN; sqPanelIdx++) {
-            SQWORD sqMax;
-            if (1 == sqTryCnt) {
-                /* 1投目、1枚目はスライド最小値がない場合があり、0で初期化しておく */
-                sqMax = 0;
-            } else {
-                /* 2投目以降は、スライド最小値が必ず存在する。ない場合には答えになり得ない。 */
-                sqMax = SQWORD_INF_N;
-            }
-            vector<SQWORD> &vsqDpPrev = vvsqDp[sqTryCnt - 1];
-
-            if (0 < sqPanelIdx) {
-                SQWORD sqPanelIdxPrev = sqPanelIdx - 1;
-#if 0            
-                while ((lDeqS < lDeqT) && (vsqDpPrev[sqPanelIdx] <= vsqDpPrev[vsqDeq[lDeqT - 1]])) {
-                    lDeqT--;
-                }
-#else
-                while (1) {
-                    if (lDeqT <= lDeqS) {
-                        break;
-                    }
-                    if (vsqDpPrev[sqPanelIdxPrev] < vsqDpPrev[vsqDeq[lDeqT - 1]]) {
-                        break;
-                    }
-                    lDeqT--;
-                }
-#endif
-                vsqDeq[lDeqT] = sqPanelIdxPrev;
-                lDeqT++;
-
-                sqMax = vsqDpPrev[vsqDeq[lDeqS]];
-                if (0 <= sqPanelIdxPrev - sqM + 1) {
-                    if (vsqDeq[lDeqS] == sqPanelIdxPrev - sqM + 1) {
-                        lDeqS++;
-                    }
-                }
-            }
-
-            vvsqDp[sqTryCnt][sqPanelIdx] = sqMax + sqTryCnt * vsqA[sqPanelIdx];
+    SQWORD sqPtrL = 0; 
+    SQWORD sqPtrR = 1;
+    // vector<vector<SQWORD>> vvNext(sqMaxLogN + 1, vector<SQWORD>(sqN, 0));
+    static SQWORD vvNext[sqMaxLogN+1][N];
+     vvNext;
+    while (sqPtrL < sqN) {
+        while ((sqPtrR < sqN) && (vsqX[sqPtrR] - vsqX[sqPtrL] <= sqL)) {
+            sqPtrR++;
         }
-#if 0
-        for (SQWORD sqPanelIdx = 0; sqPanelIdx < sqN; sqPanelIdx++) {
-            printf("%lld ", vvsqDp[sqTryCnt][sqPanelIdx]);
+        vvNext[0][sqPtrL] = sqPtrR - 1;
+        sqPtrL++; 
+    }
+    for (SQWORD sqDub = 0; sqDub < sqMaxLogN; sqDub++) {
+        for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+            vvNext[sqDub+1][sqIdx] = vvNext[sqDub][vvNext[sqDub][sqIdx]];
+//            printf("%lld ", vvNext[sqDub+1][sqIdx]);
         }
-        printf("\n");
-#endif
+//        printf("\n");
     }
-    SQWORD sqAns = 0;
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        sqAns = max(sqAns, vvsqDp[sqK][sqIdx]);
+
+    SQWORD sqQ = inputSQWORD();
+    for (SQWORD sqIdx = 0; sqIdx < sqQ; sqIdx++) {
+        SQWORD sqA = inputSQWORD();
+        SQWORD sqB = inputSQWORD();
+        sqA--;
+        sqB--;
+        if (sqB < sqA) {
+            swap(sqA, sqB);
+        }
+
+        SQWORD sqRes = 0;
+        SQWORD sqPtr = sqA;
+//        printf("%lld %lld\n", sqA, sqB);
+       
+        while (sqPtr < sqB){
+            SQWORD sqDub = 0;
+            while ((sqDub + 1 <= sqMaxLogN) && (vvNext[sqDub + 1][sqPtr] < sqB)) {
+                sqDub++;
+            }
+            sqRes += ((SQWORD)1 << sqDub);
+            sqPtr = vvNext[sqDub][sqPtr];
+//            printf("%lld ", sqPtr);
+        }
+        printf("%lld\n", sqRes);
     }
-    printf("%lld\n", sqAns);
-
-
     return 0;
 }
