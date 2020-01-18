@@ -250,135 +250,76 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
-
-/*----------------------------------------------*/
 /*----------------------------------------------*/
 
-#define N_MAX_VERTICE   (25000)
 
-struct PATH_INFO {
-    map<SQWORD, SQWORD> mapDist;
-    PATH_INFO (SQWORD sqVertice, SQWORD sqCnt) {
-        mapDist[sqVertice] = sqCnt;
-    }
-    PATH_INFO () {
-        ;
-    }
-};
+/*----------------------------------------------*/
+static vector<vector<SQWORD>> vvEdge;
+static SQWORD s_sqDepthTakahashi;
+static SQWORD s_sqMaxDepth;
+static SQWORD s_sqU;
+static SQWORD s_sqDfs2Start;
+static SQWORD s_sqDfs2Dir;
+static SQWORD s_sqDfs2BaseDepth;
 
-struct EDGE_ST {
-    SQWORD sqTo;
-    SQWORD sqDist;
-
-    EDGE_ST (SQWORD to, SQWORD dist) : sqTo(to), sqDist(dist) {};
-};
-
-#define SQWORD_INF  (100100100100100100)
-
-struct DIST_QUE_ENTRY {
-    SQWORD sqCostStar;
-    SQWORD sqCost;
-    SQWORD sqPos;
-};
-
-bool operator> (const DIST_QUE_ENTRY &a, const DIST_QUE_ENTRY &b)
+static bool dfs(SQWORD sqPrev, SQWORD sqCur, SQWORD sqDepth)
 {
-    return a.sqCostStar > b.sqCostStar;
+    bool bFound = false;
+    if (sqCur == s_sqU) {
+        s_sqDepthTakahashi = sqDepth;
+        return true;
+    }
+
+    for (auto e: vvEdge[sqCur]) {
+        if (e != sqPrev) {
+            if (dfs(sqCur, e, sqDepth + 1)) {
+                bFound = true;
+                if (sqDepth == ((s_sqDepthTakahashi - 1) / 2)) {
+                    s_sqDfs2BaseDepth = sqDepth + 1;
+                    s_sqDfs2Start = sqCur;
+                    s_sqDfs2Dir   = e;
+                }
+            }
+        }
+    }
+
+    return bFound;
+}
+
+static void dfs2A(SQWORD sqPrev, SQWORD sqCur, SQWORD sqDepth)
+{
+    s_sqMaxDepth = max(sqDepth, s_sqMaxDepth);
+
+    for (auto e: vvEdge[sqCur]) {
+        if (e != sqPrev) {
+            dfs2A(sqCur, e, sqDepth + 1);
+        }
+    }
 }
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
+    s_sqU = inputSQWORD();
+    SQWORD sqV = inputSQWORD();
 
-    vector<vector<EDGE_ST>> vvEdge(sqN);
-    vector<vector<EDGE_ST>> vvRevEdge(sqN);
-    map<SQWORD, PATH_INFO> mapPath;
-
-    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqM; sqEdgeIdx++) {
-        SQWORD sqU = inputSQWORD();
-        SQWORD sqV = inputSQWORD();
-        SQWORD sqC = inputSQWORD();
-
-        vvEdge[sqU].emplace_back(sqV, sqC);
-        vvRevEdge[sqV].emplace_back(sqU, sqC);
+    vvEdge.resize(sqN + 1);
+    for (SQWORD sqIdx = 0; sqIdx < sqN - 1; sqIdx++) {
+        SQWORD sqA = inputSQWORD();
+        SQWORD sqB = inputSQWORD();
+        vvEdge[sqA].emplace_back(sqB);
+        vvEdge[sqB].emplace_back(sqA);
     }
 
-    typedef pair<SQWORD, SQWORD> P;
- 
-    /* get rev edge cost */
-    vector<SQWORD> vRevcost(sqN, SQWORD_INF);
-    {
-        priority_queue<P, vector<P>, greater<P>> queRev;  
-        vRevcost[0] = 0;
-        queRev.push(make_pair(0, 0));
-        while (!queRev.empty()) {
-            P p = queRev.top();
-            queRev.pop();
+    dfs(-1, sqV, 0);
 
-            SDWORD v = p.second;
-            if (p.first <= vRevcost[v]) {
-                for (SDWORD lIdx = 0; lIdx < vvRevEdge[v].size(); lIdx++) {
-                    EDGE_ST e = vvRevEdge[v][lIdx];
+//    printf("%lld %lld d %lld\n", s_sqDfs2Start, s_sqDfs2Dir, s_sqDfs2BaseDepth);
 
-                    if (vRevcost[e.sqTo] > vRevcost[v] + e.sqDist) {
-                        vRevcost[e.sqTo] = vRevcost[v] + e.sqDist;
-                        queRev.push(P(vRevcost[e.sqTo], e.sqTo));
-                    }
-                }
-            }
-        }
-    }
+    dfs2A(s_sqDfs2Start, s_sqDfs2Dir, 0);
 
-    bool bAnsExist = false;
-    for (auto n: vvEdge[0]) {
-        if (SQWORD_INF != vRevcost[n.sqTo]) {
-            bAnsExist = true;
-        }
-    }
-    if (!bAnsExist) {
-        for (SQWORD sqIdx = 0; sqIdx < sqK; sqIdx++) {
-            printf("-1\n");
-        }
-        return 0;
-    }
 
-#if 0
-    for (auto d: vRevcost) {
-        printf("%lld ", d);
-    }
-    printf("\n");
-#endif
+    printf("%lld\n", s_sqMaxDepth + s_sqDfs2BaseDepth - 1);
 
-    SQWORD sqCnt = 0;
-    {
-        priority_queue<DIST_QUE_ENTRY, vector<DIST_QUE_ENTRY>, greater<DIST_QUE_ENTRY>> que;  
-        que.push(DIST_QUE_ENTRY{vRevcost[0], 0, 0});
-        while (1) {
-            DIST_QUE_ENTRY p = que.top();
-            que.pop();
-
-            SDWORD v = p.sqPos;
-//            printf("==%lld %lld\n", v, p.sqCost);
-            for (SDWORD lIdx = 0; lIdx < vvEdge[v].size(); lIdx++) {
-                EDGE_ST e = vvEdge[v][lIdx];
-
-                SQWORD sqNextCost = p.sqCost + e.sqDist;
-
-                if (0 == e.sqTo) {
-                    printf("%lld\n", sqNextCost);
-                    sqCnt++;
-                }
-                if (sqK <= sqCnt) {
-                    return 0;
-                }
-
-//                printf("%lld %lld %lld\n", sqNextCost + vRevcost[e.sqTo], sqNextCost, e.sqTo);
-                que.push(DIST_QUE_ENTRY{sqNextCost + vRevcost[e.sqTo], sqNextCost, e.sqTo});
-            }
-        }
-    }
 
     return 0;
 }

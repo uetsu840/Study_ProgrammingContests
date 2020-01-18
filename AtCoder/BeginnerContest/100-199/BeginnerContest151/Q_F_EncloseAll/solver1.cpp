@@ -250,135 +250,188 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
-
 /*----------------------------------------------*/
 /*----------------------------------------------*/
 
-#define N_MAX_VERTICE   (25000)
 
-struct PATH_INFO {
-    map<SQWORD, SQWORD> mapDist;
-    PATH_INFO (SQWORD sqVertice, SQWORD sqCnt) {
-        mapDist[sqVertice] = sqCnt;
+/*----------------------------------------------*/
+
+struct VECTOR_2D {
+    DOUBLE dX;
+    DOUBLE dY;
+    VECTOR_2D(DOUBLE x, DOUBLE y) : dX(x), dY(y) {};
+    VECTOR_2D() : dX(0), dY(0) {};
+
+	VECTOR_2D& operator-= (const VECTOR_2D a)
+    { 
+        dX = dX - a.dX;
+        dY = dY - a.dY;
+        return *this;
+    };
+    const VECTOR_2D operator- (const VECTOR_2D a) const {
+		return VECTOR_2D(dX - a.dX, dY - a.dY);
+    };
+
+    DOUBLE norm(void)
+    {
+        return (dX * dX + dY * dY);
     }
-    PATH_INFO () {
-        ;
+
+    DOUBLE dist(void)
+    {
+        return sqrt(norm());
+    }
+
+    DOUBLE angle(void)
+    {
+        return atan2(dY, dX);
     }
 };
 
-struct EDGE_ST {
-    SQWORD sqTo;
-    SQWORD sqDist;
 
-    EDGE_ST (SQWORD to, SQWORD dist) : sqTo(to), sqDist(dist) {};
+struct PROBLEM_ONE {
+    SQWORD sqN;
+    vector<VECTOR_2D> vecCenter;
 };
 
-#define SQWORD_INF  (100100100100100100)
+const DOUBLE d_PI = 3.14159265358979;
 
-struct DIST_QUE_ENTRY {
-    SQWORD sqCostStar;
-    SQWORD sqCost;
-    SQWORD sqPos;
-};
-
-bool operator> (const DIST_QUE_ENTRY &a, const DIST_QUE_ENTRY &b)
+static DOUBLE normalizeAngle(DOUBLE dAngle)
 {
-    return a.sqCostStar > b.sqCostStar;
+    DOUBLE dRet = dAngle;
+    while (dRet < 0.0) {
+        dRet += (2.0 * d_PI);
+    }
+
+    while ((2.0 * d_PI) < dRet) {
+        dRet -= (2.0 * d_PI);
+    }
+
+    return dRet;
 }
+
+
+enum PNT_EVENT_TYPE {
+    PNT_EVENT_ADD = 0,
+    PNT_EVENT_SUB
+};
+
+struct INTERSECTION {
+    DOUBLE dAngle;
+    SQWORD sqCircleIdx;
+    PNT_EVENT_TYPE  eEv;
+
+    INTERSECTION(DOUBLE d, SQWORD idx, PNT_EVENT_TYPE e): dAngle(d), sqCircleIdx(idx), eEv(e) {};
+};
+
+bool operator< (const INTERSECTION &a, const INTERSECTION &b)
+{
+    return a.dAngle < b.dAngle;
+}
+
+
+static SQWORD getMaxIntersect(
+    const PROBLEM_ONE *pstPro,
+    DOUBLE dRadius)
+{
+    SQWORD sqMaxIntersect = 0;
+
+
+    for (SQWORD sqBaseIdx = 0; sqBaseIdx < pstPro->sqN; sqBaseIdx++) {
+        vector<INTERSECTION> vecstIntersection;
+        SQWORD sqIncludeCnt = 0;
+        VECTOR_2D stBase = pstPro->vecCenter[sqBaseIdx];
+        for (SQWORD sqTgtIdx = 0; sqTgtIdx < pstPro->sqN; sqTgtIdx++) {
+            VECTOR_2D stTgt = pstPro->vecCenter[sqTgtIdx];
+            if (sqTgtIdx != sqBaseIdx) {
+                VECTOR_2D stRel = stTgt - stBase;
+                DOUBLE dDist = stRel.dist();
+
+                if (dDist < dRadius * 2.0) {
+                    DOUBLE dCenterAngle = stRel.angle();
+                    DOUBLE dRelAngle = acos(dDist / (dRadius * 2.0));
+                    DOUBLE dAngle1 = normalizeAngle(dCenterAngle - dRelAngle);
+                    DOUBLE dAngle2 = normalizeAngle(dCenterAngle + dRelAngle);
+
+                    vecstIntersection.push_back(INTERSECTION{dAngle1, sqTgtIdx, PNT_EVENT_ADD});
+                    vecstIntersection.push_back(INTERSECTION{dAngle2, sqTgtIdx, PNT_EVENT_SUB});
+                }
+            }
+        }
+        sort(vecstIntersection.begin(), vecstIntersection.end());
+        set<SQWORD> setsqCurCrossing;
+        SQWORD sqCnt = 0;
+        for (SDWORD lCircle = 0; lCircle < 2; lCircle++) {
+            for (auto intsect: vecstIntersection) {
+                SQWORD sqCircleIdx = intsect.sqCircleIdx;
+                if (PNT_EVENT_ADD == intsect.eEv) {
+                    /* 追加 */
+                    setsqCurCrossing.insert(sqCircleIdx);
+                } else {
+                    /* 削除 */
+                    setsqCurCrossing.erase(sqCircleIdx);
+                }
+                sqCnt = max((SQWORD)setsqCurCrossing.size(), sqCnt);
+            }
+        }
+
+        sqMaxIntersect = max(sqCnt, sqMaxIntersect);
+    }
+    return sqMaxIntersect;
+}
+
+
+/*----------------------------------------------*/
+
+static bool isIntersectAll(
+    DOUBLE dJudge,
+    const PROBLEM_ONE *pstProb)
+{
+    SQWORD sqIntersectNum = getMaxIntersect(pstProb, dJudge);
+
+    if (sqIntersectNum < (pstProb->vecCenter.size() - 1)) {
+        return false;
+    }
+
+    return true;
+}
+
+static DOUBLE binarySearch(
+    bool (*pfJudge)(DOUBLE, const PROBLEM_ONE*),
+    DOUBLE dInitLower, 
+    DOUBLE dInitUpper, 
+    const PROBLEM_ONE *pstParam)
+{
+    DOUBLE dOk = dInitUpper;
+    DOUBLE dNg = dInitLower;
+
+    while (1e-10 < dOk - dNg) {
+        DOUBLE dMid = (dNg + dOk) / 2LL;
+//        printf("judge %lld\n", sqMid);
+        if (pfJudge(dMid, pstParam)) {
+            dOk = dMid;
+        } else {
+            dNg = dMid;
+        }
+    }
+    return dOk;
+}
+
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
+    PROBLEM_ONE stProb;
 
-    vector<vector<EDGE_ST>> vvEdge(sqN);
-    vector<vector<EDGE_ST>> vvRevEdge(sqN);
-    map<SQWORD, PATH_INFO> mapPath;
-
-    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqM; sqEdgeIdx++) {
-        SQWORD sqU = inputSQWORD();
-        SQWORD sqV = inputSQWORD();
-        SQWORD sqC = inputSQWORD();
-
-        vvEdge[sqU].emplace_back(sqV, sqC);
-        vvRevEdge[sqV].emplace_back(sqU, sqC);
+    stProb.sqN = sqN;
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqX = inputSQWORD();
+        SQWORD sqY = inputSQWORD();
+        stProb.vecCenter.emplace_back(VECTOR_2D{(DOUBLE)sqX, (DOUBLE)sqY});
     }
 
-    typedef pair<SQWORD, SQWORD> P;
- 
-    /* get rev edge cost */
-    vector<SQWORD> vRevcost(sqN, SQWORD_INF);
-    {
-        priority_queue<P, vector<P>, greater<P>> queRev;  
-        vRevcost[0] = 0;
-        queRev.push(make_pair(0, 0));
-        while (!queRev.empty()) {
-            P p = queRev.top();
-            queRev.pop();
+    DOUBLE dAns = binarySearch(isIntersectAll, 0.0, 2000.0, &stProb);
 
-            SDWORD v = p.second;
-            if (p.first <= vRevcost[v]) {
-                for (SDWORD lIdx = 0; lIdx < vvRevEdge[v].size(); lIdx++) {
-                    EDGE_ST e = vvRevEdge[v][lIdx];
-
-                    if (vRevcost[e.sqTo] > vRevcost[v] + e.sqDist) {
-                        vRevcost[e.sqTo] = vRevcost[v] + e.sqDist;
-                        queRev.push(P(vRevcost[e.sqTo], e.sqTo));
-                    }
-                }
-            }
-        }
-    }
-
-    bool bAnsExist = false;
-    for (auto n: vvEdge[0]) {
-        if (SQWORD_INF != vRevcost[n.sqTo]) {
-            bAnsExist = true;
-        }
-    }
-    if (!bAnsExist) {
-        for (SQWORD sqIdx = 0; sqIdx < sqK; sqIdx++) {
-            printf("-1\n");
-        }
-        return 0;
-    }
-
-#if 0
-    for (auto d: vRevcost) {
-        printf("%lld ", d);
-    }
-    printf("\n");
-#endif
-
-    SQWORD sqCnt = 0;
-    {
-        priority_queue<DIST_QUE_ENTRY, vector<DIST_QUE_ENTRY>, greater<DIST_QUE_ENTRY>> que;  
-        que.push(DIST_QUE_ENTRY{vRevcost[0], 0, 0});
-        while (1) {
-            DIST_QUE_ENTRY p = que.top();
-            que.pop();
-
-            SDWORD v = p.sqPos;
-//            printf("==%lld %lld\n", v, p.sqCost);
-            for (SDWORD lIdx = 0; lIdx < vvEdge[v].size(); lIdx++) {
-                EDGE_ST e = vvEdge[v][lIdx];
-
-                SQWORD sqNextCost = p.sqCost + e.sqDist;
-
-                if (0 == e.sqTo) {
-                    printf("%lld\n", sqNextCost);
-                    sqCnt++;
-                }
-                if (sqK <= sqCnt) {
-                    return 0;
-                }
-
-//                printf("%lld %lld %lld\n", sqNextCost + vRevcost[e.sqTo], sqNextCost, e.sqTo);
-                que.push(DIST_QUE_ENTRY{sqNextCost + vRevcost[e.sqTo], sqNextCost, e.sqTo});
-            }
-        }
-    }
-
+    printf("%0.12f\n", dAns);
     return 0;
 }

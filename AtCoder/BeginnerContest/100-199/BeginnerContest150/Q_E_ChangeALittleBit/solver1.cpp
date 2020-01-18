@@ -252,133 +252,47 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 
 /*----------------------------------------------*/
+
+
 /*----------------------------------------------*/
 
-#define N_MAX_VERTICE   (25000)
-
-struct PATH_INFO {
-    map<SQWORD, SQWORD> mapDist;
-    PATH_INFO (SQWORD sqVertice, SQWORD sqCnt) {
-        mapDist[sqVertice] = sqCnt;
-    }
-    PATH_INFO () {
-        ;
-    }
-};
-
-struct EDGE_ST {
-    SQWORD sqTo;
-    SQWORD sqDist;
-
-    EDGE_ST (SQWORD to, SQWORD dist) : sqTo(to), sqDist(dist) {};
-};
-
-#define SQWORD_INF  (100100100100100100)
-
-struct DIST_QUE_ENTRY {
-    SQWORD sqCostStar;
-    SQWORD sqCost;
-    SQWORD sqPos;
-};
-
-bool operator> (const DIST_QUE_ENTRY &a, const DIST_QUE_ENTRY &b)
+static MODINT getCombCumSum(SQWORD sqN)
 {
-    return a.sqCostStar > b.sqCostStar;
+    if (0 == sqN) {
+        return 1;
+    }
+
+    MODINT pow2_1 = MODINT(2).pow(sqN - 1);
+    MODINT pow2   = pow2_1 * MODINT(2);
+    MODINT mRet =  pow2 + MODINT(sqN) * pow2_1;
+
+    return mRet;
 }
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
 
-    vector<vector<EDGE_ST>> vvEdge(sqN);
-    vector<vector<EDGE_ST>> vvRevEdge(sqN);
-    map<SQWORD, PATH_INFO> mapPath;
+    vector<SQWORD> vsqC;
 
-    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqM; sqEdgeIdx++) {
-        SQWORD sqU = inputSQWORD();
-        SQWORD sqV = inputSQWORD();
-        SQWORD sqC = inputSQWORD();
-
-        vvEdge[sqU].emplace_back(sqV, sqC);
-        vvRevEdge[sqV].emplace_back(sqU, sqC);
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        vsqC.emplace_back(inputSQWORD());
     }
 
-    typedef pair<SQWORD, SQWORD> P;
- 
-    /* get rev edge cost */
-    vector<SQWORD> vRevcost(sqN, SQWORD_INF);
-    {
-        priority_queue<P, vector<P>, greater<P>> queRev;  
-        vRevcost[0] = 0;
-        queRev.push(make_pair(0, 0));
-        while (!queRev.empty()) {
-            P p = queRev.top();
-            queRev.pop();
+    sort(vsqC.begin(), vsqC.end(), greater<SQWORD>());
 
-            SDWORD v = p.second;
-            if (p.first <= vRevcost[v]) {
-                for (SDWORD lIdx = 0; lIdx < vvRevEdge[v].size(); lIdx++) {
-                    EDGE_ST e = vvRevEdge[v][lIdx];
+    MODINT mAns;
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqC = vsqC[sqIdx];
 
-                    if (vRevcost[e.sqTo] > vRevcost[v] + e.sqDist) {
-                        vRevcost[e.sqTo] = vRevcost[v] + e.sqDist;
-                        queRev.push(P(vRevcost[e.sqTo], e.sqTo));
-                    }
-                }
-            }
-        }
+        mAns += MODINT(sqC) * MODINT(2).pow(sqN - sqIdx - 1) * getCombCumSum(sqIdx);
+
+//        printf("%lld %lld\n", sqC, getCombCumSum(sqIdx));
     }
 
-    bool bAnsExist = false;
-    for (auto n: vvEdge[0]) {
-        if (SQWORD_INF != vRevcost[n.sqTo]) {
-            bAnsExist = true;
-        }
-    }
-    if (!bAnsExist) {
-        for (SQWORD sqIdx = 0; sqIdx < sqK; sqIdx++) {
-            printf("-1\n");
-        }
-        return 0;
-    }
+    mAns *= MODINT(2).pow(sqN);
 
-#if 0
-    for (auto d: vRevcost) {
-        printf("%lld ", d);
-    }
-    printf("\n");
-#endif
-
-    SQWORD sqCnt = 0;
-    {
-        priority_queue<DIST_QUE_ENTRY, vector<DIST_QUE_ENTRY>, greater<DIST_QUE_ENTRY>> que;  
-        que.push(DIST_QUE_ENTRY{vRevcost[0], 0, 0});
-        while (1) {
-            DIST_QUE_ENTRY p = que.top();
-            que.pop();
-
-            SDWORD v = p.sqPos;
-//            printf("==%lld %lld\n", v, p.sqCost);
-            for (SDWORD lIdx = 0; lIdx < vvEdge[v].size(); lIdx++) {
-                EDGE_ST e = vvEdge[v][lIdx];
-
-                SQWORD sqNextCost = p.sqCost + e.sqDist;
-
-                if (0 == e.sqTo) {
-                    printf("%lld\n", sqNextCost);
-                    sqCnt++;
-                }
-                if (sqK <= sqCnt) {
-                    return 0;
-                }
-
-//                printf("%lld %lld %lld\n", sqNextCost + vRevcost[e.sqTo], sqNextCost, e.sqTo);
-                que.push(DIST_QUE_ENTRY{sqNextCost + vRevcost[e.sqTo], sqNextCost, e.sqTo});
-            }
-        }
-    }
+    printf("%lld\n", mAns);
 
     return 0;
 }

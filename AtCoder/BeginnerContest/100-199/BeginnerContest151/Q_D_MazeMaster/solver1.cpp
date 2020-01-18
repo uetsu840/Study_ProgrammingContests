@@ -54,6 +54,7 @@ static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
+static inline DOUBLE ABS(DOUBLE a) {return 0 <= a ? a : -a;}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -250,135 +251,74 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
-
 /*----------------------------------------------*/
-/*----------------------------------------------*/
+/*-----------------------------------------------------*/
 
-#define N_MAX_VERTICE   (25000)
-
-struct PATH_INFO {
-    map<SQWORD, SQWORD> mapDist;
-    PATH_INFO (SQWORD sqVertice, SQWORD sqCnt) {
-        mapDist[sqVertice] = sqCnt;
-    }
-    PATH_INFO () {
-        ;
-    }
-};
-
-struct EDGE_ST {
-    SQWORD sqTo;
-    SQWORD sqDist;
-
-    EDGE_ST (SQWORD to, SQWORD dist) : sqTo(to), sqDist(dist) {};
-};
+#define N_MAX_HEIGHT    (20)
+#define N_MAX_WIDTH     (20)
+static SQWORD s_aasqMaps[N_MAX_HEIGHT + 2][N_MAX_WIDTH + 2];
 
 #define SQWORD_INF  (100100100100100100)
 
-struct DIST_QUE_ENTRY {
-    SQWORD sqCostStar;
-    SQWORD sqCost;
-    SQWORD sqPos;
-};
+const vector<pair<SQWORD, SQWORD>> s_vpairDir = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
-bool operator> (const DIST_QUE_ENTRY &a, const DIST_QUE_ENTRY &b)
+static SQWORD getMaxDist(SQWORD sqH, SQWORD sqW, SQWORD sqStartRow, SQWORD sqStartCol)
 {
-    return a.sqCostStar > b.sqCostStar;
+    queue<pair<SQWORD, SQWORD>> quePos;
+    vector<vector<SQWORD>> vvDist(sqH + 2, vector<SQWORD>(sqW + 2, SQWORD_INF));
+
+    if (1 == s_aasqMaps[sqStartRow][sqStartCol]) {
+        quePos.push(make_pair(sqStartRow, sqStartCol));
+        vvDist[sqStartRow][sqStartCol] = 0;
+    } 
+
+    SQWORD sqMaxDist = 0;
+    while (!quePos.empty()) {
+        auto pos = quePos.front();
+        quePos.pop();
+        SQWORD sqDistCur = vvDist[pos.first][pos.second];
+        for (auto d: s_vpairDir) {
+            SQWORD sqNextRow = pos.first  + d.first;
+            SQWORD sqNextCol = pos.second + d.second;
+            if (1 == s_aasqMaps[sqNextRow][sqNextCol]) {
+                if (SQWORD_INF == vvDist[sqNextRow][sqNextCol]) {
+                    vvDist[sqNextRow][sqNextCol] = sqDistCur + 1;
+//                    printf("[%lld %lld] %lld\n", sqNextRow, sqNextCol, sqDistCur + 1);
+                    sqMaxDist = max(sqMaxDist, sqDistCur + 1);
+                    quePos.push(make_pair(sqNextRow, sqNextCol));
+                }
+            }
+        }
+    }
+//    printf(">> max: %lld\n", sqMaxDist);
+    return sqMaxDist;    
 }
+
 
 int main(void)
 {
-    SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
+    SQWORD sqH = inputSQWORD();
+    SQWORD sqW = inputSQWORD();
 
-    vector<vector<EDGE_ST>> vvEdge(sqN);
-    vector<vector<EDGE_ST>> vvRevEdge(sqN);
-    map<SQWORD, PATH_INFO> mapPath;
-
-    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqM; sqEdgeIdx++) {
-        SQWORD sqU = inputSQWORD();
-        SQWORD sqV = inputSQWORD();
-        SQWORD sqC = inputSQWORD();
-
-        vvEdge[sqU].emplace_back(sqV, sqC);
-        vvRevEdge[sqV].emplace_back(sqU, sqC);
-    }
-
-    typedef pair<SQWORD, SQWORD> P;
- 
-    /* get rev edge cost */
-    vector<SQWORD> vRevcost(sqN, SQWORD_INF);
-    {
-        priority_queue<P, vector<P>, greater<P>> queRev;  
-        vRevcost[0] = 0;
-        queRev.push(make_pair(0, 0));
-        while (!queRev.empty()) {
-            P p = queRev.top();
-            queRev.pop();
-
-            SDWORD v = p.second;
-            if (p.first <= vRevcost[v]) {
-                for (SDWORD lIdx = 0; lIdx < vvRevEdge[v].size(); lIdx++) {
-                    EDGE_ST e = vvRevEdge[v][lIdx];
-
-                    if (vRevcost[e.sqTo] > vRevcost[v] + e.sqDist) {
-                        vRevcost[e.sqTo] = vRevcost[v] + e.sqDist;
-                        queRev.push(P(vRevcost[e.sqTo], e.sqTo));
-                    }
-                }
+    for (SQWORD sqRow = 1; sqRow <= sqH; sqRow++) {
+        string strRow;
+        cin >> strRow; 
+        for (SQWORD sqCol = 1; sqCol <= sqW; sqCol++) {
+            if (strRow[sqCol - 1] == '.') {
+                s_aasqMaps[sqRow][sqCol] = 1;
+            } else {
+                s_aasqMaps[sqRow][sqCol] = 0;
             }
         }
     }
 
-    bool bAnsExist = false;
-    for (auto n: vvEdge[0]) {
-        if (SQWORD_INF != vRevcost[n.sqTo]) {
-            bAnsExist = true;
-        }
-    }
-    if (!bAnsExist) {
-        for (SQWORD sqIdx = 0; sqIdx < sqK; sqIdx++) {
-            printf("-1\n");
-        }
-        return 0;
-    }
-
-#if 0
-    for (auto d: vRevcost) {
-        printf("%lld ", d);
-    }
-    printf("\n");
-#endif
-
-    SQWORD sqCnt = 0;
-    {
-        priority_queue<DIST_QUE_ENTRY, vector<DIST_QUE_ENTRY>, greater<DIST_QUE_ENTRY>> que;  
-        que.push(DIST_QUE_ENTRY{vRevcost[0], 0, 0});
-        while (1) {
-            DIST_QUE_ENTRY p = que.top();
-            que.pop();
-
-            SDWORD v = p.sqPos;
-//            printf("==%lld %lld\n", v, p.sqCost);
-            for (SDWORD lIdx = 0; lIdx < vvEdge[v].size(); lIdx++) {
-                EDGE_ST e = vvEdge[v][lIdx];
-
-                SQWORD sqNextCost = p.sqCost + e.sqDist;
-
-                if (0 == e.sqTo) {
-                    printf("%lld\n", sqNextCost);
-                    sqCnt++;
-                }
-                if (sqK <= sqCnt) {
-                    return 0;
-                }
-
-//                printf("%lld %lld %lld\n", sqNextCost + vRevcost[e.sqTo], sqNextCost, e.sqTo);
-                que.push(DIST_QUE_ENTRY{sqNextCost + vRevcost[e.sqTo], sqNextCost, e.sqTo});
-            }
+    SQWORD sqAns = 0;
+    for (SQWORD sqRow = 1; sqRow <= sqH; sqRow++) {
+        for (SQWORD sqCol = 1; sqCol <= sqW; sqCol++) {
+            sqAns = max(sqAns, getMaxDist(sqH, sqW, sqRow, sqCol));
         }
     }
 
+    printf("%lld\n", sqAns);
     return 0;
 }
