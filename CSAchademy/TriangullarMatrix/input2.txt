@@ -1,0 +1,6 @@
+5
+b
+ab
+cac
+ffff
+deded
