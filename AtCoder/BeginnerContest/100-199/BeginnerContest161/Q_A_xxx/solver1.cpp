@@ -175,10 +175,14 @@ static inline DOUBLE inputFP(void)
 
 int main(void)
 {
-    SQWORD sqH = inputSQWORD();
     SQWORD sqA = inputSQWORD();
+    SQWORD sqB = inputSQWORD();
+    SQWORD sqC = inputSQWORD();
 
-    printf("%lld\n", (sqH + sqA - 1) / sqA);
+    swap(sqA, sqB);
+    swap(sqA, sqC);
+
+    printf("%lld %lld %lld\n", sqA, sqB, sqC);
 
     return 0;
 }

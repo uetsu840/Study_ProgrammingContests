@@ -252,70 +252,90 @@ public:
 SQWORD MODINT::MOD = ANS_MOD;
 
 /*----------------------------------------------*/
+static void printVector(vector<SQWORD> v)
+{
+    for (auto m: v) {
+        printf("%lld ", m);
+    }
+    printf("\n");
+}
+
 /*-----------------------------------------------------*/
-
-#define MAX_DIGIT   (18)
-static SQWORD s_sqLunlunCount = 0;
-static SQWORD s_sqK = 0;
-
-static void registLunlunNumber(
-    SQWORD *psqNum)
-{
-    SQWORD sqLunlun = 0;
-    SQWORD sqTen = 1;
-    for (SQWORD sqDigit = 0; sqDigit < MAX_DIGIT; sqDigit++) {
-        sqLunlun += sqTen * psqNum[sqDigit];
-        sqTen *= 10;
-    }
-
-    if (0 < sqLunlun) {
-        s_sqLunlunCount++;
-//        printf("%lld %lld %lld\n", s_sqK, s_sqLunlunCount, sqLunlun);
-        if (s_sqLunlunCount == s_sqK) {
-            printf("%lld\n", sqLunlun);
-            exit(0);
-        }
-    }
-}
-
-static void getLunlunNumber(
-    SQWORD sqCurDigit, 
-    SQWORD *psqNum,
-    bool bIsLeadingZero)
-{
-    SQWORD sqCurNum = psqNum[sqCurDigit];
-    SQWORD sqNextNumMax;
-    if (bIsLeadingZero) {
-        sqNextNumMax = 9;
-    } else {
-        sqNextNumMax = MIN(sqCurNum + 1, 9);
-    }
-    for (SQWORD sqNextNum = MAX(0, sqCurNum - 1); sqNextNum <= sqNextNumMax; sqNextNum++) {
-        if (bIsLeadingZero) {
-            if (0 < sqNextNum) {
-                bIsLeadingZero = false;
-            }
-        }
-        psqNum[sqCurDigit - 1] = sqNextNum;
-        if (0 == sqCurDigit - 1) {
-            registLunlunNumber(psqNum);
-        } else {
-            getLunlunNumber(sqCurDigit - 1, psqNum, bIsLeadingZero);
-        }
-    }
-}
 
 int main(void)
 {
-    s_sqK = inputSQWORD();
+    vector<SQWORD> vsqRApple;
+    vector<SQWORD> vsqGApple;
+    vector<SQWORD> vsqNApple;
 
-    SQWORD asqNum[MAX_DIGIT];
+    SQWORD sqX = inputSQWORD();
+    SQWORD sqY = inputSQWORD();
 
-    for (SQWORD sqDigit = 0; sqDigit < ArrayLength(asqNum); sqDigit++) {
-        asqNum[sqDigit] = 0;
+    SQWORD sqNumR = inputSQWORD();
+    SQWORD sqNumG = inputSQWORD();
+    SQWORD sqNumN = inputSQWORD();
+
+    for (SQWORD sqCnt = 0; sqCnt < sqNumR; sqCnt++) {
+        vsqRApple.emplace_back(inputSQWORD());
+    }
+    for (SQWORD sqCnt = 0; sqCnt < sqNumG; sqCnt++) {
+        vsqGApple.emplace_back(inputSQWORD());
+    }
+    for (SQWORD sqCnt = 0; sqCnt < sqNumN; sqCnt++) {
+        vsqNApple.emplace_back(inputSQWORD());
     }
 
-    getLunlunNumber(ArrayLength(asqNum) - 1, asqNum, true);
+    sort(vsqRApple.begin(), vsqRApple.end(), greater<SQWORD>());
+    sort(vsqGApple.begin(), vsqGApple.end(), greater<SQWORD>());
+    sort(vsqNApple.begin(), vsqNApple.end());
+
+    vsqRApple.erase(vsqRApple.begin() + sqX, vsqRApple.end());
+    vsqGApple.erase(vsqGApple.begin() + sqY, vsqGApple.end());
+
+    SQWORD sqSum = accumulate(vsqRApple.begin(), vsqRApple.end(), (SQWORD)0)
+                     + accumulate(vsqGApple.begin(), vsqGApple.end(), (SQWORD)0);
+
+//    printVector(vsqRApple);
+//    printVector(vsqGApple);
+//    printVector(vsqNApple);
+
+    auto it_r = vsqRApple.rbegin();
+    auto it_g = vsqGApple.rbegin();
+    auto it_n = vsqNApple.rbegin();
+    while(1) {
+        SQWORD sqR = MAX_SQWORD;
+        SQWORD sqG = MAX_SQWORD;
+        if (it_r != vsqRApple.rend()) {
+            sqR = *it_r;
+        }
+        if (it_g != vsqGApple.rend()) {
+            sqG = *it_g;
+        }
+
+        if (it_n == vsqNApple.rend()) {
+            break;
+        }
+        if ((*it_n <= sqR) && (*it_n <= sqG)) {
+            break;
+        }
+
+//        printf("=== %lld %lld %lld\n", sqR, sqG, *it_n);
+
+        if (sqR < sqG) {
+            if (sqR < *it_n) {
+                sqSum += (*it_n - sqR);
+                ++it_r;
+                ++it_n;
+            }
+        } else {
+            if (sqG < *it_n) {
+                sqSum += (*it_n - sqG);
+                ++it_g;
+                ++it_n;
+            }
+        }
+    }
+    printf("%lld\n", sqSum);
 
     return 0;
 }

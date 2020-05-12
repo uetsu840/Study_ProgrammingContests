@@ -174,16 +174,25 @@ static inline DOUBLE inputFP(void)
 
 int main(void)
 {
-    SQWORD sqH = inputSQWORD();
     SQWORD sqN = inputSQWORD();
+    SQWORD sqM = inputSQWORD();
+    vector<SQWORD> vsqA;
 
     SQWORD sqSum = 0;
     for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
         SQWORD sqA = inputSQWORD();
+        vsqA.emplace_back(sqA);
         sqSum += sqA;
     }
 
-    if (sqH <= sqSum) {
+    SQWORD sqCount = 0;
+    for (auto a: vsqA) {
+        if (sqSum <= a * 4 * sqM) {
+            sqCount++;
+        }
+    }
+
+    if (sqM <= sqCount) {
         printf("Yes\n");
     } else {
         printf("No\n");
