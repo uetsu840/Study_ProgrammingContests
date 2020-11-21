@@ -345,17 +345,85 @@ public:
 /*----------------------------------------------*/
 #define N_MAX_BITS    (60)
 
-static void AnsDfs(SQWORD sqNode, const vector<vector<SQWORD>> &vvstEdge, vector<bool> &vbVisited, vector<SQWORD> &sqAns)
-{
-    if (vbVisited[sqNode]) {
-        return;
-    }
-    vbVisited[sqNode] = true;
+static bool s_bAnsFound = false;
+vector<SQWORD> vsqLoop;
 
-    for (auto e: vvstEdge[sqNode]) {
-        AnsDfs(e, vvstEdge, vbVisited, sqAns);
+static void FindLoop(
+    SQWORD sqNode,
+    const vector<vector<SQWORD>> &vvstEdge,
+    vector<SQWORD> &vsqCurPath,
+    vector<SQWORD> &vsqVisitedDepth)
+{
+//    printf("[%lld] %lld\n", vsqCurPath.size(), sqNode);
+    vsqVisitedDepth[sqNode] = vsqCurPath.size();
+
+    for (SQWORD sqSrchDepth = vsqCurPath.size() - 1; 0 <= sqSrchDepth; sqSrchDepth--) {
+        for (auto e: vvstEdge[sqNode]) {
+            if (e == vsqCurPath[sqSrchDepth]) {
+//                printf("---> %lld\n", e);
+                /* found */
+                for (SQWORD sqAnsIdx = sqSrchDepth; sqAnsIdx < vsqCurPath.size(); ++sqAnsIdx) {
+                    vsqLoop.emplace_back(vsqCurPath[sqAnsIdx]);
+                }
+                s_bAnsFound = true;
+                return;
+            }
+        }
     }
-    sqAns.emplace_back(sqNode);
+
+
+    /* 訪問済みの頂点につながってない */
+    for (auto e: vvstEdge[sqNode]) {
+        vsqCurPath.emplace_back(e);
+        FindLoop(e, vvstEdge, vsqCurPath, vsqVisitedDepth);
+        vsqCurPath.pop_back();
+        if (s_bAnsFound) {
+            break;
+        }
+    }
+}
+
+static void RemoveDuplicateEdge(
+    const vector<SQWORD> &vsqLoop,
+    const vector<vector<SQWORD>> &vvstEdge,
+    vector<SQWORD> &vsqShortest)
+{
+//    printf("remove duplicate size[%lld]\n", vsqLoop.size());
+    vector<SQWORD> vsqRemoveIdx;
+    for (SQWORD sqStartIdx = 0; sqStartIdx < vsqLoop.size(); sqStartIdx++) {
+        SQWORD sqRemoveOffset = 0;
+        for (SQWORD sqOffset = 2; sqOffset < vsqLoop.size(); sqOffset++) {
+            SQWORD sqEndIdx = (sqStartIdx + sqOffset) % vsqLoop.size();
+            bool bFound = false;
+//            printf("----- start %lld siz(%lld)\n", vsqLoop[sqStartIdx], vvstEdge[vsqLoop[sqStartIdx]].size());
+            for (auto e: vvstEdge[vsqLoop[sqStartIdx]]) {
+//                printf("<< %lld %lld>>\n", e, vsqLoop[sqEndIdx]);
+                if (e == vsqLoop[sqEndIdx]) {
+                    bFound = true;
+                }
+            }
+            if (bFound) {
+//                printf(">>> %lld\n", vsqLoop[sqEndIdx]);
+                sqRemoveOffset = sqOffset;
+            }
+        }
+        for (SQWORD sqRemovePtr = 1; sqRemovePtr < sqRemoveOffset; ++sqRemovePtr) {
+            SQWORD sqRemoveIdx = (sqStartIdx + sqRemovePtr) % vsqLoop.size();
+            vsqRemoveIdx.emplace_back(sqRemoveIdx);
+        }
+        /* 飛ばす */
+        sqStartIdx += sqRemoveOffset;
+        break;
+    }
+
+//    printf("size[%lld]\n", vsqLoop.size());
+//    printf("remove[%lld]\n", vsqRemoveIdx.size());
+    for (SQWORD sqIdx = 0; sqIdx < vsqLoop.size(); sqIdx++) {
+        if (!(binary_search(vsqRemoveIdx.begin(), vsqRemoveIdx.end(), sqIdx))) {
+            vsqShortest.emplace_back(vsqLoop[sqIdx]);
+        }
+    }
+
 }
 
 int main(void)
@@ -398,6 +466,7 @@ int main(void)
 
     if (0 == setAnsNodes.size()) {
         printf("-1\n");
+        return 0;
     }
 
     vector<vector<SQWORD>> vvstSccEdges(sqN + 1);
@@ -410,12 +479,16 @@ int main(void)
         }
     }
     
-    vector<bool> vbVisited(sqN + 1, false);
-    vector<SQWORD> sqAns;
-    AnsDfs(sqStartNode, vvstSccEdges, vbVisited, sqAns);
+    vector<SQWORD> vsqVisitDepth(sqN + 1, MAX_SQWORD);
+    vector<SQWORD> vsqSearchPath;
+    vsqSearchPath.emplace_back(sqStartNode);
+    FindLoop(sqStartNode, vvstSccEdges, vsqSearchPath, vsqVisitDepth);
 
-    printf("%lld\n", sqAns.size());
-    for (auto n: sqAns) {
+    vector<SQWORD> vsqAns;
+    RemoveDuplicateEdge(vsqLoop, vvstSccEdges, vsqAns);
+
+    printf("%lld\n", vsqAns.size());
+    for (auto n: vsqAns) {
         printf("%lld\n", n);
     }
 
