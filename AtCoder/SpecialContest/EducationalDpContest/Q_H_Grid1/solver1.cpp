@@ -175,70 +175,117 @@ static inline DOUBLE inputFP(void)
 
 /*----------------------------------------------*/
 
-/*----------------------------------------------*/
 
-struct ST_VERTICE {
-    SQWORD sqVerticeIdx;
-    SQWORD sqDim;
-    ST_VERTICE(SQWORD i, SQWORD d) : sqVerticeIdx(i), sqDim(d) {};
+/**
+ *  mod による操作ライブラリ
+ */
+#define ANS_MOD (1000000007)
+
+class MODINT {
+    static SQWORD MOD;
+    SQWORD m_x;
+
+public:
+    MODINT(SQWORD val) {
+        m_x = (val % MOD + MOD) % MOD;
+    };
+    MODINT() {
+        m_x = 0;
+    }
+    static void Init(SQWORD sqMod) {
+        MOD = sqMod;
+    }
+
+	MODINT& operator+= (const MODINT a)
+    {
+        m_x = (m_x + a.m_x) % MOD; 
+        return *this;
+    };
+	MODINT& operator-= (const MODINT a)
+    { 
+        m_x = (m_x - a.m_x + MOD) % MOD; 
+        return *this;
+    };
+	MODINT& operator*= (const MODINT a)
+    {
+        m_x = (m_x * a.m_x) % MOD;
+        return *this;
+    };
+    MODINT pow(SQWORD t) const {
+        if (!t) return 1;
+        MODINT a = pow(t>>1);
+        a *= a;
+        if (t&1) a *= *this;
+        return a;
+    }
+	MODINT operator+ (const MODINT a) const {
+		MODINT res(*this);
+		return (res += a);
+	}
+	MODINT operator- (const MODINT a) const {
+		MODINT res(*this);
+		return (res -= a);
+	}
+	MODINT operator* (const MODINT a) const {
+		MODINT res(*this);
+		return (res *= a);
+	}
+	MODINT operator/ (const MODINT a) const {
+		MODINT res(*this);
+		return (res /= a);
+	}
+
+    /* 逆元 */
+    MODINT inv() const {
+        return pow(MOD-2);
+    }
+
+    /* 除算 */
+    MODINT& operator/=(const MODINT a) {
+        return (*this) *= a.inv();
+    } 
+
+    /* 整数版 */
+	MODINT& operator+= (const SQWORD a) {*this += MODINT(a); return *this;};
+	MODINT& operator-= (const SQWORD a) {*this -= MODINT(a); return *this;};
+	MODINT& operator*= (const SQWORD a) {*this *= MODINT(a); return *this;};
+	MODINT& operator/= (const SQWORD a) {*this /= MODINT(a); return *this;};
+
+    SQWORD getVal() { return m_x; };
 };
-priority_queue<ST_VERTICE> pqVertice;
-
-bool operator> (const ST_VERTICE &a, const ST_VERTICE &b)
-{
-    return a.sqDim > b.sqDim;
-}
+SQWORD MODINT::MOD = ANS_MOD;
 
 
+/*----------------------------------------------*/
 
 
 int main(void)
 {
-    SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
 
-    vector<vector<SQWORD>> vvsqEdge(sqN);
-    vector<SQWORD> vsqDim(sqN);
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
-        SQWORD sqX = inputSQWORD();
-        SQWORD sqY = inputSQWORD();
+    SQWORD sqH = inputSQWORD();
+    SQWORD sqW = inputSQWORD();
 
-        sqX--;
-        sqY--;
+    vector<vector<MODINT>> vvGridPat(sqH, vector<MODINT>(sqW));
+    vector<string> vecGrid(sqH);
 
-        vvsqEdge[sqX].emplace_back(sqY);
-        vsqDim[sqY]++;
+    for (SQWORD sqRow = 0; sqRow < sqH; sqRow++) {
+        cin >> vecGrid[sqRow];
     }
 
-    vector<SQWORD> vecZeroDimVertice;
-    vector<SQWORD> vsqMaxPath(sqN);
 
-    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
-        if (0 == vsqDim[sqIdx]) {
-            vecZeroDimVertice.emplace_back(sqIdx);
-        }
-    }
-
-    while(1) {
-        if (0 == vecZeroDimVertice.size()) {
-            break;
-        }
-        SQWORD sqCurVerticeIdx = *(vecZeroDimVertice.rbegin());
-        vecZeroDimVertice.pop_back();
-//        printf("%d\n", sqCurVerticeIdx);
-        for (auto e: vvsqEdge[sqCurVerticeIdx]) {
-            vsqDim[e]--;
-            vsqMaxPath[e] = MAX(vsqMaxPath[e], vsqMaxPath[sqCurVerticeIdx] + 1);
-            if (0 == vsqDim[e]) {
-                vecZeroDimVertice.emplace_back(e);
+    vvGridPat[0][0] = 1;
+    for (SQWORD sqRow = 0; sqRow < sqH; sqRow++) {
+        for (SQWORD sqCol = 0; sqCol < sqW; sqCol++) {
+            if (vecGrid[sqRow][sqCol] != '#') {
+                if (0 < sqRow) {
+                    vvGridPat[sqRow][sqCol] += vvGridPat[sqRow - 1][sqCol];
+                }
+                if (0 < sqCol) {
+                    vvGridPat[sqRow][sqCol] += vvGridPat[sqRow][sqCol - 1];
+                }
             }
         }
     }
 
-    SQWORD sqAns = 0;
-    for (auto len: vsqMaxPath) {
-        sqAns = MAX(len, sqAns);
-    }
-
-    printf("%lld\n", sqAns);
+    printf("%lld\n", vvGridPat[sqH - 1][sqW - 1]);
 }
