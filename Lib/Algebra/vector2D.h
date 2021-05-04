@@ -1,7 +1,5 @@
 #include "common.h"
 
-/*----------------------------------------------*/
-
 #define EPS 1e-10
 DOUBLE double_add(DOUBLE a, DOUBLE b) {
     if (ABS(a + b) < EPS * (ABS(a) + ABS(b))) {
@@ -75,6 +73,18 @@ struct VECTOR_2D {
 
     DOUBLE crossproduct(const VECTOR_2D a) const {
         return double_add(dX * a.dY, -dY * a.dX);
+    }
+
+    VECTOR_2D rotate(DOUBLE angle) {
+        VECTOR_2D ret;
+        ret.dX = dX * cos(angle) - dY * sin(angle);
+        ret.dY = dX * sin(angle) + dY * cos(angle);
+
+        return ret;
+    }
+
+    void print() {
+        printf("%f %f\n", dX, dY);
     }
 };
 
