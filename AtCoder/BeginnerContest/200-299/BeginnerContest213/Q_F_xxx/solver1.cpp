@@ -58,8 +58,6 @@ static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SQWORD MIN(SQWORD a, SQWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 
-static inline SQWORD ABS(SQWORD a) { return 0 < a ? a : -a; }
-
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
 #define DWORD_BITS  (32)
@@ -176,27 +174,6 @@ static inline DOUBLE inputFP(void)
 }
 
 /*----------------------------------------------*/
-/*----------------------------------------------*/
-
-/*----------------------------------------------*/
-
-struct ST_TIMETABLE {
-    SQWORD sqDst;
-    SQWORD sqC;
-    SQWORD sqD;
-
-    ST_TIMETABLE(SQWORD dst, SQWORD c, SQWORD d): sqDst(dst), sqC(c), sqD(d) {};
-};
-
-struct ST_CITY_ARRIVAL_INFO {
-    SQWORD sqCityIdx;
-    SQWORD sqTime;
-};
-
-bool operator> (const ST_CITY_ARRIVAL_INFO &a, const ST_CITY_ARRIVAL_INFO &b)
-{
-    return a.sqTime > b.sqTime;
-}
 
 /*----------------------------------------------*/
 

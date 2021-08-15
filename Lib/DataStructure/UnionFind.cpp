@@ -24,7 +24,7 @@ typedef struct {
     }
 
     DWORD ufGetCnt(DWORD sqIdx) {
-        return vdwCnt[ufGetParent(sqIdx)];
+        return vdwCnt[ufGetRoot(sqIdx)];
     }
 
 
