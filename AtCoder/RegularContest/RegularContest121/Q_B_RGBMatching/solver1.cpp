@@ -12,8 +12,6 @@
 #include <queue>
 #include <set>
 #include <algorithm>
-#include <numeric>
-#include <list>
 using namespace std;
 
 using QWORD  = uint64_t;
@@ -40,9 +38,6 @@ using FLOAT  = float;
 #define MAX_WORD   (0xFFFF)
 #define MAX_BYTE   (0xFF)
 
-#define MAX_DOUBLE      (1.0e+308)
-#define DOUBLE_EPS      (1.0e-12)
-#define MIN_DOUBLE_N    (-1.0e+308)
 
 #define ArrayLength(a)  (sizeof(a) / sizeof(a[0]))
 
@@ -57,27 +52,17 @@ static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SQWORD MIN(SQWORD a, SQWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 static inline DOUBLE ABS(DOUBLE a) {return 0 <= a ? a : -a;}
-
-static const DOUBLE myPI  = 3.14159265358979;
+static inline SQWORD ABS(SQWORD a) {return 0 <= a ? a : -a;}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
 #define DWORD_BITS  (32)
 #define QWORD_BITS  (64)
 
-static inline void inputStringSpSeparated(char *pcStr)
-{
-    char *pcCur = pcStr;
-    for (;;) {
-        char c = getchar();
-        if (('\n' == c) || (EOF == c) || (' ' == c)) {
-            break;
-        }
-        *pcCur = c;
-        pcCur++;
-    }
-    *pcCur = '\0';
-}
+using M_BOOL = bool;
+#define M_TRUE (true)
+#define M_FALSE (false)
+#define DIVISOR (1000000007)
 
 static inline void inputString(char *pcStr)
 {
@@ -98,7 +83,7 @@ static inline SQWORD inputSQWORD(void)
 {
     SQWORD sqNumber = 0;
     SQWORD sqMultiplier = 1;
-    bool bRead = false;
+    M_BOOL bRead = M_FALSE;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -109,7 +94,7 @@ static inline SQWORD inputSQWORD(void)
         if (('0' <= c) && (c <= '9')) {
             sqNumber *= 10LL;
             sqNumber += (SQWORD)(c - '0');
-            bRead = true;
+            bRead = M_TRUE;
         } else {
             if (bRead) {
                 return sqNumber * sqMultiplier;
@@ -123,7 +108,7 @@ static inline SDWORD inputSDWORD(void)
 {
     SDWORD lNumber = 0;
     SDWORD lMultiplier = 1;
-    bool bRead = false;
+    M_BOOL bRead = M_FALSE;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -134,7 +119,7 @@ static inline SDWORD inputSDWORD(void)
         if (('0' <= c) && (c <= '9')) {
             lNumber *= 10;
             lNumber += (c - '0');
-            bRead = true;
+            bRead = M_TRUE;
         } else {
             if (bRead) {
                 return lNumber * lMultiplier;
@@ -150,7 +135,7 @@ static inline DOUBLE inputFP(void)
     DOUBLE dMultiplier = 1.0;
     DWORD dwFpCnt = 0;
     DOUBLE *pdCur = &dInt;
-    bool bRead = false;
+    M_BOOL bRead = M_FALSE;
     for (;;) {
         char c = getchar();
         if (!bRead) {
@@ -163,7 +148,7 @@ static inline DOUBLE inputFP(void)
         } else if (('0' <= c) && (c <= '9')) {
             (*pdCur) *= 10;
             (*pdCur) += (DOUBLE)(c - '0');
-            bRead = true;
+            bRead = M_TRUE;
             if (pdCur == &dFrac) {
                 dwFpCnt++;
             }
@@ -175,15 +160,94 @@ static inline DOUBLE inputFP(void)
     }
 }
 
-/*----------------------------------------------*/
+#define DIFF_INF    (100100100100100100)
 
-/*----------------------------------------------*/
-
-/*----------------------------------------------*/
-
-/*----------------------------------------------*/
-
-int main(void)
+static SQWORD getMinDiff(vector<SQWORD> &vsqA, vector<SQWORD> &vsqB)
 {
+    SQWORD sqSizeA = vsqA.size();
+    SQWORD sqSizeB = vsqB.size();
+
+    if ((0 == sqSizeA) || (0 == sqSizeB)) {
+        return DIFF_INF;
+    }
+//    printf("size %lld %lld\n", sqSizeA, sqSizeB);
+
+    SQWORD sqIdxA = 0;
+    SQWORD sqIdxB = 0;
+    SQWORD sqMinDiff = MAX_SQWORD;
+    for (SQWORD sqIdxB = 0; sqIdxB < sqSizeB; sqIdxB++) {
+        if (sqIdxA + 1 < sqSizeA) {
+            sqMinDiff = min(ABS(vsqA[sqIdxA] - vsqB[sqIdxB]), sqMinDiff);
+            if (0 < sqIdxB) {
+                sqMinDiff = min(ABS(vsqA[sqIdxA] - vsqB[sqIdxB - 1]), sqMinDiff);
+            }
+            while ((vsqA[sqIdxA] < vsqB[sqIdxB]) && (sqIdxA + 1 < sqSizeA)) {
+                sqIdxA++;
+//                printf("----   %lld %lld\n", sqIdxA, sqIdxB);
+                sqMinDiff = min(ABS(vsqA[sqIdxA] - vsqB[sqIdxB]), sqMinDiff);
+                if (0 < sqIdxB) {
+                    sqMinDiff = min(ABS(vsqA[sqIdxA] - vsqB[sqIdxB - 1]), sqMinDiff);
+                }
+            }
+        } else {
+//            printf("->--   %lld %lld\n", sqIdxA, sqIdxB);
+            sqMinDiff = min(ABS(vsqA[sqIdxA] - vsqB[sqIdxB]), sqMinDiff);
+            if (0 < sqIdxB) {
+                sqMinDiff = min(ABS(vsqA[sqIdxA] - vsqB[sqIdxB - 1]), sqMinDiff);
+            }
+        }
+    }
+
+    return sqMinDiff;
+}
+
+int main()
+{
+    SQWORD sqN = inputSQWORD();
+
+    vector<SQWORD> vsqR;
+    vector<SQWORD> vsqG;
+    vector<SQWORD> vsqB;
+
+    for (SQWORD sqIdx = 0; sqIdx < sqN * 2; sqIdx++) {
+        SQWORD sqVal = inputSQWORD();
+        string strColor;
+        cin >> strColor;
+        switch(strColor[0]) {
+        case 'R':
+            vsqR.emplace_back(sqVal);
+            break;
+        case 'G':
+            vsqG.emplace_back(sqVal);
+            break;
+        case 'B':
+            vsqB.emplace_back(sqVal);
+            break;
+        default:
+            printf("Oops\n");
+            break;
+        } 
+    }
+    sort(vsqR.begin(), vsqR.end());
+    sort(vsqG.begin(), vsqG.end());
+    sort(vsqB.begin(), vsqB.end());
+
+    SQWORD sqAns = MAX_SQWORD;
+    if ((0 == (vsqR.size() % 2)) && (0 == vsqG.size() % 2)) {
+        sqAns = 0;
+    } else {
+        if (0 < (vsqR.size() % 2)) {
+            if (0 == (vsqG.size() % 2)) {
+                swap(vsqR, vsqG);
+            } else {
+                swap(vsqR, vsqB);
+            }
+        }
+        SQWORD sqCompliant1 = getMinDiff(vsqG, vsqB);
+        SQWORD sqCompliant2 = getMinDiff(vsqR, vsqG) + getMinDiff(vsqR, vsqB);
+        sqAns = min(sqCompliant1, sqCompliant2);
+    }
+    printf("%lld\n", sqAns);
+
     return 0;
 }
