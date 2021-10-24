@@ -1,33 +1,31 @@
 #include "common.h"
 
+#define SEGMENT_DEFAULT_VAL    (MAX_SDWORD)
 /**
  *  セグメント木
  */
 struct SEGMENT_NODE_ST {
     SQWORD sqX;
-    SQWORD sqY;
 
 public:
-    SEGMENT_NODE_ST(SQWORD x, SQWORD y) : sqX(x), sqY(y) {};
-    SEGMENT_NODE_ST() : sqX(0), sqY(0) {};
+    SEGMENT_NODE_ST(SQWORD x) : sqX(x) {};
+    SEGMENT_NODE_ST() : sqX(SEGMENT_DEFAULT_VAL) {};
     static SEGMENT_NODE_ST getInvalidVal()
     {
-        return SEGMENT_NODE_ST{0, 0};
+        return SEGMENT_NODE_ST{SEGMENT_DEFAULT_VAL};
     }
     static SEGMENT_NODE_ST uniteNode(SEGMENT_NODE_ST nodeA,  SEGMENT_NODE_ST nodeB)
     {
         SEGMENT_NODE_ST stRet;
 
-        stRet.sqX = nodeA.sqX + nodeB.sqX;
-        stRet.sqY = max(nodeA.sqY + nodeB.sqX, nodeB.sqY);
+        stRet.sqX = min(nodeA.sqX,nodeB.sqX);
         return stRet;
     }
     void init() {
-        sqX = 0;
-        sqY = 0;
+        sqX = SEGMENT_DEFAULT_VAL;
     }
     void debugPrint() {
-        printf("<%lld %lld> ", sqX, sqY);
+        printf("<%lld> ", sqX);
     }
 };
 
@@ -133,3 +131,6 @@ public:
         return T::uniteNode(sqResL, sqResR);
     }
 };
+
+
+/*----------------------------------------------*/
