@@ -59,6 +59,7 @@ static inline SQWORD MIN(SQWORD a, SQWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 static inline SQWORD ABS(SQWORD a) {return 0 <= a ? a : -a;}
 static inline DOUBLE ABS(DOUBLE a) {return 0 <= a ? a : -a;}
+static inline SQWORD DIV_UP(SQWORD a, SQWORD x) {return (a + (x - 1)) / x;}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -257,143 +258,97 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 /*-----------------------------------------------------*/
 
-/*----------------------------------------------*/
-struct POS_ST {
-    SQWORD sqX;
-    SQWORD sqY;
-
-    POS_ST(SQWORD x, SQWORD y): sqX(x), sqY(y) {};
-};
-
-
-struct DFS_SEARCH_ST {
-    bool aabIsVisited[6][6];
-    bool aabMap[6][6];
-
-    DFS_SEARCH_ST (SQWORD sqBitmap) {
-        for (SQWORD sqX = 0; sqX < 6; sqX++) {
-            for (SQWORD sqY = 0; sqY < 6; sqY++) {
-                aabIsVisited[sqX][sqY] = false;
-                aabMap[sqX][sqY] = false;
-            }
-        }
-
-        for (SQWORD sqBit = 0; sqBit <= 15; sqBit++) {
-            SQWORD sqX = sqBit / 4 + 1;
-            SQWORD sqY = sqBit % 4 + 1;
-            if (sqBitmap & (0x1 << sqBit)) {
-                aabMap[sqX][sqY] = true;
-            }
-        }
-    }
-};
-
-static vector<pair<SQWORD, SQWORD>> vpairSrchDir = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-
-static SQWORD countBlocks(DFS_SEARCH_ST &stSrch, SQWORD sqCurX, SQWORD sqCurY)
+/* 垂直+水平 */
+bool judgePatternCombined(SQWORD sqX, SQWORD sqY, SQWORD sqA, SQWORD sqB, SQWORD sqC)
 {
-    if (stSrch.aabIsVisited[sqCurX][sqCurY]) {
-        return 0;
+    /**
+     *   Y--------------
+     *    |      |
+     *    |      |
+     *    |      |------ Y0
+     *    |      |
+     *    0      X0
+     * 
+     */
+    SQWORD sqX0 = DIV_UP(sqA, sqY);
+    if (sqX <= sqX0) {
+        return false;
     }
-    if (!stSrch.aabMap[sqCurX][sqCurY]) {
-        return 0;
+    SQWORD sqY1 = DIV_UP(sqB, sqX - sqX0);
+    if (sqY <= sqY1) {
+        return false;
     }
-
-    SQWORD sqVisitCount = 1;
-    stSrch.aabIsVisited[sqCurX][sqCurY] = true;
-
-    for (auto d: vpairSrchDir) {
-        SQWORD sqNextX = sqCurX + d.first;
-        SQWORD sqNextY = sqCurY + d.second;
-        sqVisitCount += countBlocks(stSrch, sqNextX, sqNextY);
-    }
-    return sqVisitCount;
-}
-
-static SQWORD countOutsides(DFS_SEARCH_ST &stSrch, SQWORD sqCurX, SQWORD sqCurY)
-{
-    if (stSrch.aabIsVisited[sqCurX][sqCurY]) {
-        return 0;
-    }
-    if (stSrch.aabMap[sqCurX][sqCurY]) {
-        return 0;
-    }
-
-    SQWORD sqVisitCount = 1;
-    stSrch.aabIsVisited[sqCurX][sqCurY] = true;
-
-    for (auto d: vpairSrchDir) {
-        SQWORD sqNextX = sqCurX + d.first;
-        SQWORD sqNextY = sqCurY + d.second;
-        if ((0 <= sqNextX) && (sqNextX <= 5) && (0 <= sqNextY) && (sqNextY <= 5)) {
-            sqVisitCount += countOutsides(stSrch, sqNextX, sqNextY);
-        }
-    }
-    return sqVisitCount;
-}
-
-static bool testOnePattern(SQWORD sqBitmap, vector<POS_ST> &villages)
-{
-    DFS_SEARCH_ST stMapInfoIsland(sqBitmap);
-
-    SQWORD sqNumIsland = 0;
-    for (SQWORD sqStartX = 1; sqStartX <= 4; sqStartX++) {
-        for (SQWORD sqStartY = 1; sqStartY <= 4; sqStartY++) {
-            if (1 <= countBlocks(stMapInfoIsland, sqStartX, sqStartY)) {
-                sqNumIsland++;
-            }
-        }
-    }
-    if (1 != sqNumIsland) {
+    SQWORD sqRest = (sqX - sqX0) * (sqY - sqY1);
+    if (sqRest < sqC) {
         return false;
     }
 
-    for (auto v: villages) {
-        SQWORD sqX = v.sqX + 1;
-        SQWORD sqY = v.sqY + 1;
-        if (!stMapInfoIsland.aabMap[sqX][sqY]) {
-            return false;
-        }
-    }
+    return true;   
+}
 
-    DFS_SEARCH_ST stMapInfoOutside(sqBitmap);
-    SQWORD sqNumSea = 0;
-    for (SQWORD sqStartX = 0; sqStartX <= 5; sqStartX++) {
-        for (SQWORD sqStartY = 0; sqStartY <= 5; sqStartY++) {
-            if (1 <= countOutsides(stMapInfoOutside, sqStartX, sqStartY)) {
-                sqNumSea++;
-            }
-        }
-    }
-    if (1 != sqNumSea) {
-//        printf("%04x\n", sqBitmap);
+
+/**
+ *  水平3つ重ね置き 
+ */
+bool judgePatternHorizontal(SQWORD sqX, SQWORD sqY, SQWORD sqA, SQWORD sqB, SQWORD sqC)
+{
+    SQWORD sqX0 = DIV_UP(sqA, sqY);
+    SQWORD sqX1 = DIV_UP(sqB, sqY);
+    SQWORD sqX2 = DIV_UP(sqC, sqY);
+
+    if (sqX < sqX0 + sqX1 + sqX2) {
         return false;
     }
-
     return true;
+}
+
+
+/*----------------------------------------------*/
+int judgeAll(void)
+{
+    SQWORD sqX = inputSQWORD();
+    SQWORD sqY = inputSQWORD();
+    SQWORD sqA = inputSQWORD();
+    SQWORD sqB = inputSQWORD();
+    SQWORD sqC = inputSQWORD();
+
+    if (judgePatternCombined(sqX, sqY, sqA, sqB, sqC)) {
+        return true;
+    }
+    if (judgePatternCombined(sqX, sqY, sqB, sqC, sqA)) {
+        return true;
+    }
+    if (judgePatternCombined(sqX, sqY, sqC, sqA, sqB)) {
+        return true;
+    }
+
+
+    if (judgePatternCombined(sqY, sqX, sqA, sqB, sqC)) {
+        return true;
+    }
+    if (judgePatternCombined(sqY, sqX, sqB, sqC, sqA)) {
+        return true;
+    }
+    if (judgePatternCombined(sqY, sqX, sqC, sqA, sqB)) {
+        return true;
+    }
+
+    if (judgePatternHorizontal(sqX, sqY, sqA, sqB, sqC)) {
+        return true;
+    }
+    if (judgePatternHorizontal(sqY, sqX, sqA, sqB, sqC)) {
+        return true;
+    }
+
+    return false;
 }
 
 int main(void)
 {
-    vector<POS_ST> vstVillages;
-
-    for (SQWORD sqX = 0; sqX < 4; sqX++) {
-        for (SQWORD sqY = 0; sqY < 4; sqY++) {
-            SQWORD sqVal = inputSQWORD();
-            if (1 == sqVal) {
-                vstVillages.emplace_back(sqX, sqY);
-            }
-        }
+    if (judgeAll()) {
+        printf("Yes\n");
+    } else {
+        printf("No\n");
     }
-
-    SQWORD sqAns = 0;
-    for (SQWORD sqBitmap = 0; sqBitmap <= 65535; sqBitmap++) {
-        if (testOnePattern(sqBitmap, vstVillages)) {
-            sqAns++;
-        }
-    }
-
-    printf("%lld\n", sqAns);
-
     return 0;
 }
