@@ -57,9 +57,8 @@ static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
 static inline SQWORD MIN(SQWORD a, SQWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
-static inline SQWORD ABS(SQWORD a) {return 0 <= a ? a : -a;}
-static inline DOUBLE ABS(DOUBLE a) {return 0 <= a ? a : -a;}
-static inline SQWORD DIV_UP(SQWORD a, SQWORD x) {return (a + (x - 1)) / x;}
+
+static inline SQWORD ABS(SQWORD a) {return 0 < a ? a: -a;}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -177,178 +176,110 @@ static inline DOUBLE inputFP(void)
 }
 
 /*----------------------------------------------*/
-/**
- *  mod による操作ライブラリ
- */
-#define ANS_MOD (998244353)
 
-class MODINT {
-    static SQWORD MOD;
-    SQWORD m_x;
 
-public:
-    MODINT(SQWORD val) {
-        m_x = (val % MOD + MOD) % MOD;
-    };
-    MODINT() {
-        m_x = 0;
-    }
-    static void Init(SQWORD sqMod) {
-        MOD = sqMod;
-    }
+/*----------------------------------------------*/
 
-	MODINT& operator+= (const MODINT a)
-    {
-        m_x = (m_x + a.m_x) % MOD; 
-        return *this;
-    };
-	MODINT& operator-= (const MODINT a)
-    { 
-        m_x = (m_x - a.m_x + MOD) % MOD; 
-        return *this;
-    };
-	MODINT& operator*= (const MODINT a)
-    {
-        m_x = (m_x * a.m_x) % MOD;
-        return *this;
-    };
-    MODINT pow(SQWORD t) const {
-        if (!t) return 1;
-        MODINT a = pow(t>>1);
-        a *= a;
-        if (t&1) a *= *this;
-        return a;
-    }
-	MODINT operator+ (const MODINT a) const {
-		MODINT res(*this);
-		return (res += a);
-	}
-	MODINT operator- (const MODINT a) const {
-		MODINT res(*this);
-		return (res -= a);
-	}
-	MODINT operator* (const MODINT a) const {
-		MODINT res(*this);
-		return (res *= a);
-	}
-	MODINT operator/ (const MODINT a) const {
-		MODINT res(*this);
-		return (res /= a);
-	}
 
-    /* 逆元 */
-    MODINT inv() const {
-        return pow(MOD-2);
-    }
-
-    /* 除算 */
-    MODINT& operator/=(const MODINT a) {
-        return (*this) *= a.inv();
-    } 
-
-    /* 整数版 */
-	MODINT& operator+= (const SQWORD a) {*this += MODINT(a); return *this;};
-	MODINT& operator-= (const SQWORD a) {*this -= MODINT(a); return *this;};
-	MODINT& operator*= (const SQWORD a) {*this *= MODINT(a); return *this;};
-	MODINT& operator/= (const SQWORD a) {*this /= MODINT(a); return *this;};
-
-    SQWORD getVal() { return m_x; };
+/*----------------------------------------------*/
+struct EDGE_ST {
+    SQWORD sqTo;
+    SQWORD sqCost;
+    EDGE_ST(SQWORD t, SQWORD c) : sqTo(t), sqCost(c) {};
 };
-SQWORD MODINT::MOD = ANS_MOD;
 
-/*-----------------------------------------------------*/
+static map<pair<SQWORD, SQWORD>, SQWORD> mapEdgeCost;
 
-bool getPathDfs(
-    SQWORD sqFrom, 
-    SQWORD sqCur, 
-    SQWORD sqTarget,
-    const vector<vector<SQWORD>> &vvsqEdge, 
-    vector<SQWORD> &vsqPath)
+SQWORD dfs_first(
+    const vector<vector<EDGE_ST>> &vvstEdge,
+    const vector<SQWORD> &vsqCityCost,
+    SQWORD sqFrom,
+    SQWORD sqCur,
+    SQWORD sqEdgeCost) 
 {
-    if (sqCur == sqTarget) {
-        vsqPath.emplace_back(sqCur);
-        return true;
+    SQWORD sqMaxCost = 0;
+    for (auto e: vvstEdge[sqCur]) {
+        if (e.sqTo != sqFrom) {
+            SQWORD sqSiblingCost = dfs_first(vvstEdge, vsqCityCost, sqCur, e.sqTo, e.sqCost);
+            sqMaxCost = MAX(sqMaxCost, sqSiblingCost);
+        }
     }
+    /* その町で折り返した場合 */
+    sqMaxCost = MAX(sqMaxCost, vsqCityCost[sqCur]);
+    mapEdgeCost[make_pair(sqFrom, sqCur)] = sqMaxCost + sqEdgeCost;
+    return sqMaxCost + sqEdgeCost;
+}
 
-    for (auto e: vvsqEdge[sqCur]) {
-        if (e != sqFrom) {
-            if (getPathDfs(sqCur, e, sqTarget, vvsqEdge, vsqPath)) {
-                vsqPath.emplace_back(sqCur);
-                return true;
-            }
+void dfs_second(
+    const vector<vector<EDGE_ST>> &vvstEdge,
+    const vector<SQWORD> &vsqCityCost,
+    vector<SQWORD> &vsqAns,
+    SQWORD sqFrom,
+    SQWORD sqCur,
+    SQWORD sqFwdEdgeCost) 
+{
+    multiset<SQWORD, greater<SQWORD>> setCosts;
+
+    /* 自分から出るエッジを集計する。 */
+    for (auto e: vvstEdge[sqCur]) {
+        setCosts.insert(mapEdgeCost[make_pair(sqCur, e.sqTo)]);
+    }
+    setCosts.insert(sqFwdEdgeCost);
+    vsqAns[sqCur] = *(setCosts.begin());
+
+    /* 自分のノードで折り返す分を考慮 */
+    setCosts.insert(vsqCityCost[sqCur]);
+
+    SQWORD sqCityMaxCost = 0;
+    for (auto e: vvstEdge[sqCur]) {
+        if (e.sqTo != sqFrom) {
+            /* 今から辿る辺のコストを除外する */
+            setCosts.erase(setCosts.find(mapEdgeCost[make_pair(sqCur, e.sqTo)]));
+
+            SQWORD sqMaxCost = *(setCosts.begin());
+
+            SQWORD sqNextCost = sqMaxCost + e.sqCost;
+            dfs_second(vvstEdge, vsqCityCost, vsqAns, sqCur, e.sqTo, sqNextCost);
+
+            /* 元に戻す */
+            setCosts.insert(mapEdgeCost[make_pair(sqCur, e.sqTo)]);
         }
     }
 
-    return false;
+    return ;
 }
 
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
+    vector<vector<EDGE_ST>>  vvstEdge(sqN);
+    vector<SQWORD> vsqCityCost;
 
-    vector<SQWORD> vsqA;
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        vsqA.emplace_back(sqA - 1);
-    }
-
-    vector<vector<SQWORD>> vvsqEdge(sqN);
-    vector<SQWORD> vsqEdgeCnt(sqN - 1);
-    map<pair<SQWORD, SQWORD>, SQWORD> mapEdge;
     for (SQWORD sqIdx = 0; sqIdx < sqN - 1; sqIdx++) {
-        SQWORD sqU = inputSQWORD();
-        SQWORD sqV = inputSQWORD();
+        SQWORD sqA = inputSQWORD();
+        SQWORD sqB = inputSQWORD();
+        SQWORD sqC = inputSQWORD();
 
-        sqU--;
-        sqV--;
-        vvsqEdge[sqU].emplace_back(sqV);
-        vvsqEdge[sqV].emplace_back(sqU);
-        
-        mapEdge[make_pair(min(sqU, sqV), max(sqU, sqV))] = sqIdx;
+        sqA--;
+        sqB--;
+
+        vvstEdge[sqA].emplace_back(sqB, sqC);
+        vvstEdge[sqB].emplace_back(sqA, sqC);
+    }
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqD = inputSQWORD();
+        vsqCityCost.emplace_back(sqD);
     }
 
+    dfs_first(vvstEdge, vsqCityCost, -1, 0, 0);
+    vector<SQWORD> vsqAns(sqN);
+    dfs_second(vvstEdge, vsqCityCost, vsqAns, -1, 0, 0);
 
-    for (SQWORD sqIdx = 0; sqIdx < vsqA.size() - 1; sqIdx++) {
-        vector<SQWORD> vsqPath;
-        getPathDfs(-1, vsqA[sqIdx], vsqA[sqIdx + 1], vvsqEdge, vsqPath);
-
-        for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < vsqPath.size() - 1; sqEdgeIdx++) {
-            SQWORD sqNodeFrom = min(vsqPath[sqEdgeIdx], vsqPath[sqEdgeIdx + 1]);
-            SQWORD sqNodeTo   = max(vsqPath[sqEdgeIdx], vsqPath[sqEdgeIdx + 1]);
-            vsqEdgeCnt[mapEdge[make_pair(sqNodeFrom, sqNodeTo)]]++;
-        }
+    for (auto a: vsqAns) {
+        printf("%lld ", a);
     }
-
-
-    /**
-     *  dp[i][j]
-     *      i番目までの辺を考慮したとき
-     *      R - B = j となるような塗り分け方の数
-     */
-    #define ANS_MOD (998244353)
-    vector<SQWORD> vsqDpTbl(100001 * 2);
-    vsqDpTbl[100001] = 1;
-    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqN - 1; sqEdgeIdx++) {
-        vector<SQWORD> vsqDpTblNext(100001 * 2);
-        SQWORD sqCount = vsqEdgeCnt[sqEdgeIdx];
-
-        for (SQWORD sqDpIdx = sqCount; sqDpIdx < vsqDpTbl.size() - sqCount; sqDpIdx++) {
-            /* Rで塗る */
-            vsqDpTblNext[sqDpIdx + sqCount] += vsqDpTbl[sqDpIdx];
-
-            /* Bで塗る */
-            vsqDpTblNext[sqDpIdx - sqCount] += vsqDpTbl[sqDpIdx];
-        }
-        for (auto &d: vsqDpTblNext) {
-            d %= ANS_MOD;
-        }
-        swap(vsqDpTbl, vsqDpTblNext);
-    }
-
-    printf("%lld\n", vsqDpTbl[100001 + sqK]);
+    printf("\n");
 
     return 0;
 }

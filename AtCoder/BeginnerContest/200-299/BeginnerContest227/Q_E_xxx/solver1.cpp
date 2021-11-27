@@ -258,97 +258,83 @@ SQWORD MODINT::MOD = ANS_MOD;
 
 /*-----------------------------------------------------*/
 
-bool getPathDfs(
-    SQWORD sqFrom, 
-    SQWORD sqCur, 
-    SQWORD sqTarget,
-    const vector<vector<SQWORD>> &vvsqEdge, 
-    vector<SQWORD> &vsqPath)
-{
-    if (sqCur == sqTarget) {
-        vsqPath.emplace_back(sqCur);
-        return true;
-    }
+/*----------------------------------------------*/
 
-    for (auto e: vvsqEdge[sqCur]) {
-        if (e != sqFrom) {
-            if (getPathDfs(sqCur, e, sqTarget, vvsqEdge, vsqPath)) {
-                vsqPath.emplace_back(sqCur);
-                return true;
-            }
-        }
-    }
+struct POS_ST {
+    SQWORD sqA;
+    SQWORD sqR;
+    SQWORD sqC;
+    SQWORD sqIdx;
 
-    return false;
+    POS_ST (SQWORD a, SQWORD r, SQWORD c, SQWORD i): sqA(a), sqR(r), sqC(c), sqIdx(i) {};
+};
+
+bool operator> (const POS_ST &a, const POS_ST &b) {
+    return a.sqA > b.sqA;
 }
-
 
 int main(void)
 {
+    SQWORD sqH = inputSQWORD();
+    SQWORD sqW = inputSQWORD();
+
+    vector<POS_ST> vNumbers;  
+
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
-
-    vector<SQWORD> vsqA;
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqR = inputSQWORD();
+        SQWORD sqC = inputSQWORD();
         SQWORD sqA = inputSQWORD();
-        vsqA.emplace_back(sqA - 1);
+
+        /* 0-indexed */
+        sqR--;
+        sqC--;
+        vNumbers.emplace_back(sqA, sqR, sqC, sqIdx);
     }
 
-    vector<vector<SQWORD>> vvsqEdge(sqN);
-    vector<SQWORD> vsqEdgeCnt(sqN - 1);
-    map<pair<SQWORD, SQWORD>, SQWORD> mapEdge;
-    for (SQWORD sqIdx = 0; sqIdx < sqN - 1; sqIdx++) {
-        SQWORD sqU = inputSQWORD();
-        SQWORD sqV = inputSQWORD();
+    sort(vNumbers.begin(), vNumbers.end(), greater<POS_ST>());
 
-        sqU--;
-        sqV--;
-        vvsqEdge[sqU].emplace_back(sqV);
-        vvsqEdge[sqV].emplace_back(sqU);
-        
-        mapEdge[make_pair(min(sqU, sqV), max(sqU, sqV))] = sqIdx;
-    }
+    vector<SQWORD> vsqMaxMoveCntRow(sqH, 0);
+    vector<SQWORD> vsqMaxMoveCntCol(sqW, 0);
 
+    vector<SQWORD> vqsAns(sqN);
 
-    for (SQWORD sqIdx = 0; sqIdx < vsqA.size() - 1; sqIdx++) {
-        vector<SQWORD> vsqPath;
-        getPathDfs(-1, vsqA[sqIdx], vsqA[sqIdx + 1], vvsqEdge, vsqPath);
+    vector<pair<SQWORD, SQWORD>> vUpdateListCol;
+    vector<pair<SQWORD, SQWORD>> vUpdateListRow;
 
-        for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < vsqPath.size() - 1; sqEdgeIdx++) {
-            SQWORD sqNodeFrom = min(vsqPath[sqEdgeIdx], vsqPath[sqEdgeIdx + 1]);
-            SQWORD sqNodeTo   = max(vsqPath[sqEdgeIdx], vsqPath[sqEdgeIdx + 1]);
-            vsqEdgeCnt[mapEdge[make_pair(sqNodeFrom, sqNodeTo)]]++;
+    SQWORD sqNumberPrev = -1;
+
+    for (auto number: vNumbers) {
+        SQWORD sqNumber = number.sqA;
+
+        /* update */
+        if (sqNumberPrev != sqNumber) {
+            for (const auto &u: vUpdateListRow) {
+                vsqMaxMoveCntRow[u.first] = MAX(vsqMaxMoveCntRow[u.first], u.second);
+            }
+            for (const auto &u: vUpdateListCol) {
+                vsqMaxMoveCntCol[u.first] = MAX(vsqMaxMoveCntCol[u.first], u.second);
+            }
+            vUpdateListRow.clear();
+            vUpdateListCol.clear();
         }
+
+        SQWORD sqMoveCntRow = vsqMaxMoveCntRow[number.sqR];
+        SQWORD sqMoveCntCol = vsqMaxMoveCntCol[number.sqC];
+        SQWORD sqCurMoveCnt = MAX(sqMoveCntRow, sqMoveCntCol);
+
+        vqsAns[number.sqIdx] = sqCurMoveCnt;
+
+//        printf("%lld [%lld %lld] [%lld %lld] %lld\n", sqNumber, number.sqR, number.sqC, 
+//                                                    sqMoveCntRow, sqMoveCntCol, sqCurMoveCnt);
+
+        vUpdateListRow.emplace_back(make_pair(number.sqR, sqCurMoveCnt + 1));
+        vUpdateListCol.emplace_back(make_pair(number.sqC, sqCurMoveCnt + 1));
+
+        sqNumberPrev = sqNumber;
     }
 
-
-    /**
-     *  dp[i][j]
-     *      i番目までの辺を考慮したとき
-     *      R - B = j となるような塗り分け方の数
-     */
-    #define ANS_MOD (998244353)
-    vector<SQWORD> vsqDpTbl(100001 * 2);
-    vsqDpTbl[100001] = 1;
-    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqN - 1; sqEdgeIdx++) {
-        vector<SQWORD> vsqDpTblNext(100001 * 2);
-        SQWORD sqCount = vsqEdgeCnt[sqEdgeIdx];
-
-        for (SQWORD sqDpIdx = sqCount; sqDpIdx < vsqDpTbl.size() - sqCount; sqDpIdx++) {
-            /* Rで塗る */
-            vsqDpTblNext[sqDpIdx + sqCount] += vsqDpTbl[sqDpIdx];
-
-            /* Bで塗る */
-            vsqDpTblNext[sqDpIdx - sqCount] += vsqDpTbl[sqDpIdx];
-        }
-        for (auto &d: vsqDpTblNext) {
-            d %= ANS_MOD;
-        }
-        swap(vsqDpTbl, vsqDpTblNext);
+    for (const auto &a: vqsAns) {
+        printf("%lld ", a);
     }
-
-    printf("%lld\n", vsqDpTbl[100001 + sqK]);
-
-    return 0;
 }

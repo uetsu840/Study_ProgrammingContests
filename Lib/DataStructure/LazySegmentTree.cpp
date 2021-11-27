@@ -1,8 +1,9 @@
 #include "common.h"
 
-
-#define SQWORD_INF  (100100100100100100)
-#define SEGMENT_INIT_VAL    (0)
+#define SQWORD_INF                  (100100100100100100)
+#define SEGMENT_INIT_VAL            (0)
+#define UPDATE_INIT_VAL             (0)
+#define SEGMENT_INVALID_EVAL_VAL    (SQWORD_INF)
 
 /**
  *  遅延評価セグメント木
@@ -19,18 +20,23 @@ struct SEGMENT_VAL_ST {
     void init(void) {
         sqVal = SEGMENT_INIT_VAL;
     }
-    void updateVal(SQWORD val) {
+    void updateVal(SQWORD val, SQWORD sqMultiplier = 1) {
         sqVal += val;
     }
     void clear() {
         sqVal = 0;
+    }
+    static SEGMENT_VAL_ST getInvalidVal () {
+        SEGMENT_VAL_ST ret;
+        ret.sqVal = SEGMENT_INVALID_EVAL_VAL;
+        return ret;
     }
     static SEGMENT_VAL_ST evaluate(
         const SEGMENT_VAL_ST &a, 
         const SEGMENT_VAL_ST &b)
     {
         SEGMENT_VAL_ST ret;
-        ret.sqVal = a.sqVal + b.sqVal;
+        ret.sqVal = min(a.sqVal, b.sqVal);
         return ret;
     }
     static SEGMENT_VAL_ST update(
@@ -38,8 +44,8 @@ struct SEGMENT_VAL_ST {
         const SEGMENT_VAL_ST &val,
         SQWORD sqMultiplier)
     {
-        SEGMENT_VAL_ST ret;
-        ret.sqVal = lazy.sqVal * sqMultiplier;
+        SEGMENT_VAL_ST ret = val;
+        ret.updateVal(lazy.sqVal, sqMultiplier);
         return ret;
     }
 };
@@ -55,21 +61,20 @@ struct SEGMENT_NODE_ST {
 
 public:
     SEGMENT_NODE_ST () {
-        stVal.init();
-        stLazy.init();
+        stVal = SEGMENT_VAL_ST::getInvalidVal();
+        stLazy = SEGMENT_VAL_ST(UPDATE_INIT_VAL);
         bLazyFlag = false;
     }
 
     SEGMENT_NODE_ST (SQWORD v) {
-        stVal.init();
-        stVal.updateVal(v);
-        stLazy.init();
+        stVal = SEGMENT_VAL_ST(v);
+        stLazy = SEGMENT_VAL_ST(UPDATE_INIT_VAL);
         bLazyFlag = false;
     }
 
     SEGMENT_NODE_ST (SQWORD v, SQWORD l) {
-        stVal.updateVal(v);
-        stLazy.updateVal(l);
+        stVal = SEGMENT_VAL_ST(v);
+        stLazy = SEGMENT_VAL_ST(l);
         bLazyFlag = false;
     }
 
@@ -135,7 +140,7 @@ private:
 
 
     void initSegmentTree(
-        vector<SEGMENT_NODE_ST> &vstInitVal)
+        const vector<SEGMENT_NODE_ST> &vstInitVal)
     {
         /**
          *  最下段のノード数は元配列のサイズ以上になる最小の 2 冪 -> これを n とおく
@@ -229,7 +234,7 @@ public:
     };
 
     /* 元配列 v をセグメント木で表現する */
-    LazySegmentTree(vector<SEGMENT_NODE_ST> init) {
+    LazySegmentTree(const vector<SEGMENT_NODE_ST> &init) {
         initSegmentTree(init);
     }
 };

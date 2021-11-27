@@ -59,7 +59,6 @@ static inline SQWORD MIN(SQWORD a, SQWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 static inline SQWORD ABS(SQWORD a) {return 0 <= a ? a : -a;}
 static inline DOUBLE ABS(DOUBLE a) {return 0 <= a ? a : -a;}
-static inline SQWORD DIV_UP(SQWORD a, SQWORD x) {return (a + (x - 1)) / x;}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -177,178 +176,62 @@ static inline DOUBLE inputFP(void)
 }
 
 /*----------------------------------------------*/
-/**
- *  mod による操作ライブラリ
- */
-#define ANS_MOD (998244353)
-
-class MODINT {
-    static SQWORD MOD;
-    SQWORD m_x;
-
-public:
-    MODINT(SQWORD val) {
-        m_x = (val % MOD + MOD) % MOD;
-    };
-    MODINT() {
-        m_x = 0;
-    }
-    static void Init(SQWORD sqMod) {
-        MOD = sqMod;
-    }
-
-	MODINT& operator+= (const MODINT a)
-    {
-        m_x = (m_x + a.m_x) % MOD; 
-        return *this;
-    };
-	MODINT& operator-= (const MODINT a)
-    { 
-        m_x = (m_x - a.m_x + MOD) % MOD; 
-        return *this;
-    };
-	MODINT& operator*= (const MODINT a)
-    {
-        m_x = (m_x * a.m_x) % MOD;
-        return *this;
-    };
-    MODINT pow(SQWORD t) const {
-        if (!t) return 1;
-        MODINT a = pow(t>>1);
-        a *= a;
-        if (t&1) a *= *this;
-        return a;
-    }
-	MODINT operator+ (const MODINT a) const {
-		MODINT res(*this);
-		return (res += a);
-	}
-	MODINT operator- (const MODINT a) const {
-		MODINT res(*this);
-		return (res -= a);
-	}
-	MODINT operator* (const MODINT a) const {
-		MODINT res(*this);
-		return (res *= a);
-	}
-	MODINT operator/ (const MODINT a) const {
-		MODINT res(*this);
-		return (res /= a);
-	}
-
-    /* 逆元 */
-    MODINT inv() const {
-        return pow(MOD-2);
-    }
-
-    /* 除算 */
-    MODINT& operator/=(const MODINT a) {
-        return (*this) *= a.inv();
-    } 
-
-    /* 整数版 */
-	MODINT& operator+= (const SQWORD a) {*this += MODINT(a); return *this;};
-	MODINT& operator-= (const SQWORD a) {*this -= MODINT(a); return *this;};
-	MODINT& operator*= (const SQWORD a) {*this *= MODINT(a); return *this;};
-	MODINT& operator/= (const SQWORD a) {*this /= MODINT(a); return *this;};
-
-    SQWORD getVal() { return m_x; };
-};
-SQWORD MODINT::MOD = ANS_MOD;
 
 /*-----------------------------------------------------*/
 
-bool getPathDfs(
-    SQWORD sqFrom, 
-    SQWORD sqCur, 
-    SQWORD sqTarget,
-    const vector<vector<SQWORD>> &vvsqEdge, 
-    vector<SQWORD> &vsqPath)
+/*----------------------------------------------*/
+
+/*----------------------------------------------*/
+
+/*----------------------------------------------*/
+
+struct POS_ST {
+    SQWORD sqX;
+    SQWORD sqY;
+    POS_ST(SQWORD x, SQWORD y): sqX(x), sqY(y) {};
+};
+
+bool operator< (const POS_ST &a, const POS_ST &b)
 {
-    if (sqCur == sqTarget) {
-        vsqPath.emplace_back(sqCur);
-        return true;
+    if (a.sqX == b.sqX) {
+        return a.sqY < b.sqY;
     }
-
-    for (auto e: vvsqEdge[sqCur]) {
-        if (e != sqFrom) {
-            if (getPathDfs(sqCur, e, sqTarget, vvsqEdge, vsqPath)) {
-                vsqPath.emplace_back(sqCur);
-                return true;
-            }
-        }
-    }
-
-    return false;
+    return a.sqX < b.sqX;
 }
-
 
 int main(void)
 {
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
 
-    vector<SQWORD> vsqA;
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        vsqA.emplace_back(sqA - 1);
+    vector<POS_ST> vstCityPos;
+
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqX = inputSQWORD();
+        SQWORD sqY = inputSQWORD();
+        vstCityPos.emplace_back(sqX, sqY);   
     }
 
-    vector<vector<SQWORD>> vvsqEdge(sqN);
-    vector<SQWORD> vsqEdgeCnt(sqN - 1);
-    map<pair<SQWORD, SQWORD>, SQWORD> mapEdge;
-    for (SQWORD sqIdx = 0; sqIdx < sqN - 1; sqIdx++) {
-        SQWORD sqU = inputSQWORD();
-        SQWORD sqV = inputSQWORD();
+    set<pair<SQWORD, SQWORD>> setDists;
+    for (SQWORD sqIdxI = 0; sqIdxI < sqN; sqIdxI++) {
+        for (SQWORD sqIdxJ = 0; sqIdxJ < sqN; sqIdxJ++) {
+            if (sqIdxI != sqIdxJ) {
+                const POS_ST &stA = vstCityPos[sqIdxI];
+                const POS_ST &stB = vstCityPos[sqIdxJ];
+                SQWORD sqDiffA = stA.sqX - stB.sqX;
+                SQWORD sqDiffB = stA.sqY - stB.sqY;
+                SQWORD sqDiv = 1;
+                if (0 == sqDiffA) {
+                    sqDiv = ABS(sqDiffB);
+                } else if (0 == sqDiffB) {
+                    sqDiv = ABS(sqDiffA);
+                } else {
+                    sqDiv = __gcd(ABS(sqDiffA), ABS(sqDiffB));
+                }
 
-        sqU--;
-        sqV--;
-        vvsqEdge[sqU].emplace_back(sqV);
-        vvsqEdge[sqV].emplace_back(sqU);
-        
-        mapEdge[make_pair(min(sqU, sqV), max(sqU, sqV))] = sqIdx;
-    }
-
-
-    for (SQWORD sqIdx = 0; sqIdx < vsqA.size() - 1; sqIdx++) {
-        vector<SQWORD> vsqPath;
-        getPathDfs(-1, vsqA[sqIdx], vsqA[sqIdx + 1], vvsqEdge, vsqPath);
-
-        for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < vsqPath.size() - 1; sqEdgeIdx++) {
-            SQWORD sqNodeFrom = min(vsqPath[sqEdgeIdx], vsqPath[sqEdgeIdx + 1]);
-            SQWORD sqNodeTo   = max(vsqPath[sqEdgeIdx], vsqPath[sqEdgeIdx + 1]);
-            vsqEdgeCnt[mapEdge[make_pair(sqNodeFrom, sqNodeTo)]]++;
+                setDists.insert(make_pair(sqDiffA / sqDiv, sqDiffB / sqDiv));
+            }
         }
     }
-
-
-    /**
-     *  dp[i][j]
-     *      i番目までの辺を考慮したとき
-     *      R - B = j となるような塗り分け方の数
-     */
-    #define ANS_MOD (998244353)
-    vector<SQWORD> vsqDpTbl(100001 * 2);
-    vsqDpTbl[100001] = 1;
-    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqN - 1; sqEdgeIdx++) {
-        vector<SQWORD> vsqDpTblNext(100001 * 2);
-        SQWORD sqCount = vsqEdgeCnt[sqEdgeIdx];
-
-        for (SQWORD sqDpIdx = sqCount; sqDpIdx < vsqDpTbl.size() - sqCount; sqDpIdx++) {
-            /* Rで塗る */
-            vsqDpTblNext[sqDpIdx + sqCount] += vsqDpTbl[sqDpIdx];
-
-            /* Bで塗る */
-            vsqDpTblNext[sqDpIdx - sqCount] += vsqDpTbl[sqDpIdx];
-        }
-        for (auto &d: vsqDpTblNext) {
-            d %= ANS_MOD;
-        }
-        swap(vsqDpTbl, vsqDpTblNext);
-    }
-
-    printf("%lld\n", vsqDpTbl[100001 + sqK]);
-
-    return 0;
+    printf("%lld\n", setDists.size());
 }
+

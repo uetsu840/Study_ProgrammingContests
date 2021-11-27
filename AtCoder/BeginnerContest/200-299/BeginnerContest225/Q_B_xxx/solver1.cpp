@@ -25,7 +25,6 @@ using SWORD  = int16_t;
 using BYTE   = uint8_t;
 using SBYTE  = int8_t;
 using DOUBLE = double;
-using LDOUBLE = long double;
 using FLOAT  = float;
 
 #define MIN_SDWORD (-2147483648)
@@ -50,16 +49,13 @@ using FLOAT  = float;
 static inline DOUBLE MAX(DOUBLE a, DOUBLE b) { return a > b ? a : b; }
 static inline QWORD MAX(QWORD a, QWORD b) { return a > b ? a : b; }
 static inline DWORD MAX(DWORD a, DWORD b) { return a > b ? a : b; }
-static inline SQWORD MAX(SQWORD a, SQWORD b) { return a > b ? a : b; }
 static inline SDWORD MAX(SDWORD a, SDWORD b) { return a > b ? a : b; }
 static inline DOUBLE MIN(DOUBLE a, DOUBLE b) { return a < b ? a : b; }
 static inline QWORD MIN(QWORD a, QWORD b) { return a < b ? a : b; }
 static inline DWORD MIN(DWORD a, DWORD b) { return a < b ? a : b; }
-static inline SQWORD MIN(SQWORD a, SQWORD b) { return a < b ? a : b; }
 static inline SDWORD MIN(SDWORD a, SDWORD b) { return a < b ? a : b; }
 static inline SQWORD ABS(SQWORD a) {return 0 <= a ? a : -a;}
 static inline DOUBLE ABS(DOUBLE a) {return 0 <= a ? a : -a;}
-static inline SQWORD DIV_UP(SQWORD a, SQWORD x) {return (a + (x - 1)) / x;}
 
 #define BYTE_BITS   (8)
 #define WORD_BITS   (16)
@@ -180,7 +176,7 @@ static inline DOUBLE inputFP(void)
 /**
  *  mod による操作ライブラリ
  */
-#define ANS_MOD (998244353)
+#define ANS_MOD (1000000007)
 
 class MODINT {
     static SQWORD MOD;
@@ -256,99 +252,29 @@ public:
 };
 SQWORD MODINT::MOD = ANS_MOD;
 
+/*----------------------------------------------*/
+
 /*-----------------------------------------------------*/
-
-bool getPathDfs(
-    SQWORD sqFrom, 
-    SQWORD sqCur, 
-    SQWORD sqTarget,
-    const vector<vector<SQWORD>> &vvsqEdge, 
-    vector<SQWORD> &vsqPath)
-{
-    if (sqCur == sqTarget) {
-        vsqPath.emplace_back(sqCur);
-        return true;
-    }
-
-    for (auto e: vvsqEdge[sqCur]) {
-        if (e != sqFrom) {
-            if (getPathDfs(sqCur, e, sqTarget, vvsqEdge, vsqPath)) {
-                vsqPath.emplace_back(sqCur);
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-
 int main(void)
 {
+    vector<SQWORD> vsqCandidates;
+    for (SQWORD sqA = 1; sqA < 334; sqA++) {
+        for (SQWORD sqB = 1; sqB < 334; sqB++) {
+            vsqCandidates.emplace_back(3 * sqA + 3 * sqB + 4 * sqA * sqB);
+        }
+    }
+    sort(vsqCandidates.begin(), vsqCandidates.end());
+
+    SQWORD sqAns = 0;
     SQWORD sqN = inputSQWORD();
-    SQWORD sqM = inputSQWORD();
-    SQWORD sqK = inputSQWORD();
-
-    vector<SQWORD> vsqA;
-    for (SQWORD sqIdx = 0; sqIdx < sqM; sqIdx++) {
-        SQWORD sqA = inputSQWORD();
-        vsqA.emplace_back(sqA - 1);
-    }
-
-    vector<vector<SQWORD>> vvsqEdge(sqN);
-    vector<SQWORD> vsqEdgeCnt(sqN - 1);
-    map<pair<SQWORD, SQWORD>, SQWORD> mapEdge;
-    for (SQWORD sqIdx = 0; sqIdx < sqN - 1; sqIdx++) {
-        SQWORD sqU = inputSQWORD();
-        SQWORD sqV = inputSQWORD();
-
-        sqU--;
-        sqV--;
-        vvsqEdge[sqU].emplace_back(sqV);
-        vvsqEdge[sqV].emplace_back(sqU);
-        
-        mapEdge[make_pair(min(sqU, sqV), max(sqU, sqV))] = sqIdx;
-    }
-
-
-    for (SQWORD sqIdx = 0; sqIdx < vsqA.size() - 1; sqIdx++) {
-        vector<SQWORD> vsqPath;
-        getPathDfs(-1, vsqA[sqIdx], vsqA[sqIdx + 1], vvsqEdge, vsqPath);
-
-        for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < vsqPath.size() - 1; sqEdgeIdx++) {
-            SQWORD sqNodeFrom = min(vsqPath[sqEdgeIdx], vsqPath[sqEdgeIdx + 1]);
-            SQWORD sqNodeTo   = max(vsqPath[sqEdgeIdx], vsqPath[sqEdgeIdx + 1]);
-            vsqEdgeCnt[mapEdge[make_pair(sqNodeFrom, sqNodeTo)]]++;
+    for (SQWORD sqIdx = 0; sqIdx < sqN; sqIdx++) {
+        SQWORD sqS = inputSQWORD();
+        if (!binary_search(vsqCandidates.begin(), vsqCandidates.end(), sqS))  {
+            sqAns++;
+//            printf("%lld\n", sqS);
         }
     }
-
-
-    /**
-     *  dp[i][j]
-     *      i番目までの辺を考慮したとき
-     *      R - B = j となるような塗り分け方の数
-     */
-    #define ANS_MOD (998244353)
-    vector<SQWORD> vsqDpTbl(100001 * 2);
-    vsqDpTbl[100001] = 1;
-    for (SQWORD sqEdgeIdx = 0; sqEdgeIdx < sqN - 1; sqEdgeIdx++) {
-        vector<SQWORD> vsqDpTblNext(100001 * 2);
-        SQWORD sqCount = vsqEdgeCnt[sqEdgeIdx];
-
-        for (SQWORD sqDpIdx = sqCount; sqDpIdx < vsqDpTbl.size() - sqCount; sqDpIdx++) {
-            /* Rで塗る */
-            vsqDpTblNext[sqDpIdx + sqCount] += vsqDpTbl[sqDpIdx];
-
-            /* Bで塗る */
-            vsqDpTblNext[sqDpIdx - sqCount] += vsqDpTbl[sqDpIdx];
-        }
-        for (auto &d: vsqDpTblNext) {
-            d %= ANS_MOD;
-        }
-        swap(vsqDpTbl, vsqDpTblNext);
-    }
-
-    printf("%lld\n", vsqDpTbl[100001 + sqK]);
-
+    printf("%lld\n", sqAns);
     return 0;
 }
+
