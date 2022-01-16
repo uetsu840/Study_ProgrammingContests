@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "SplineCurve"
+		}
+    ],
+    "settings": {
+        "files.associations": {
+            "iostream": "cpp",
+            "vector": "cpp"
+        }
+    }
+}
