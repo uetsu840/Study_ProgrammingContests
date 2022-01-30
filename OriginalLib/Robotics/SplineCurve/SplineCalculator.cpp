@@ -178,6 +178,14 @@ static inline DOUBLE inputFP(void)
 
 /*----------------------------------------------*/
 
+static void printVector(vector<DOUBLE> &v) 
+{
+    for (auto d: v) {
+        printf("%0.2f ", d);
+    }
+    printf("\n");
+}
+
 /*-----------------------------------------------------*/
 #include "matrix.h"
 
@@ -200,101 +208,60 @@ private:
     *   unsigned int p : 次数
     *   double t : 計算対象の独立変数
     */
-    double CalcBSplineBasisFunc( const vector<double>& knot, unsigned int j, unsigned int p, double t ) {
-        if ( knot.size() == 0 ) return( NAN );
-
-        // ノット列のデータ長が充分でない場合は nan を返す
-        unsigned int m = knot.size() - 1;
-        if ( m < j + p + 1 ) {
-            printf("          <>%lld %lld %lld\n", m, j, p);
-            return(NAN);
-        } 
-
-        // 正値をとる範囲外ならゼロを返す
-        if ( ( t < knot[j] ) || ( t > knot[j + p + 1] )) {
-            return 0;
-        };
-        // p = 0 かつ knot[j] <= t <= knot[j + p + 1] なら 1 を返す
-        if ( p == 0 ) {
-            return 1;            
-        };
-        // p = 1 の場合、三角の頂点の値は特別扱い
-        if ((p == 1) && (t == knot[j + 1])) {
-            return 1;
-        };
-
-        // 漸化式の計算
-        double d1 = 0.0, d2 = 0.0;
-        double d1_diff = knot[j + p] - knot[j];
-        if (DOUBLE_EPS < d1_diff) {
-            d1 = ( t - knot[j] ) * CalcBSplineBasisFunc( knot, j, p - 1, t ) / d1_diff;
-        }
-        double d2_diff = knot[j + p + 1] - knot[j + 1];
-        if (DOUBLE_EPS < d2_diff) {
-            d2 = ( knot[j + p + 1] - t ) * CalcBSplineBasisFunc( knot, j + 1, p - 1, t ) / d2_diff;
-        }
-        return( d1 + d2 );
-    }
-
-#if 0
-    /**
-     *  @brief  de Boor-Cox の漸化式により B-スプラインを計算する
-     */
-    void calcDeBoorCox(
-        SQWORD sqOrder, 
-        DOUBLE dfT,                     /* x または t の値 */
-        SQWORD *psqSetK, 
-        const vector<DOUBLE> &vdfQ, 
-        vector<DOUBLE> &vdfB)
+    double CalcBSplineBasisFunc2(
+        const vector<double>& knot,
+        vector<double>& vBasis,
+        unsigned int p,
+        double t ) 
     {
-        printf("    :T = %2.2f dim[%d]\n", dfT, m_sqCoxDim);
-        for (SQWORD sqIdx = 0; sqIdx <= m_sqCoxDim; sqIdx++) {
-            vdfB[sqIdx] = 0.0;
-        }
+        SQWORD sqKnotNum = knot.size();
+        vector<DOUBLE> vBasisVal(sqKnotNum - 1);
 
-        for (SQWORD sqIdx = 0; sqIdx < m_sqCoxDim; sqIdx++) {
-            if ((vdfQ[sqIdx] <= dfT) && (dfT < vdfQ[sqIdx + 1])) {
-                vdfB[sqIdx] = 1.0;
-                *psqSetK = sqIdx;
+        /* initialize */
+        for (SQWORD sqKnotIdx = 0; sqKnotIdx < sqKnotNum - 1; sqKnotIdx++) {
+            DOUBLE dTi  = knot[sqKnotIdx];
+            DOUBLE dTin = knot[sqKnotIdx + 1]; 
+            bool bHit = false;
+
+            if ((dTi <= t) && (t < dTin)) {
+                bHit = true;
+            }
+
+            if (bHit) {
+                vBasisVal.at(sqKnotIdx) = 1.0;
+            } else {
+                vBasisVal.at(sqKnotIdx) = 0;
             }
         }
-        if ((vdfQ[m_sqCoxDim - 1] <= dfT) && (dfT <= vdfQ[m_sqCoxDim] + DOUBLE_EPS)) {
-            vdfB[m_sqCoxDim - 1] = 1.0;
-            *psqSetK = m_sqCoxDim - 1;
-        }
 
-        printf("B: ");
-        for (SQWORD sqIdx = 0; sqIdx < vdfB.size(); sqIdx++) {
-            printf("%1.1f ", vdfB[sqIdx]);
-        }
-        printf("\n");
+        /* calc */
+        vector<DOUBLE> vBasisValNext(sqKnotNum - 1);
+        for (SQWORD sqDimCur = 1; sqDimCur <= p; sqDimCur++ ) {
+            for (SQWORD sqKnotIdx = 0; sqKnotIdx < sqKnotNum - 1 - sqDimCur; sqKnotIdx++) {
+                if ((1 == sqDimCur) &&  (t == knot[sqKnotIdx + 1])) {
+                    /* 1次の頂点は特別扱い */
+                    vBasisValNext[sqKnotIdx] = 1.0;
+                } else {
 
-
-
-        for (SQWORD sqCurOrder = 1; sqCurOrder < sqOrder; sqCurOrder++) {
-            vector<DOUBLE> vdfBNext(m_sqCoxDim + 1, 0.0);
-
-            printf("setk: %lld\n", *psqSetK);
-            for (SQWORD sqIdx = 0; sqIdx <= *psqSetK; sqIdx++) {
-                DOUBLE dfA1 = 0.0;
-                DOUBLE dfA2 = 0.0;
-
-                DOUBLE dfA1Div = vdfQ[sqIdx + (sqCurOrder + 1)] - vdfQ[sqIdx + 1];
-                if (DOUBLE_EPS < dfA1Div) {
-                    dfA1 = (vdfQ[sqIdx + (sqCurOrder + 1)] - dfT) * vdfB[sqIdx + 1] / dfA1Div;
+                    // 漸化式の計算
+                    double d1 = 0.0, d2 = 0.0;
+                    double d1_diff = knot[sqKnotIdx + sqDimCur] - knot[sqKnotIdx];
+                    if (DOUBLE_EPS < d1_diff) {
+                        d1 = ( t - knot[sqKnotIdx] ) * vBasisVal[sqKnotIdx] / d1_diff;
+                    }
+                    double d2_diff = knot[sqKnotIdx + sqDimCur + 1] - knot[sqKnotIdx + 1];
+                    if (DOUBLE_EPS < d2_diff) {
+                        d2 = ( knot[sqKnotIdx + sqDimCur + 1] - t ) * vBasisVal[sqKnotIdx + 1] / d2_diff;
+                    }
+                    vBasisValNext[sqKnotIdx] = d1 + d2;                        
                 }
-
-                DOUBLE dfA2Div = vdfQ[sqIdx + sqCurOrder] - vdfQ[sqIdx];
-                if (DOUBLE_EPS < dfA2Div) {
-                    dfA2 = (dfT - vdfQ[sqIdx]) * vdfB[sqIdx] / dfA2Div;
-                }
-                printf("%1.2lf, %1.2lf, %1.2llf %1.2llf\n", dfA1Div, dfA2Div, dfA1, dfA2);
-                vdfBNext[sqIdx] = dfA1 + dfA2;
             }
-            swap(vdfBNext, vdfB);
+            swap(vBasisVal, vBasisValNext);
         }
+        
+        swap(vBasis, vBasisVal);
+        return 0;
     }
-#endif
 
 public:
     void SetParameter(const vector<DOUBLE> &vdfDataX, SQWORD sqOrder) {
@@ -321,24 +288,12 @@ public:
     }
 
     void makeBMatrix() {
-#if 0
-        for (SQWORD sqLine = 0; sqLine < m_vdfDataX.size(); sqLine++) {
-            SQWORD sqSetK;
-            vector<DOUBLE> vdfB(m_sqCoxDim, 0.0);
-
-            DOUBLE dfT = m_vdfDataX[sqLine];
-            calcDeBoorCox(m_sqOrder, dfT, &sqSetK, m_vdfQ, vdfB);
-            for (SQWORD sqIdx = 0; sqIdx < vdfB.size(); ++sqIdx) {
-                m_matBd[sqLine][sqIdx] = vdfB[sqIdx];
-            }
-        }
-#endif
         for (SQWORD sqLine = 0; sqLine < m_vdfDataX.size(); sqLine++) {
             DOUBLE dfT = m_vdfDataX[sqLine];
+            vector<DOUBLE> vBasis;
+            CalcBSplineBasisFunc2(m_vdfQ, vBasis, m_sqOrder, dfT);
             for (SQWORD sqIdx = 0; sqIdx < m_vdfDataX.size() + (m_sqOrder - 1); ++sqIdx) {
-                DOUBLE dfB = CalcBSplineBasisFunc(m_vdfQ, sqIdx, m_sqOrder, dfT);
-                m_matBd[sqLine][sqIdx] = dfB;
-                printf("t:[%1.2f]  %lld %lld: %llf\n", dfT, sqLine, sqIdx, dfB);
+                m_matBd[sqLine][sqIdx] = vBasis[sqIdx];
             }
         }
     }
