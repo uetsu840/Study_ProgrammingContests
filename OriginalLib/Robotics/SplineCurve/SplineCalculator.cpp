@@ -204,7 +204,7 @@ class SplineCaluculator {
 private:
     /**
     *   const vector<double>& knot : ノット列
-    *   unsigned int j : ノット列の開始番号
+    *   vector<double> &vBasis : 係数(OUT)
     *   unsigned int p : 次数
     *   double t : 計算対象の独立変数
     */
@@ -263,11 +263,36 @@ private:
         return 0;
     }
 
+
+    /**
+    *   const vector<double>& knot : ノット列
+    *   vector<double> &vBasis : 係数(OUT)
+    *   unsigned int d : 微分階数
+    *   unsigned int p : 次数
+    *   double t : 計算対象の独立変数
+    */
+    double CalcBSplineBasisDerivative(
+        const vector<double>& knot,
+        vector<double>& vBasis,
+        unsigned int d,
+        unsigned int p,
+        double t ) 
+    {
+        if (0 == d) {
+            SQWORD sqKnotNum = knot.size();
+            vector<DOUBLE> vBasisVal(sqKnotNum - 1);
+            CalcBSplineBasisFunc2(knot, vBasisVal, p-1, t);
+            for (SQWORD sqKnotIdx = 0; sqKnotIdx < sqKnotNum - 1 - sqDimCur; sqKnotIdx++) {
+                DOUBLE d1 = vBasisVal[sqKnotIdx + 1] / 
+            }
+        }
+    
+    }
+
 public:
     void SetParameter(const vector<DOUBLE> &vdfDataX, SQWORD sqOrder) {
         m_vdfDataX = vdfDataX;
         m_sqOrder = sqOrder;
-//        m_sqMatrixDim = vdfDataX.size() + sqOrder * 2;
         m_sqMatrixDim = vdfDataX.size() + (sqOrder - 1);
         m_sqCoxDim = m_sqMatrixDim;
         m_matBd.init(m_sqMatrixDim, m_sqMatrixDim, 0.0);

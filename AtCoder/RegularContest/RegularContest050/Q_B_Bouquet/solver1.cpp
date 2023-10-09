@@ -16,6 +16,7 @@
 #include <list>
 using namespace std;
 
+using SHWORD  = __int128_t;
 using QWORD  = uint64_t;
 using SQWORD = int64_t;
 using DWORD  = uint32_t;
@@ -285,6 +286,27 @@ static bool isConfigurable(
     return false;
 }
 
+static bool isConfigurable2(
+    SQWORD sqJudge,
+    const PROBLEM_ONE *pstProb)
+{
+    SHWORD sqUpper = (SHWORD)(pstProb->sqR - sqJudge) / (pstProb->sqX - (SHWORD)1);
+    SHWORD sqLower = DIV_UP(sqJudge * pstProb->sqY - pstProb->sqB, pstProb->sqY - (SQWORD)1);
+
+    if (sqUpper < 0) {
+        return false;
+    }
+
+
+
+    if (sqLower <= sqUpper) {
+        return true;
+    }
+
+    return false;
+}
+
+
 static SQWORD binarySearch(
     bool (*pfJudge)(SQWORD, const PROBLEM_ONE*),
     SQWORD sqInitLower, 
@@ -306,7 +328,8 @@ static SQWORD binarySearch(
     return sqOk;
 }
 
-#define MAX_ANS ((SQWORD)1000000000000000001)
+#define MAX_ANS ((SQWORD)2000000000000000001)
+                         
 
 int main(void)
 {
@@ -316,7 +339,7 @@ int main(void)
     stProb.sqX = inputSQWORD();
     stProb.sqY = inputSQWORD();
 
-    SQWORD sqAns = binarySearch(isConfigurable, 0, MAX_ANS, &stProb);
+    SQWORD sqAns = binarySearch(isConfigurable2, 0, MAX_ANS, &stProb);
 
     printf("%lld\n", sqAns);
 

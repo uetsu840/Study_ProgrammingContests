@@ -1,2 +1,6 @@
 https://public.vrac.iastate.edu/~oliver/courses/me625/week5b.pdf
+
+
+微分
 https://stackoverflow.com/questions/57507696/b-spline-derivative-using-de-boors-algorithm
+https://math.stackexchange.com/questions/2119503/what-is-the-second-derivative-of-a-b-spline
