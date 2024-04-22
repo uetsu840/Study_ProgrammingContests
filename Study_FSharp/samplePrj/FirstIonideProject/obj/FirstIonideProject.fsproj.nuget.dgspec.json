@@ -1,0 +1,56 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\Tomonobu\\Documents\\home\\WorkAndStudy\\Study_ProgrammingContests\\Study_FSharp\\samplePrj\\FirstIonideProject\\FirstIonideProject.fsproj": {}
+  },
+  "projects": {
+    "C:\\Users\\Tomonobu\\Documents\\home\\WorkAndStudy\\Study_ProgrammingContests\\Study_FSharp\\samplePrj\\FirstIonideProject\\FirstIonideProject.fsproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\Tomonobu\\Documents\\home\\WorkAndStudy\\Study_ProgrammingContests\\Study_FSharp\\samplePrj\\FirstIonideProject\\FirstIonideProject.fsproj",
+        "projectName": "FirstIonideProject",
+        "projectPath": "C:\\Users\\Tomonobu\\Documents\\home\\WorkAndStudy\\Study_ProgrammingContests\\Study_FSharp\\samplePrj\\FirstIonideProject\\FirstIonideProject.fsproj",
+        "packagesPath": "C:\\Users\\Tomonobu\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Tomonobu\\Documents\\home\\WorkAndStudy\\Study_ProgrammingContests\\Study_FSharp\\samplePrj\\FirstIonideProject\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\Tomonobu\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp2.1"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp2.1": {
+            "projectReferences": {}
+          }
+        }
+      },
+      "frameworks": {
+        "netcoreapp2.1": {
+          "dependencies": {
+            "FSharp.Core": {
+              "target": "Package",
+              "version": "[4.6.2, )"
+            },
+            "Microsoft.NETCore.App": {
+              "target": "Package",
+              "version": "[2.1.0, )",
+              "autoReferenced": true
+            }
+          },
+          "imports": [
+            "net461"
+          ],
+          "assetTargetFallback": true,
+          "warn": true
+        }
+      }
+    }
+  }
+}
